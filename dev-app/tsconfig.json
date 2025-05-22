@@ -1,0 +1,4 @@
+{
+  "extends": "../tsconfig.base.json",
+  "include": ["src", "../packages/core/src", "../packages/ui/src", "../packages/theme-default/src", "../packages/theme-default/generate-safelist.js"]
+}

@@ -1,0 +1,10 @@
+{
+  "has_errors": "The interview has errors",
+  "validations": {
+    "required": "This field is required",
+    "max": "Must be at most {{max}} characters",
+    "min": "Must be at least {{min}} characters",
+    "number": "Must be a number",
+    "email": "Must be a valid email"
+  }
+}

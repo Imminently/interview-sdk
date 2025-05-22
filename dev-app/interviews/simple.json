@@ -1,0 +1,38 @@
+{
+  "id": "ec1b688a-f618-498a-b689-f83bf61502d9",
+  "name": "simple",
+  "goal": "1a7c2e03-dec4-4b22-9051-b9653f0298f4",
+  "default": false,
+  "status": "draft",
+  "steps": [
+    {
+      "title": "Step 1",
+      "id": "0e58f58d-3320-4897-8af0-561e1c47d562",
+      "show": "relevant",
+      "time_estimate": 0,
+      "layout": [
+        {
+          "controls": [
+            {
+              "id": "bd36b532-43be-472c-8210-df8156adc6b2",
+              "label": "the person's age",
+              "required": true,
+              "attribute": "the person's age",
+              "type": "text"
+            },
+            {
+              "id": "c8ab9301-b999-4e0f-bd19-83749906bc7a",
+              "label": "the person's suburb",
+              "required": true,
+              "attribute": "the person's suburb",
+              "type": "text"
+            }
+          ],
+          "attributes": []
+        }
+      ]
+    }
+  ],
+  "created": "2025-05-21T00:28:30.067Z",
+  "lastModified": "2025-05-21T00:28:36.895Z"
+}

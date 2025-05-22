@@ -1,0 +1,50 @@
+{
+  "name": "@imminently/interview-sdk-theme-default",
+  "version": "0.1.7",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/imminently/interview-sdk.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**",
+    "tailwind-safelist.js"
+  ],
+  "exclude": [
+    "generate-safelist.js"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./tailwind-safelist": {
+      "require": "./tailwind-safelist.js",
+      "import": "./tailwind-safelist.js"
+    },
+    "./theme.css": {
+      "require": "./dist/theme.css",
+      "import": "./dist/theme.css"
+    }
+  },
+  "scripts": {
+    "generate:safelist": "node generate-safelist.js",
+    "build:css": "tailwindcss -c tailwind.config.js -i ./src/theme.css -o ./dist/theme.css --minify",
+    "build": "tsup src/index.ts && npm run build:css",
+    "dev": "tsup src/index.ts --format esm,cjs --watch",
+    "clean": "rm -rf dist",
+    "bump:patch": "npm version patch --no-git-tag-version",
+    "publish:patch": "npm run build && npm run bump:patch && npm publish"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.3.0"
+  }
+}
