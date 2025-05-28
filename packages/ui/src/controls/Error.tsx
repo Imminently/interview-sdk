@@ -8,12 +8,11 @@ export const Error = ({ id, classNames }: { id: string, classNames?: any }) => {
   const mergedClassNames = themeMerge('Error', classNames);
   if (!error) return null;
 
-  console.log('for field', id, error);
   return (
     <div data-id={id} className={clsx("dcsvly-error-root", mergedClassNames.root)}>
       {Array.isArray(error)
-        ? error.map((err, i) => <div key={i}>{err}</div>)
-        : <div>{error}</div>
+        ? error.map((err, i) => <div key={i}>{err.message}</div>)
+        : <div>{error.message}</div>
       }
     </div>
   );

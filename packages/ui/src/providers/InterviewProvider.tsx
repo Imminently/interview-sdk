@@ -13,12 +13,14 @@ export const InterviewProvider = ({ interview, children }: InterviewProviderProp
   const [errors, setErrors] = useState<Record<string, any>>({});
   const [fields, setFields] = useState<Record<string, any>>({});
   const setValue = (id: string, value: any) => {
+    console.log('setValue', id, value, fields)
     if (fields[id]) {
       const validateFn = fields[id].validate;
       const zodSchema = typeof validateFn === 'function' ? validateFn() : validateFn;
       const result = zodSchema.safeParse(value);
+      console.log('result', result)
       if (!result.success) {
-        setErrors(prevErrors => ({ ...prevErrors, [id]: result.error.errors[0].message }));
+        setErrors(prevErrors => ({ ...prevErrors, [id]: result.error.errors }));
         return;
       } else {
         setErrors(prevErrors => {
@@ -40,8 +42,8 @@ export const InterviewProvider = ({ interview, children }: InterviewProviderProp
   }
 
   const registerField = (field: any) => {
-    if (field.defaultValue) {
-      setValue(field.name, field.defaultValue);
+    if (typeof field.defaultValue !== 'undefined') {
+      setValues(prevValues => ({ ...prevValues, [field.name]: field.defaultValue }));
     }
     setFields(prevFields => ({ ...prevFields, [field.name]: field }));
   }
@@ -52,7 +54,6 @@ export const InterviewProvider = ({ interview, children }: InterviewProviderProp
       return newFields;
     });
   }
-  console.log('fields at provider', fields);
   return (
     <InterviewContext.Provider value={{ 
       interview, 

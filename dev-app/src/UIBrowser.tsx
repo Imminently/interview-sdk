@@ -1,4 +1,4 @@
-import { BooleanControl, TextControl, InterviewForm, InterviewSteps, ThemeProvider, InterviewProvider } from "@imminently/interview-sdk-ui";
+import { BooleanControl, TextControl, CurrencyControl, InterviewForm, InterviewSteps, ThemeProvider, InterviewProvider, Typography, DateControl, TimeControl, DateTimeControl } from "@imminently/interview-sdk-ui";
 import React, { useState } from "react";
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
@@ -21,7 +21,13 @@ const components = [
         "name": "BooleanControl",
         component: BooleanControl,
         defaultProps: {
-          label: "Do you agree?"
+          "control": {  
+            "id": "bd36b532-43be-472c-8210-df8156adc6b2",
+            "label": "Is valid?",
+            "required": true,
+            "attribute": "6824275a-4401-44dd-be1b-748dc9dab367",
+            "type": "boolean"
+          }      
         }
       },
       {
@@ -33,8 +39,70 @@ const components = [
             "label": "Your name?",
             "required": true,
             "attribute": "45b7e033-b12d-4356-b4c9-00687101c1f2",
+            "type": "text"
+          }
+        }
+      },
+      {
+        "name": "CurrencyControl",
+        component: CurrencyControl,
+        defaultProps: {
+          "control": {  
+            "id": "bd36b532-43be-472c-8210-df8156adc6b2",
+            "label": "The amount?",
+            "required": true,
+            "attribute": "7339fddd-7e07-4ae0-b6f4-6bb193bcd41f",
+            "type": "currency",
+            "symbol": "$"
+          }
+        }
+      },
+      {
+        "name": "DateControl",
+        component: DateControl,
+        defaultProps: {
+          "control": {  
+            "id": "bd36b532-43be-472c-8210-df8156adc6b2",
+            "label": "The date?",
+            "required": true,
+            "attribute": "52b3f115-05f2-4f1f-adfb-a01d998322f5",
+            "type": "date"
+          }
+        }
+      },{
+        "name": "TimeControl",
+        component: TimeControl,
+        defaultProps: {
+          "control": {  
+            "id": "bd36b532-43be-472c-8210-df8156adc6b2",
+            "label": "The time?",
+            "required": true,
+            "attribute": "52b3f115-05f2-4f1f-adfb-a01d998322f5",
+            "type": "time"
+          }
+        }
+      },
+      {
+        "name": "DateTimeControl",
+        component: DateTimeControl,
+        defaultProps: {
+          "control": {  
+            "id": "bd36b532-43be-472c-8210-df8156adc6b2",
+            "label": "The date and time?",
+            "required": true,
+            "attribute": "c43d374d-dc5c-4fff-b284-fc502f7dc5bf",
+            "type": "datetime"
+          }
+        }
+      }, {
+        "name": "Typography",
+        component: Typography,
+        defaultProps: {
+          "control": {  
+            "id": "bd36b532-43be-472c-8210-df8156adc6b2",
+            "text": "Hello world!",
             "type": "text",
-            "value": "John"
+            "style": "h1"
           }
         }
       }

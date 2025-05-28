@@ -50,7 +50,6 @@ function findStylesFiles(dir) {
 
 function extractClassStringsFromFile(filePath) {
   const content = fs.readFileSync(filePath, 'utf8');
-  console.log(content);
   // This regex matches: key: 'class1 class2 ...'
   const regex = /['"`]([a-zA-Z0-9\[\]\/\-\._\s:]+)['"`]/g;
   let match;
@@ -60,7 +59,6 @@ function extractClassStringsFromFile(filePath) {
 }
 
 const stylesFiles = findStylesFiles(stylesDir);
-console.log(stylesFiles);
 stylesFiles.forEach(extractClassStringsFromFile);
 
 const sortedClasses = Array.from(classSet).sort();

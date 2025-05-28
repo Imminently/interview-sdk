@@ -1,10 +1,14 @@
 import React, { createContext, useContext } from 'react';
 import { HelpIcon } from '../icons/HelpIcon';
+import { Checked } from '../icons/Checked';
+import { IndeterminateCheck } from '../icons/IndeterminateCheck';
 const ThemeContext = createContext<any | undefined>(undefined);
 type IconMap = Record<string, React.ComponentType<{ className?: string }>>;
 
 const DefaultIcons: IconMap = {
   help: HelpIcon,
+  checked: Checked,
+  indeterminateCheck: IndeterminateCheck,
 };
 
 interface ThemeProviderProps {

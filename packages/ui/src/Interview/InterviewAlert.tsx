@@ -8,7 +8,6 @@ export const InterviewAlert = (props: any) => {
   const mergedClassName = themeMerge('InterviewAlert', classNames);
   let { errors } = useInterview();
   if (!errors || isEmpty(errors)) return null;
-  console.log('errors', errors);
   return (
     <div className={clsx('dcsvly-alert', mergedClassName.root, className)}>
       <h1>{t('has_errors')}</h1>
