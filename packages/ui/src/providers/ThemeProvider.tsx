@@ -1,6 +1,6 @@
 import React, { createContext, PropsWithChildren, ReactNode, useContext } from 'react';
 import { HelpCircleIcon } from 'lucide-react';
-import { RenderableControlType } from '@/core';
+import { RenderableControlType } from '@imminently/interview-sdk';
 
 export type Theme = Record<string, any>;
 export type IconMap = Record<string, React.ComponentType<{ className?: string }>>;

@@ -1,10 +1,10 @@
 import React, { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import type { Session, ControlsValue, ManagerOptions, ManagerState } from "@/core";
-import { SessionManager } from "@/core";
+import type { Session, ControlsValue, ManagerOptions, ManagerState } from "@imminently/interview-sdk";
+import { SessionManager } from "@imminently/interview-sdk";
 import { IconMap, InterviewControls, Theme, ThemeProvider } from "../providers/ThemeProvider";
 import InterviewDebugPanel from "./InterviewDebugPanel";
-import { AttributeNestingProvider } from "@/ui/providers";
+import { AttributeNestingProvider } from "@//providers";
 import { InterviewLayout } from "./InterviewLayout";
 
 export type InterviewContextState = {

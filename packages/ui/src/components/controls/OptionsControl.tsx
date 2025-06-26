@@ -1,6 +1,6 @@
 // Note `options` is a special type that could be select or radio buttons
 // this component is used to determine the type of control to render based on the options provided
-import { OptionsControl } from '@/core';
+import { OptionsControl } from '@imminently/interview-sdk';
 import { SelectFormControl } from './SelectControl';
 import { RadioFormControl } from './RadioControl';
 

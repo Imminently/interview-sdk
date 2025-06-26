@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useFormContext } from "react-hook-form";
 import { Slot } from "@radix-ui/react-slot";
-import { cn } from "@/ui/util";
+import { cn } from "@//util";
 import { useInterview } from "../InterviewContext";
 export interface InterviewNextProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;

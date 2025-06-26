@@ -1,10 +1,10 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { cn } from "@/ui/util";
+import { cn } from "@//util";
 import { InterviewForm } from "./InterviewForm";
-import { SidebarInset } from "@/ui/components/ui/sidebar";
+import { SidebarInset } from "@//components/ui/sidebar";
 import { InterviewBack } from "./InterviewBack";
-import { Button } from "@/ui/components/ui/button";
+import { Button } from "@//components/ui/button";
 import { InterviewNext } from "./InterviewNext";
 import { useInterview } from "../InterviewContext";
 

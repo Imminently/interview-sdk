@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { cn } from "@/ui/util";
+import { cn } from "@//util";
 import { useInterview } from "../InterviewContext";
 
 export interface InterviewLoadingProps extends React.HTMLAttributes<HTMLDivElement> {

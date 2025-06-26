@@ -1,9 +1,9 @@
 import { type AxiosInstance, type AxiosRequestConfig } from "axios";
-import { set } from "lodash";
-import get from "lodash/get";
-import isEmpty from "lodash/isEmpty";
-import isEqual from "lodash/isEqual";
-import debounce from "lodash/debounce";
+import set from "lodash-es/set";
+import get from "lodash-es/get";
+import isEmpty from "lodash-es/isEmpty";
+import isEqual from "lodash-es/isEqual";
+import debounce from "lodash-es/debounce";
 import pako from "pako";
 import {
   type AttributeValues,

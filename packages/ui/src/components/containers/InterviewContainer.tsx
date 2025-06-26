@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import type { RenderableInterviewContainerControl } from "@/core";
-import { useInterview } from "@/ui";
+import type { RenderableInterviewContainerControl } from "@imminently/interview-sdk";
+import { useInterview } from "@/interview";
 import { RenderControl } from "../RenderControl";
 
 export const InterviewContainer = ({ control }: { control: RenderableInterviewContainerControl }) => {

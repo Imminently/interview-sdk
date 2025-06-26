@@ -1,9 +1,9 @@
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
 import { Button } from "../ui/button";
 import { HelpCircle } from "lucide-react";
-import { useInterview } from "@/ui";
+import { useInterview } from "@/";
 import clsx from "clsx";
-import { CertaintyContainerControl, Control, DataContainerControl, DocumentControl, GenerativeChatControl, ImageControl, NumberOfInstancesControl, RepeatingContainerControl, SwitchContainerControl, TypographyControl } from "@/core";
+import { CertaintyContainerControl, Control, DataContainerControl, DocumentControl, GenerativeChatControl, ImageControl, NumberOfInstancesControl, RepeatingContainerControl, SwitchContainerControl, TypographyControl } from "@imminently/interview-sdk";
 
 // Omit control types that do not have explanations
 type ExplanationControl = Exclude<Control, ImageControl | NumberOfInstancesControl | TypographyControl | DocumentControl | GenerativeChatControl | RepeatingContainerControl | CertaintyContainerControl | SwitchContainerControl | DataContainerControl>;

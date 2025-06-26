@@ -1,5 +1,5 @@
-import { InterviewControl } from "@/ui/interview/InterviewControl";
-import { TimeControl } from "@/core";
+import { InterviewControl } from "@//interview/InterviewControl";
+import { TimeControl } from "@imminently/interview-sdk";
 import { Time } from "../ui/time";
 import { FormControl, FormLabel, FormMessage } from "../ui/form";
 import { Explanation } from "./Explanation";

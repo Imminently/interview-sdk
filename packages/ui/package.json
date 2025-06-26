@@ -30,6 +30,7 @@
     "publish:patch": "npm run bump:patch && npm publish"
   },
   "dependencies": {
+    "@imminently/interview-sdk": "^0.1.0",
     "@radix-ui/react-checkbox": "^1.2.3",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",

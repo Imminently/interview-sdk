@@ -1,10 +1,10 @@
 import { UseControllerReturn } from "react-hook-form";
 import { Checkbox } from "../ui/checkbox";
 import { Explanation } from "./Explanation";
-import { InterviewControl } from "@/ui/interview/InterviewControl";
+import { InterviewControl } from "@//interview/InterviewControl";
 import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
-import { BooleanControl } from "@/core";
-import { useTheme } from "@/ui/providers/ThemeProvider";
+import { BooleanControl } from "@imminently/interview-sdk";
+import { useTheme } from "@//providers/ThemeProvider";
 
 const DefaultBooleanControl = ({ field }: UseControllerReturn) => {
   const { value, onChange } = field;

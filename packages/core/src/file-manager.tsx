@@ -1,7 +1,7 @@
 import { type AxiosInstance } from "axios";
 import { tryCatch } from "./try-catch";
 import { getIdFromFileAttributeRef } from "./types";
-import get from "lodash/get";
+import get from "lodash-es/get";
 import { buildUrl, createApiInstance } from "./util";
 
 const LogGroup = "FileManager";

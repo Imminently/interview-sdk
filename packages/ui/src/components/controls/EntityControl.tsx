@@ -1,13 +1,13 @@
-import { type Control, instanceControl, uuid } from "@/core";
+import { type Control, instanceControl, uuid } from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { Controller, get, set, useFieldArray, useFormContext } from "react-hook-form";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
-import { cn } from "@/ui/util";
+import { cn } from "@//util";
 import { useAttributeToFieldName } from "../../util/attribute-to-field-name";
 import { RenderControl } from "../RenderControl";
-import { AttributeNestingProvider } from "@/ui/providers";
+import { AttributeNestingProvider } from "@//providers";
 
 export const EntityFormControl = (props: any) => {
   const { control, className } = props;
