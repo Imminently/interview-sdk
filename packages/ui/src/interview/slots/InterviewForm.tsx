@@ -1,0 +1,80 @@
+import React, { forwardRef, useEffect } from "react";
+import { useFormContext } from "react-hook-form";
+import { Slot } from "@radix-ui/react-slot";
+import { useInterview } from "../InterviewContext";
+import { getCurrentStep, RenderableControl, Step } from "@/core";
+import { RenderControl } from "@/ui/components/RenderControl";
+
+// TODO this only exists for getCurrentStep which is a recursive search
+export const DEFAULT_STEP: Step = {
+  complete: false,
+  context: { entity: "" },
+  current: false,
+  id: "",
+  skipped: false,
+  title: "",
+  visitable: true,
+  visited: false,
+  steps: [],
+};
+
+export interface InterviewFormProps extends React.ButtonHTMLAttributes<HTMLFormElement> {
+  asChild?: boolean;
+  children?: React.ReactNode;
+  className?: string;
+  /** applicable only to nested interviews */
+  subinterviewRequired?: boolean;
+}
+
+const Controls = ({ controls }: { controls: RenderableControl[] }) => {
+  // pre-fixing key with index, as repeat contains will cause multiple controls with the same id
+  return (
+    <div data-slot={"controls"} className="flex flex-col gap-4">
+      {controls.map((control, index) => <RenderControl key={`${index}-${control.id}`} control={control} />)}
+    </div>
+  );
+}
+
+const InterviewForm = ({ asChild, children, className, subinterviewRequired = false, ...props }: InterviewFormProps) => {
+  const methods = useFormContext();
+  const { manager, session } = useInterview();
+  const { steps, screen } = session;
+
+  const step = getCurrentStep({ ...DEFAULT_STEP, steps });
+
+  const { watch } = methods;
+
+  // this exists to update internals, dynamic values and calculate unknowns
+  // this means is important we get the session to update and re-render the form
+  useEffect(() => {
+    const subscription = watch((value, { type }) => {
+      if (type === "change") {
+        // onControlDataChange?.(get(value, name), name);
+        manager.onScreenDataChange(value);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
+  if (!screen) return null;
+  const pageTitle = screen.title || step?.title || "";
+  const Comp = asChild ? Slot : "form";
+
+  return (
+    <Comp {...props} className={className} data-slot={"form"}>
+      {
+        children ?? (
+          <div data-slot={"ContentForm"}>
+            <h4 data-slot={"heading"} className="text-2xl font-semibold mb-6">
+              {pageTitle}
+            </h4>
+            <Controls controls={screen.controls} />
+          </div>
+        )
+      }
+    </Comp>
+  );
+};
+
+export { InterviewForm };

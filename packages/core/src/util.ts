@@ -1,13 +1,8 @@
 import { format, parseISO } from "date-fns";
 import { v4 as baseUuid } from "uuid";
-import type {
-  AttributeValues,
-  Control,
-  EntityControlInstance,
-  RenderableEntityControl,
-  Session,
-  State,
-} from "./types";
+import type { AttributeValues, Control, EntityControlInstance, RenderableEntityControl, ResponseData, Session, State } from "./types";
+import axios, { type AxiosRequestConfig, type AxiosRequestTransformer } from "axios";
+import { replaceTemplatedText } from "./helpers";
 
 export const uuid = baseUuid;
 
@@ -19,19 +14,63 @@ export const range = (size: number, startAt = 0) => {
   return [...Array(size).keys()].map((i) => i + startAt);
 };
 
-export const stateToData = (state: State[]): AttributeValues => {
-  return Object.keys(state).reduce((acc: AttributeValues, key) => {
-    acc[key] = state.find((s) => s.id === key)?.value;
-    return acc;
-  }, {});
-};
-
 export const isStrNotNullOrBlank = (str: any): boolean => !/^\s*$/.test(str || "");
 export const isStrNullOrBlank = (str: any): boolean => !isStrNotNullOrBlank(str);
 
+export const createApiInstance = (baseURL: string, overrides: AxiosRequestConfig = {}) => {
+  const { transformRequest = [] } = overrides;
+  return axios.create({
+    baseURL,
+    timeout: 30000,
+    headers: { "Content-Type": "application/json" },
+    transformRequest: [
+      ...(transformRequest as AxiosRequestTransformer[]),
+      ...(axios.defaults.transformRequest as AxiosRequestTransformer[]),
+    ],
+    ...overrides,
+  });
+};
+
+export const deepClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));
+
+export const transformResponse = (session: Session, data: ResponseData): ResponseData => {
+  const newData = deepClone(data);
+  if (session.data["@parent"]) {
+    newData["@parent"] = session.data["@parent"];
+  }
+
+  for (const control of session.screen.controls) {
+    if (control.type === "number_of_instances") {
+      const value = newData[control.entity];
+      newData[control.entity] = range(Number(value)).map((i) => ({ "@id": uuid() }));
+    }
+  }
+  return newData;
+};
+
+// transform an object into a flat object with . delimited keys
+export const flattenObject = (obj: any, delimiter = ".", parentKey = "", result: any = {}) => {
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      flattenObject(obj[i], delimiter, parentKey ? `${parentKey}${delimiter}${i}` : `${i}`, result);
+    }
+  } else {
+    if (typeof obj !== "object" || obj === null) {
+      result[parentKey] = obj;
+      return result;
+    }
+
+    for (const [key, value] of Object.entries(obj)) {
+      flattenObject(value, delimiter, parentKey ? `${parentKey}${delimiter}${key}` : key, result);
+    }
+  }
+
+  return result;
+};
+
 export const getEntityIds = (entity: string, values: AttributeValues): string[] => {
   const regex = new RegExp(`${entity}\\.(.*)\\.@id`);
-  return Object.entries(values).reduce((ids, [key, value]) => {
+  return Object.entries(flattenObject(values)).reduce((ids, [key, value]) => {
     if (typeof value === "string" && regex.test(key)) {
       ids.push(value);
     }
@@ -129,11 +168,7 @@ export const applyInstancesToEntityControl = (control: RenderableEntityControl, 
   });
 };
 
-export const formatDate = (
-  argument: string | Date | number,
-  dateFormat: string,
-  options?: Parameters<typeof format>[2],
-) => {
+export const formatDate = (argument: string | Date | number, dateFormat: string, options?: any): string => {
   return format(typeof argument === "string" ? parseISO(argument) : argument, dateFormat, options);
 };
 
@@ -203,6 +238,10 @@ export const attributeToPath = <S extends string | undefined>(
     return basePath as S;
   }
 
+  return pathToNested(basePath, values, nested) as S;
+};
+
+export const pathToNested = (basePath: string, values: AttributeValues, nested: boolean): string => {
   const wasNested = basePath.includes(".");
   const parts = basePath.split(/[./]/);
 
@@ -216,42 +255,64 @@ export const attributeToPath = <S extends string | undefined>(
       result.push(part);
       flatResult.push(part);
     } else {
-      if (i === parts.length - 1) {
-        result.push(part);
-        flatResult.push(part);
-      } else {
-        // this is an entity ID
-        const entities: any = flatValues[flatResult.join("/")];
+      // this is an entity ID
+      const entities: any = flatValues[flatResult.join("/")];
 
-        if (Array.isArray(entities)) {
-          if (wasNested) {
-            const index = Number.parseInt(part, 10);
-            flatResult.push(entities[index]["@id"]);
+      if (Array.isArray(entities)) {
+        if (wasNested) {
+          const index = Number.parseInt(part, 10);
+          flatResult.push(entities[index]["@id"]);
 
-            if (!nested) {
-              result.push(entities[index]["@id"]);
-              continue;
-            } else {
-              result.push(index.toString());
-              continue;
-            }
-          }
-
-          const index = entities.findIndex((entity: any) => entity["@id"] === part);
-          if (index >= 0) {
-            result.push(index.toString());
-            flatResult.push(part);
+          if (!nested) {
+            result.push(entities[index]["@id"]);
+            continue;
           } else {
-            result.push(part);
-            flatResult.push(part);
+            result.push(index.toString());
+            continue;
           }
+        }
+
+        const index = entities.findIndex((entity: any) => entity["@id"] === part);
+        if (index >= 0) {
+          result.push(index.toString());
+          flatResult.push(part);
         } else {
           result.push(part);
           flatResult.push(part);
         }
+      } else {
+        result.push(part);
+        flatResult.push(part);
       }
     }
   }
 
-  return result.join(nested ? "." : "/") as S;
+  return result.join(nested ? "." : "/");
+};
+
+export const postProcessControl = (
+  control: any,
+  replacements: any,
+  data: Session["data"],
+  state: State[] | undefined,
+  locale: Session["locale"],
+) => {
+  if (control.templateText) {
+    control.text = replaceTemplatedText(control.templateText, replacements, data, state, locale);
+  }
+  if (control.templateLabel) {
+    control.label = replaceTemplatedText(control.templateLabel, replacements, data, state, locale);
+  }
+  if (control.type === "switch_container" && control.kind === "dynamic" && control.attribute) {
+    const update = replacements[control.attribute];
+    if (update !== undefined) {
+      control.branch = update ? "true" : "false";
+    }
+  }
+  if (control.type === "certainty_container") {
+    const update = replacements[control.attribute];
+    if (update !== undefined) {
+      control.branch = replacements[control.attribute] === null ? "uncertain" : "certain";
+    }
+  }
 };

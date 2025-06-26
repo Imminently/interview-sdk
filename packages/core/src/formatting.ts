@@ -64,12 +64,12 @@ const formatDateTimeDefault = (value: string, type: string | undefined, locale: 
     const formatOptions: Intl.DateTimeFormatOptions = isDate
       ? {}
       : {
-          hour: "2-digit",
-          minute: "2-digit",
-          day: "numeric",
-          month: "numeric",
-          year: "numeric",
-        };
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+      };
     return new Intl.DateTimeFormat([locale, "en-AU"], formatOptions).format(date).toUpperCase().replace(/,/g, "");
   }
   return value;

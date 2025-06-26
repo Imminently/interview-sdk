@@ -1,0 +1,53 @@
+import * as React from "react";
+import { addSeconds, formatDistanceToNow } from "date-fns";
+import { Slot } from "@radix-ui/react-slot";
+import { cn } from "@/ui/util";
+import { useInterview } from "../InterviewContext";
+import { Progress as ProgressData } from "@/core";
+import { Progress } from "@/ui/components/ui/progress";
+
+export interface InterviewProgressProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  asChild?: boolean;
+  children?: React.ReactNode;
+  className?: string;
+}
+
+const DefaultProgress = ({ progress }: { progress: ProgressData }) => {
+  return (
+    <div>
+      <Progress data-slot={"progress-bar"} value={progress.percentage} />
+      <div data-slot={"progress-info"}>
+        <span data-slot={"progress-summary"}>
+          {progress.percentage === 100 ? "Complete" : `Progress ${progress.percentage.toFixed(0)}%`}
+        </span>
+        {progress.time > 0 && (
+          <span data-slot={"progress-summary"}>
+            &nbsp;
+            {`- ${formatDistanceToNow(addSeconds(Date.now(), progress.time))} left`}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const InterviewProgress = ({ asChild, children, className, ...props }: InterviewProgressProps) => {
+  const { state, session } = useInterview();
+  if (state !== "success" && !session) {
+    return null; // Don't render if not in success state
+  }
+  const Comp = asChild ? Slot : DefaultProgress;
+  return (
+    <Comp
+      className={cn(className)}
+      data-slot="progress"
+      slot-progress=""
+      progress={session?.progress || { percentage: 0, time: 0 }}
+      {...props}
+    >
+      {children}
+    </Comp>
+  );
+};
+
+export { InterviewProgress };

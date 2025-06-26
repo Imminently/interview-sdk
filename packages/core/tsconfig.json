@@ -5,5 +5,10 @@
     "declaration": true,
     "declarationDir": "./dist"
   },
-  "include": ["src"]
-} 
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "_deprecated"
+  ]
+}

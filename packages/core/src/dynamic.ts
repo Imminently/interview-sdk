@@ -1,8 +1,7 @@
 import type { AxiosInstance } from "axios";
-import type { AttributeValues, Simulate, State } from "./types";
+import type { AttributeValues, Session, Simulate, State } from "./types";
 import { postSimulate } from "./api";
-import type { SessionInstance } from "./init";
-import { SIDEBAR_DYNAMIC_DATA_INFO } from "./sidebars/sidebar";
+import { SIDEBAR_DYNAMIC_DATA_INFO } from "./sidebars";
 import { createEntityPathedData, getEntityIds } from "./util";
 
 export type UnknownValues = Record<string, Partial<Simulate>>;
@@ -25,7 +24,7 @@ export interface DynamicReplacementQueries {
  * @returns A list of known values, plus preformed requests to be made against the API for the unknown values
  */
 export const buildDynamicReplacementQueries = (
-  session: SessionInstance,
+  session: Session,
   attribValues: AttributeValues,
 ): DynamicReplacementQueries => {
   const state = session.state;
@@ -52,7 +51,7 @@ export const buildDynamicReplacementQueries = (
           resolvedState.push({
             ...stateObj,
             id: stateObj.id.replace("@id", id),
-            dependencies: stateObj.dependencies?.map((dep: any) => {
+            dependencies: stateObj.dependencies?.map((dep) => {
               const result = dep.replace("@id", id);
               if (parent) {
                 return result.replace(`${parent}/`, "");
@@ -207,9 +206,9 @@ export const buildDynamicReplacementQueries = (
   if (sidebars) {
     for (const sidebar of sidebars) {
       if (sidebar.id) {
-        const hasData = sidebar.dynamicAttributes?.some((attr: any) => knownValues[attr] !== undefined);
+        const hasData = sidebar.dynamicAttributes?.some((attr) => knownValues[attr] !== undefined);
         if (hasData) {
-          const dataInfo = (SIDEBAR_DYNAMIC_DATA_INFO as any)[sidebar.type];
+          const dataInfo = SIDEBAR_DYNAMIC_DATA_INFO[sidebar.type];
           if (dataInfo) {
             const responseElements = dataInfo.getResponseElements(sidebar.config);
             if (!sidebarSimulate) {
@@ -245,7 +244,7 @@ export const buildDynamicReplacementQueries = (
 export const simulate = async (
   unKnownValues: Partial<Simulate>[],
   api: AxiosInstance,
-  session: SessionInstance,
+  session: Session,
 ): Promise<AttributeValues> => {
   try {
     const simResAll = (await Promise.all(unKnownValues.map((simReq) => postSimulate(api, session, simReq)))).reduce(

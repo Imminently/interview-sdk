@@ -1,0 +1,18 @@
+{
+  "has_errors": "The interview has errors",
+  "validations": {
+    "required": "This field is required",
+    "max": "Must be at most {{max}} characters",
+    "min": "Must be at least {{min}} characters",
+    "number": "Must be a number",
+    "email": "Must be a valid email",
+    "no_past": "Date cannot be in the past",
+    "no_future": "Date cannot be in the future",
+    "min_date": "Date must be after {{min}}",
+    "max_date": "Date must be before {{max}}",
+    "invalid_date": "Invalid date",
+    "invalid_time": "Invalid time",
+    "invalid_datetime": "Invalid date and time",
+    "invalid_time_range": "Time must be between {{min}} and {{max}}"
+  }
+}
