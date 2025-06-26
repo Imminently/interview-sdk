@@ -1,5 +1,5 @@
 import en from '../i18n/en.json';
-import get from 'lodash/get';
+import get from 'lodash-es/get';
 
 let translateFn: (key: string, params?: Record<string, any>) => string = (key: string, params?: Record<string, any>) => {
   let str = get(en, key, key);

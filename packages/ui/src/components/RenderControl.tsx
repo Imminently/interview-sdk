@@ -1,5 +1,5 @@
 import React from "react";
-import type { Control } from "@imminently/interview-sdk";
+import type { Control } from "@core";
 import Controls from "./controls";
 import Containers from "./containers";
 import { OptionsFormControl } from "./controls/OptionsControl";

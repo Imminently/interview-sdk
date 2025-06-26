@@ -1,5 +1,5 @@
-import { CurrencyControl } from "@imminently/interview-sdk";
-import { InterviewControl } from "@//interview/InterviewControl";
+import { CurrencyControl } from "@core";
+import { InterviewControl } from "@/interview/InterviewControl";
 import { FormControl, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
 import { Explanation } from "./Explanation";

@@ -1,5 +1,5 @@
-import { FileControl } from "@imminently/interview-sdk";
-import { InterviewControl } from "@//interview/InterviewControl";
+import { FileControl } from "@core";
+import { InterviewControl } from "@/interview/InterviewControl";
 import { FormControl, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
 import { Explanation } from "./Explanation";

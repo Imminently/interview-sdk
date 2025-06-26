@@ -1,10 +1,10 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { cn } from "@//util";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@//components/ui/sidebar";
-import { Step } from "@imminently/interview-sdk";
+import { cn } from "@/util";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { Step } from "@core";
 import { useInterview } from "../InterviewContext";
-import { Badge } from "@//components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { CheckIcon } from "lucide-react";
 import { InterviewProgress } from "./InterviewProgress";
 

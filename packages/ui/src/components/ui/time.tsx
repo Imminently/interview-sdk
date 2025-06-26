@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { Input } from "@//components/ui/input"
-import { cn } from "@//util"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/util"
 
 const timeVariants = cva(
   "bg-background",

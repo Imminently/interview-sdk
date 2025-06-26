@@ -1,8 +1,8 @@
 import React from "react";
-import { TypographyControl } from "@imminently/interview-sdk";
+import { TypographyControl } from "@core";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Alert, AlertDescription } from "../ui/alert";
-import { cn } from "@//util";
+import { cn } from "@/util";
 
 type TextVariant = TypographyControl['style'];
 

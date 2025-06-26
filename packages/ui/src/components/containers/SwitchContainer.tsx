@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
-import type { Control, RenderableSwitchContainerControl } from "@imminently/interview-sdk";
+import type { Control, RenderableSwitchContainerControl } from "@core";
 import { RenderControl } from "../RenderControl";
 
 /**

@@ -10,8 +10,8 @@ import {
   type FieldValues
 } from "react-hook-form"
 
-import { Control } from "@imminently/interview-sdk"
-import { cn } from "@//util"
+import { Control } from "@core"
+import { cn } from "@/util"
 import { Label } from "./label"
 
 const Form = FormProvider

@@ -1,7 +1,7 @@
 import {
   type Control, DATE_FORMAT,
   type EntityControl, formatDate
-} from "@imminently/interview-sdk";
+} from "@core";
 import clsx, { ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

@@ -1,5 +1,5 @@
 import { Button, buttonVariants } from "./button"
-import { cn } from "@//util"
+import { cn } from "@/util"
 import { differenceInCalendarDays } from "date-fns"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import * as React from "react"

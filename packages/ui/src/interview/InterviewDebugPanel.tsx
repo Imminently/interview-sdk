@@ -3,7 +3,7 @@ import { useFormContext } from "react-hook-form"
 import { BracesIcon, XIcon } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
-import { cn } from "@//util"
+import { cn } from "@/util"
 
 // Floating Action Button style
 const fabStyle: React.CSSProperties = {

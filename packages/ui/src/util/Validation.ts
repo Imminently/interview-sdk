@@ -5,7 +5,7 @@ import {
   TIME_FORMAT_24,
   formatDate,
   // isFileAttributeValue,
-} from "@imminently/interview-sdk";
+} from "@core";
 import {
   type Field,
   type FieldError,

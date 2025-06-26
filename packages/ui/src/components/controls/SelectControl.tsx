@@ -1,6 +1,6 @@
-import { OptionsControl } from "@imminently/interview-sdk";
+import { OptionsControl } from "@core";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
-import { InterviewControl } from "@//interview/InterviewControl";
+import { InterviewControl } from "@/interview/InterviewControl";
 import { FormLabel, FormMessage } from "../ui/form";
 
 export const SelectFormControl = ({ control }: { control: OptionsControl }) => {
