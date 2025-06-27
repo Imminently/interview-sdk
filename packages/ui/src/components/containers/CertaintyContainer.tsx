@@ -1,4 +1,4 @@
-import type { RenderableCertaintyContainerControl } from "@core";
+import type { RenderableCertaintyContainerControl } from "@imminently/interview-sdk";
 import { RenderControl } from "../RenderControl";
 
 export const CertaintyContainer = ({ control, className }: { control: RenderableCertaintyContainerControl, className?: string }) => {

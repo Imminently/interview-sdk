@@ -1,7 +1,7 @@
 import React, { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import type { Session, ControlsValue, ManagerOptions, ManagerState } from "@core";
-import { SessionManager } from "@core";
+import type { Session, ControlsValue, ManagerOptions, ManagerState } from "@imminently/interview-sdk";
+import { SessionManager } from "@imminently/interview-sdk";
 import { IconMap, InterviewControls, Theme, ThemeProvider } from "../providers/ThemeProvider";
 import InterviewDebugPanel from "./InterviewDebugPanel";
 import { AttributeNestingProvider } from "@/providers";
@@ -90,12 +90,21 @@ export const InterviewProvider = ({ options, theme, icons, slots, children }: In
 
   const { session } = snapshot;
 
+  // Render children or default layout
+  // workaround for react 19, as react-hook-form appears to still be using react 18 which breaks the ReactNode type
+  const renderContent = () => {
+    if (children) {
+      return <>{children}</>;
+    }
+    return <InterviewLayout key={session?.screen.id} />;
+  };
+
   return (
     <ThemeProvider theme={theme} icons={icons} controls={slots}>
       <InterviewContext.Provider value={value}>
         <AttributeNestingProvider value={false}>
           <FormProvider {...methods}>
-            {children ?? <InterviewLayout key={session?.screen.id} />}
+            {renderContent()}
             {options.debug ? <InterviewDebugPanel /> : null}
           </FormProvider>
         </AttributeNestingProvider>

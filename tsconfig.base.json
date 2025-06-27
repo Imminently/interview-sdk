@@ -18,15 +18,6 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": false,
-    "baseUrl": ".",
-    "paths": {
-      "@core": [
-        "./packages/core/src"
-      ],
-      "@core/*": [
-        "./packages/core/src/*"
-      ]
-    }
   },
   "exclude": [
     "node_modules"

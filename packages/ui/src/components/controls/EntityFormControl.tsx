@@ -1,4 +1,4 @@
-import { type Control, RenderableEntityControl, uuid } from "@core";
+import { type Control, RenderableEntityControl, uuid } from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
 import React, { useEffect } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";

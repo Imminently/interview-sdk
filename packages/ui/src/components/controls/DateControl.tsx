@@ -1,4 +1,4 @@
-import { DateControl } from "@core";
+import { DateControl } from "@imminently/interview-sdk";
 import { InterviewControl } from "@/interview/InterviewControl";
 import { FormControl, FormLabel, FormMessage } from "../ui/form";
 import { DatePicker } from "../ui/date-picker";

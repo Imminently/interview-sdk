@@ -22,14 +22,15 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "tsup src/index.ts",
-    "dev": "tsup src/index.ts --format esm,cjs --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "lint": "eslint src/",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "bump:patch": "npm run build &&npm version patch --no-git-tag-version",
     "publish:patch": "npm run bump:patch && npm publish"
   },
   "dependencies": {
+    "@imminently/interview-sdk": "workspace:^",
     "@radix-ui/react-checkbox": "^1.2.3",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -63,16 +64,6 @@
     "zod": "^3.24.4"
   },
   "devDependencies": {
-    "@types/lodash-es": "^4.17.12",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3",
-    "eslint": "^9.26.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.7.2"
-  },
-  "peerDependencies": {
-    "@imminently/interview-sdk": "^0.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@types/lodash-es": "^4.17.12"
   }
 }

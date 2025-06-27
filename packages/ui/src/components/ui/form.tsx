@@ -10,7 +10,7 @@ import {
   type FieldValues
 } from "react-hook-form"
 
-import { Control } from "@core"
+import { Control } from "@imminently/interview-sdk"
 import { cn } from "@/util"
 import { Label } from "./label"
 

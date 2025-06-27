@@ -1,4 +1,4 @@
-import { BooleanControl, TextControl, CurrencyControl, InterviewForm, InterviewSteps, ThemeProvider, InterviewProvider, Typography, DateControl, TimeControl, DateTimeControl } from "@imminently/interview-sdk-ui";
+import { BooleanControl, TextControl, CurrencyControl, InterviewForm, InterviewSteps, ThemeProvider, InterviewProvider, Typography, DateControl, TimeControl, DateTimeControl } from "@imminently/interview-ui";
 import React, { useState } from "react";
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
@@ -21,20 +21,20 @@ const components = [
         "name": "BooleanControl",
         component: BooleanControl,
         defaultProps: {
-          "control": {  
+          "control": {
             "id": "bd36b532-43be-472c-8210-df8156adc6b2",
             "label": "Is valid?",
             "required": true,
             "attribute": "6824275a-4401-44dd-be1b-748dc9dab367",
             "type": "boolean"
-          }      
+          }
         }
       },
       {
         "name": "TextControl",
         component: TextControl,
         defaultProps: {
-          "control": {  
+          "control": {
             "id": "bd36b532-43be-472c-8210-df8156adc6b2",
             "label": "Your name?",
             "required": true,
@@ -47,7 +47,7 @@ const components = [
         "name": "CurrencyControl",
         component: CurrencyControl,
         defaultProps: {
-          "control": {  
+          "control": {
             "id": "bd36b532-43be-472c-8210-df8156adc6b2",
             "label": "The amount?",
             "required": true,
@@ -61,7 +61,7 @@ const components = [
         "name": "DateControl",
         component: DateControl,
         defaultProps: {
-          "control": {  
+          "control": {
             "id": "bd36b532-43be-472c-8210-df8156adc6b2",
             "label": "The date?",
             "required": true,
@@ -69,11 +69,11 @@ const components = [
             "type": "date"
           }
         }
-      },{
+      }, {
         "name": "TimeControl",
         component: TimeControl,
         defaultProps: {
-          "control": {  
+          "control": {
             "id": "bd36b532-43be-472c-8210-df8156adc6b2",
             "label": "The time?",
             "required": true,
@@ -86,7 +86,7 @@ const components = [
         "name": "DateTimeControl",
         component: DateTimeControl,
         defaultProps: {
-          "control": {  
+          "control": {
             "id": "bd36b532-43be-472c-8210-df8156adc6b2",
             "label": "The date and time?",
             "required": true,
@@ -98,7 +98,7 @@ const components = [
         "name": "Typography",
         component: Typography,
         defaultProps: {
-          "control": {  
+          "control": {
             "id": "bd36b532-43be-472c-8210-df8156adc6b2",
             "text": "Hello world!",
             "type": "text",
@@ -123,7 +123,7 @@ const components = [
             "visited": false,
             "time_estimate": 0,
             "skipped": false
-          },{
+          }, {
             "id": "0e58f58d-3320-4897-8af0-561e1c47d562",
             "title": "Step 2",
             "current": false,
@@ -133,7 +133,7 @@ const components = [
             "skipped": false
           }]
         }
-      },{
+      }, {
         name: "InterviewForm",
         component: InterviewForm,
         defaultProps: {
@@ -196,8 +196,8 @@ export const UIBrowser = (props: any) => {
   });
   const [error, setError] = useState<string | null>(null);
 
-   // When selected changes, load the saved props for that component (or default)
-   React.useEffect(() => {
+  // When selected changes, load the saved props for that component (or default)
+  React.useEffect(() => {
     const key = getStorageKey(selected);
     setJson(sessionStorage.getItem(key) || JSON.stringify(flatComponents[selected].defaultProps, null, 2));
     setError(null);
@@ -240,9 +240,8 @@ export const UIBrowser = (props: any) => {
                 return (
                   <li key={c.name}>
                     <button
-                      className={`w-full text-left px-2 py-1 rounded mb-1 ${
-                        selected === globalIdx ? 'bg-blue-500 text-white' : 'hover:bg-blue-100'
-                      }`}
+                      className={`w-full text-left px-2 py-1 rounded mb-1 ${selected === globalIdx ? 'bg-blue-500 text-white' : 'hover:bg-blue-100'
+                        }`}
                       onClick={() => setSelected(globalIdx)}
                     >
                       {c.name}

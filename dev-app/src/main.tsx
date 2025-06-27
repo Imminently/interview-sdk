@@ -1,12 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
-import { Playground } from './Playground';
-import { UIBrowser } from './UIBrowser';
+import './styles.css';
+// import { Playground } from './Playground';
+// import { UIBrowser } from './UIBrowser';
+import { InterviewPage } from './Interview';
+
+const RenderPage = ({ page }: { page: string }) => {
+  switch (page) {
+    // case 'uiBrowser':
+    //   return <UIBrowser />;
+    // case 'playground':
+    //   return <Playground />;
+    case 'interview':
+      return <InterviewPage />;
+    default:
+      return (
+        <header>
+          <h1 className="text-4xl font-bold">Dev App</h1>
+          <nav className="flex gap-2 mt-4">
+            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl" onClick={() => setCurrentPage('uiBrowser')}>UI Browser</button>
+            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl" onClick={() => setCurrentPage('playground')}>Playground</button>
+            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl" onClick={() => setCurrentPage('interview')}>Interview</button>
+          </nav>
+        </header>
+      );
+  }
+}
 
 const Wrapper = () => {
   const [currentPage, setCurrentPage] = useState(() => {
-    return sessionStorage.getItem('currentPage') || 'uiBrowser';
+    return "interview";
+    // return sessionStorage.getItem('currentPage') || 'uiBrowser';
   });
 
   useEffect(() => {
@@ -15,7 +39,7 @@ const Wrapper = () => {
 
   return (
     <div>
-      {currentPage === 'playground' ? <Playground setCurrentPage={setCurrentPage}/> : <UIBrowser setCurrentPage={setCurrentPage}/>}
+      <RenderPage page={currentPage} />
     </div>
   )
 };

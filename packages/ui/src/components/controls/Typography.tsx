@@ -1,5 +1,5 @@
 import React from "react";
-import { TypographyControl } from "@core";
+import { TypographyControl } from "@imminently/interview-sdk";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Alert, AlertDescription } from "../ui/alert";
 import { cn } from "@/util";

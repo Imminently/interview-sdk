@@ -22,8 +22,8 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "tsup src/index.ts",
-    "dev": "tsup src/index.ts --format esm,cjs --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "lint": "eslint src/",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "bump:patch": "npm run build &&npm version patch --no-git-tag-version",
@@ -37,10 +37,6 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@types/pako": "^2.0.3",
-    "eslint": "^9.26.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.7.2"
-  },
-  "peerDependencies": {}
+    "@types/pako": "^2.0.3"
+  }
 }

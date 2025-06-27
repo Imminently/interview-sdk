@@ -4,7 +4,7 @@ import * as ProgressPrimitive from "@radix-ui/react-progress"
 import { cn } from "@/util"
 
 interface ProgressProps
-  extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
+  extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root & React.PropsWithChildren> {
   indeterminate?: boolean;
 }
 

@@ -1,4 +1,4 @@
-import { OptionsControl } from "@core";
+import { OptionsControl } from "@imminently/interview-sdk";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
 import { InterviewControl } from "@/interview/InterviewControl";
 import { FormLabel, FormMessage } from "../ui/form";

@@ -22,6 +22,7 @@ const InterviewProcessing = ({ asChild, children, className, ...props }: Intervi
       indeterminate
       {...props}
     >
+      {/* @ts-ignore some issue with slot vs progress, will fix later */}
       {children}
     </Comp>
   );

@@ -2,7 +2,7 @@ import React, { forwardRef, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { Slot } from "@radix-ui/react-slot";
 import { useInterview } from "../InterviewContext";
-import { getCurrentStep, RenderableControl, Step } from "@core";
+import { getCurrentStep, RenderableControl, Step } from "@imminently/interview-sdk";
 import { RenderControl } from "@/components/RenderControl";
 
 // TODO this only exists for getCurrentStep which is a recursive search

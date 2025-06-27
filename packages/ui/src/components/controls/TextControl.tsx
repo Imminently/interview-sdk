@@ -1,4 +1,4 @@
-import { TextControl } from "@core";
+import { TextControl } from "@imminently/interview-sdk";
 import { InterviewControl } from "@/interview/InterviewControl";
 import { FormControl, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";

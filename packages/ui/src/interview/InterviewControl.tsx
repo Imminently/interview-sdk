@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { RegisterOptions, useController, UseControllerReturn, useFormContext } from "react-hook-form";
-import { type Control } from "@core";
+import { type Control } from "@imminently/interview-sdk";
 import { Error } from "../components/controls/Error";
 import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";

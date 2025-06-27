@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { RenderControl } from "../RenderControl";
-import { RenderableSwitchContainerControl, RepeatingContainerControl, SwitchContainerControl } from "@core";
+import { RenderableSwitchContainerControl, RepeatingContainerControl, SwitchContainerControl } from "@imminently/interview-sdk";
 
 const repeatingContainerStyles = {
   table: [

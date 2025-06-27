@@ -1,4 +1,4 @@
-import { OptionsControl } from "@core";
+import { OptionsControl } from "@imminently/interview-sdk";
 import { InterviewControl } from "@/interview/InterviewControl";
 import { FormControl, FormLabel } from "../ui/form";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";

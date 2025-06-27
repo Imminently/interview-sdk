@@ -3,7 +3,7 @@ import { addSeconds, formatDistanceToNow } from "date-fns";
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/util";
 import { useInterview } from "../InterviewContext";
-import { Progress as ProgressData } from "@core";
+import { Progress as ProgressData } from "@imminently/interview-sdk";
 import { Progress } from "@/components/ui/progress";
 
 export interface InterviewProgressProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

@@ -1,5 +1,5 @@
 import { useFormContext, useWatch } from "react-hook-form";
-import { attributeToPath } from "@core";
+import { attributeToPath } from "@imminently/interview-sdk";
 import { useInterview } from "@/interview/InterviewContext";
 import { useAttributeNestingContext } from "@/providers";
 
