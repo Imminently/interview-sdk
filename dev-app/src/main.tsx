@@ -5,8 +5,17 @@ import './styles.css';
 // import { UIBrowser } from './UIBrowser';
 import { InterviewPage } from './Interview';
 
-const RenderPage = ({ page }: { page: string }) => {
-  switch (page) {
+const Wrapper = () => {
+  const [currentPage, setCurrentPage] = useState(() => {
+    return "interview";
+    // return sessionStorage.getItem('currentPage') || 'uiBrowser';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('currentPage', currentPage);
+  }, [currentPage]);
+
+  switch (currentPage) {
     // case 'uiBrowser':
     //   return <UIBrowser />;
     // case 'playground':
@@ -25,23 +34,6 @@ const RenderPage = ({ page }: { page: string }) => {
         </header>
       );
   }
-}
-
-const Wrapper = () => {
-  const [currentPage, setCurrentPage] = useState(() => {
-    return "interview";
-    // return sessionStorage.getItem('currentPage') || 'uiBrowser';
-  });
-
-  useEffect(() => {
-    sessionStorage.setItem('currentPage', currentPage);
-  }, [currentPage]);
-
-  return (
-    <div>
-      <RenderPage page={currentPage} />
-    </div>
-  )
 };
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

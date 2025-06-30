@@ -13,7 +13,8 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "style": "./index.css",
+      "types": "./dist/index.d.ts",
+      "style": "./dist/index.css",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
@@ -23,8 +24,8 @@
     "dist/**"
   ],
   "scripts": {
-    "build:styles": "tailwindcss -i ./src/index.css -o ./dist/index.css --minify",
-    "build": "tsup && yarn build:styles",
+    "build:styles": "bunx @tailwindcss/cli@latest -i ./src/index.css -o ./dist/index.css --minify",
+    "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
@@ -68,8 +69,12 @@
     "@types/lodash-es": "^4.17.12",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@tailwindcss/cli": "^4.1.11",
     "tailwindcss": "^4.1.11",
+    "@tailwindcss/postcss": "^4.1.11",
+    "postcss": "^8.5.6",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "autoprefixer": "^10.4.21"
   }
 }

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { ManagerOptions, SessionManager } from "@imminently/interview-sdk";
+import { ManagerOptions } from "@imminently/interview-sdk";
 import { Interview } from "@imminently/interview-ui";
 
 // place token here for testing
@@ -54,11 +53,7 @@ export const getInterviewConfig = (interview?: string) => {
 
 export const InterviewPage = () => {
   const options = getInterviewConfig()
-  // const [sessionManager] = useState(() => new SessionManager(options as ManagerOptions));
   return (
-    <div>
-      <h1>Interview</h1>
-      <Interview options={options} />
-    </div>
+    <Interview options={options} />
   )
 }
