@@ -42,6 +42,9 @@ packages/*/*.tsbuildinfo
 packages/*/.env
 packages/*/.env.*
 
+# Yarn
+.yarn/
+
 # Editor
 .idea/
 .vscode/
