@@ -518,6 +518,7 @@ __metadata:
     react-markdown: "npm:^10.1.0"
     tailwind-merge: "npm:^3.3.0"
     tailwindcss: "npm:^4.1.5"
+    tsup: "npm:^8.5.0"
     vaul: "npm:^1.1.2"
     yup: "npm:^1.6.1"
     zod: "npm:^3.24.4"
