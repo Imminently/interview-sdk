@@ -37,6 +37,10 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@types/pako": "^2.0.3"
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^22.15.3",
+    "@types/pako": "^2.0.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
   }
 }

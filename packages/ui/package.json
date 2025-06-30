@@ -65,6 +65,10 @@
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12",
-    "tsup": "^8.5.0"
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "tailwindcss": "^4.1.11",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
   }
 }
