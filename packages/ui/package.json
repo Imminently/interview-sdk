@@ -13,6 +13,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "style": "./index.css",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
@@ -22,7 +23,8 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "tsup",
+    "build:styles": "tailwindcss -i ./src/index.css -o ./dist/index.css --minify",
+    "build": "tsup && yarn build:styles",
     "dev": "tsup --watch",
     "lint": "eslint src/",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
@@ -58,7 +60,6 @@
     "react-hook-form": "^7.58.1",
     "react-markdown": "^10.1.0",
     "tailwind-merge": "^3.3.0",
-    "tailwindcss": "^4.1.5",
     "vaul": "^1.1.2",
     "yup": "^1.6.1",
     "zod": "^3.24.4"

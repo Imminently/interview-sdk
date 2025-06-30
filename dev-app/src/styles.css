@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 /* source styles from module so tailwind knows to include them */
-@source "../../node_modules/@imminently/interview-ui";
+@import "@imminently/interview-ui";
 
 @custom-variant dark (&:is(.dark *));
 
