@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-ui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -33,7 +33,7 @@
     "publish:patch": "npm run bump:patch && npm publish"
   },
   "dependencies": {
-    "@imminently/interview-sdk": "workspace:^",
+    "@imminently/interview-sdk": "workspace:*",
     "@radix-ui/react-checkbox": "^1.2.3",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
