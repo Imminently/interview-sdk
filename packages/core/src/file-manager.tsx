@@ -1,6 +1,6 @@
-import { type AxiosInstance } from "axios";
+import { AxiosRequestConfig, type AxiosInstance } from "axios";
 import { tryCatch } from "./try-catch";
-import { getIdFromFileAttributeRef } from "./types";
+import { AuthConfig, getIdFromFileAttributeRef } from "./types";
 import get from "lodash-es/get";
 import { buildUrl, createApiInstance } from "./util";
 
@@ -34,7 +34,8 @@ export type FileManagerOptions = {
 } | {
   host: string;
   filePath?: string[];
-  overrides?: Record<string, any>;
+  auth?: AuthConfig;
+  overrides?: AxiosRequestConfig;
 };
 
 export class FileManager implements FileManagerInterface {
@@ -46,9 +47,9 @@ export class FileManager implements FileManagerInterface {
       return;
     }
     // not using a custom api, so we need to create one
-    const { host, filePath, overrides } = options;
+    const { host, filePath, auth, overrides } = options;
     const fileBaseUrl = buildUrl(host, ...(filePath ?? defaultFilePath));
-    this.api = createApiInstance(fileBaseUrl, overrides);
+    this.api = createApiInstance(fileBaseUrl, auth, overrides);
   }
 
   /**

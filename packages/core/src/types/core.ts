@@ -319,3 +319,14 @@ export interface Validation {
   conditions: any;
   shown?: boolean;
 }
+
+export interface AuthConfig {
+  /** The full auth token, including type, ie `Bearer ...` */
+  token: string;
+  /** The X-Tenancy id if required */
+  tenancy?: string;
+}
+
+export interface RulesEngine {
+  solve(options: any, releaseHash: string, externalData: any, state: any): Promise<any>;
+}

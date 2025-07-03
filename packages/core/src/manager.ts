@@ -1,4 +1,3 @@
-import { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import set from "lodash-es/set";
 import get from "lodash-es/get";
 import isEmpty from "lodash-es/isEmpty";
@@ -8,17 +7,16 @@ import pako from "pako";
 import {
   type AttributeValues,
   type ChatResponse, InterviewContainerControl,
-  type Overrides, type Screen,
+  type Overrides, RulesEngine, type Screen,
   type Session,
   type SessionConfig, Step, type StepId
 } from "./types";
-import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
+// import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, type UnknownValues, buildDynamicReplacementQueries, simulate } from "./dynamic";
 import { SIDEBAR_DYNAMIC_DATA_INFO } from "./sidebars/sidebar";
-import { buildUrl, createApiInstance, deepClone, iterateControls, pathToNested, postProcessControl, transformResponse } from "./util";
+import { deepClone, iterateControls, pathToNested, postProcessControl, transformResponse } from "./util";
 import { FileManager, FileManagerOptions } from "./file-manager";
-
-export const defaultPath = ["decisionapi", "session"];
+import { ApiManager, ApiManagerOptions } from "./api-manager";
 
 const LogGroup = "SessionManager";
 
@@ -82,9 +80,6 @@ export interface SessionSnapshot {
   renderAt: number; // timestamp of the last render
 }
 
-/** Note this callback returns only the raw session object, not the controlling instance */
-type SessionCallback = (session: SessionSnapshot) => void;
-
 interface SessionInternal {
   userValues: AttributeValues;
   prevUserValues: AttributeValues;
@@ -101,20 +96,13 @@ interface SessionInternal {
   canProgress: boolean;
 }
 
-interface RulesEngine {
-  solve(options: any, releaseHash: string, externalData: any, state: any): Promise<any>;
-}
-
 export interface ManagerOptions {
   /** Enables debug logs */
   debug?: boolean;
-  apiToken: string;
-  tenancyId: string;
-  host: string;
-  path?: string | string[];
-  overrides?: AxiosRequestConfig;
-  sessionConfig?: SessionConfig;
+  apiManager: ApiManager | ApiManagerOptions;
   fileManager: FileManager | FileManagerOptions;
+  /** Initial session config. If provided, will automatically start an interview on creation */
+  sessionConfig?: SessionConfig;
 }
 
 /**
@@ -130,7 +118,7 @@ export class SessionManager {
   private debug: boolean;
   private listeners: Set<() => void>;
   private options: ManagerOptions;
-  private api: AxiosInstance;
+  private apiManager: ApiManager;
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
 
@@ -158,45 +146,28 @@ export class SessionManager {
     this.debug = Boolean(options.debug);
     this.listeners = new Set();
 
-    // debugger
-
-    // create the api instance
-    const { host, overrides = {}, path = defaultPath } = options;
-    const baseUrl = buildUrl(host, ...(typeof path === "string" ? [path] : path));
-    this.api = createApiInstance(baseUrl, overrides);
+    // create the API manager
+    this.apiManager = options.apiManager instanceof ApiManager
+      ? options.apiManager
+      : new ApiManager(options.apiManager as ApiManagerOptions);
 
     // create the file manager
-    if (options.fileManager instanceof FileManager) {
-      this.fileManager = options.fileManager;
-    } else {
-      this.fileManager = new FileManager(options.fileManager as FileManagerOptions);
-    }
+    this.fileManager = options.fileManager instanceof FileManager
+      ? options.fileManager
+      : new FileManager(options.fileManager as FileManagerOptions);
 
     // auto start a session if sessionConfig is provided
     if (options.sessionConfig) {
       const { sessionConfig } = options;
-      if (sessionConfig.interview) {
-        this.log("Initializing session with config:", sessionConfig);
-        // this._init(create(sessionConfig));
-        this.create(sessionConfig).catch((error) => {
-          console.error(LogGroup, "Error creating initial session:", error);
-          this.setState("error", error as Error);
-        });
-      } else {
-        console.warn(LogGroup, "No interview specified in sessionConfig, skipping initialization");
-        this.setState("error", new Error("No interview specified in sessionConfig"));
-      }
+      this.log("Initializing session with config:", sessionConfig);
+      this.create(sessionConfig).catch((error) => {
+        console.error(LogGroup, "Error creating initial session:", error);
+        this.setState("error", error as Error);
+      });
     }
 
     // @ts-ignore
     this.serverSideDynamic = debounce(this.serverSideDynamic.bind(this), 1000);
-    // this.onScreenDataChange = this.onScreenDataChange.bind(this);
-    // this.updateSession(session);
-
-    // TODO can we just make this a file upload provider or something?
-    // this.uploadFile = options.uploadFile || this.uploadFile;
-    // this.removeFile = options.removeFile || this.removeFile;
-    // this.onFileTooBig = options.onFileTooBig || this.onFileTooBig;
   }
 
   private log = (message: string, ...args: any[]) => {
@@ -211,18 +182,6 @@ export class SessionManager {
     this.log("State updated:", this.state, this.error);
     this.notifyListeners();
   };
-
-  // async _init(_session: Session | Promise<Session>) {
-  //   const [error, session] = await tryCatch(_session instanceof Promise ? _session : Promise.resolve(_session));
-  //   if (error) {
-  //     console.error(LogGroup, "Error initializing session:", error);
-  //     this.setState("error", error);
-  //     return;
-  //   }
-  //   this.log("Session initialized successfully:", session);
-  //   this.push(session);
-  //   this.setState("success");
-  // }
 
   /**
    * The session currently being used to display screen control.
@@ -278,7 +237,7 @@ export class SessionManager {
   create = async (config: SessionConfig): Promise<Session> => {
     this.log("Creating session:", config);
     this.setState("loading");
-    const session = await create(this.api, config);
+    const session = await this.apiManager.create(config);
     this.log("Session created successfully:", session);
     this.setState("success");
     this.push(session);
@@ -289,7 +248,7 @@ export class SessionManager {
   load = async (config: SessionConfig): Promise<Session> => {
     this.log("Loading session:", config);
     this.setState("loading");
-    const session = await load(this.api, config);
+    const session = await this.apiManager.load(config);
     this.log("Session loaded successfully:", session);
     this.setState("success");
     this.push(session);
@@ -621,23 +580,14 @@ export class SessionManager {
     this.internals.prevUserValues = structuredClone(this.internals.userValues);
   }
 
-  private loadRulesEngine = async () => {
+  private loadRulesEngine = async (): Promise<RulesEngine> => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to load rules engine");
       throw new Error("No active session to load rules engine");
     }
-    const rulesEngineScriptResponse = await this.api.get(
-      buildUrl(
-        this.options.host,
-        `decisionapi/rules-engine-script?checksum=${this.activeSession.rulesEngineChecksum}`,
-      ),
-      {
-        adapter: "fetch",
-        fetchOptions: { cache: "force-cache" },
-      },
-    );
+    const engine = await this.apiManager.getRulesEngine(this.activeSession.rulesEngineChecksum);
     // biome-ignore lint: https://esbuild.github.io/content-types/#direct-eval
-    return (0, eval)(rulesEngineScriptResponse.data);
+    return (0, eval)(engine);
   }
 
   private makeScreenCopy = () => {
@@ -655,7 +605,7 @@ export class SessionManager {
     if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0 && this.activeSession.screen) {
       const requestId = this.internals.latestRequest;
 
-      const result = await simulate(Object.values(this.internals.unknownsRequiringSimulate), this.api, this.activeSession);
+      const result = await simulate(Object.values(this.internals.unknownsRequiringSimulate), this.apiManager, this.activeSession);
 
       // are we still the last request?
       if (this.internals.latestRequest === requestId) {
@@ -684,7 +634,7 @@ export class SessionManager {
     this.log('Simulate sidebar?', this.internals.sidebarSimulate);
 
     if (this.internals.sidebarSimulate) {
-      const result = await postSimulate(this.api, this.activeSession, this.internals.sidebarSimulate.simulate);
+      const result = await this.apiManager.simulate(this.activeSession, this.internals.sidebarSimulate.simulate);
       for (const sidebarId of this.internals.sidebarSimulate.ids) {
         if (!newScreen) {
           newScreen = this.makeScreenCopy();
@@ -785,7 +735,7 @@ export class SessionManager {
     }
     this.triggerUpdate({ externalLoading: true });
     this.updateSession(
-      await submit(this.api, this.activeSession, transformResponse(this.activeSession, data as any), navigate, {
+      await this.apiManager.submit(this.activeSession, transformResponse(this.activeSession, data as any), navigate, {
         // response: this.options.responseElements,
         ...overrides,
       }),
@@ -806,7 +756,7 @@ export class SessionManager {
     }
     try {
       this.triggerUpdate({ externalLoading: true });
-      const payload = await chat(this.api, this.activeSession, message, goal, overrides, interactionId);
+      const payload = await this.apiManager.chat(this.activeSession, message, goal, overrides, interactionId);
       this.triggerUpdate({ externalLoading: false });
       return payload;
     } catch (error) {
@@ -821,7 +771,7 @@ export class SessionManager {
       throw new Error("No active session to navigate from");
     }
     this.triggerUpdate({ externalLoading: true });
-    this.updateSession(await navigate(this.api, this.activeSession, step));
+    this.updateSession(await this.apiManager.navigate(this.activeSession, step));
     this.triggerUpdate({ externalLoading: false });
     return this;
   }
@@ -836,7 +786,7 @@ export class SessionManager {
       // pop the session, then we will invoke back on the parent
       this.pop();
     }
-    this.updateSession(await back(this.api, this.activeSession));
+    this.updateSession(await this.apiManager.back(this.activeSession));
     this.triggerUpdate({ externalLoading: false });
     return this;
   }
@@ -852,7 +802,7 @@ export class SessionManager {
       this.pop();
     }
     this.updateSession(
-      await submit(this.api, this.activeSession, transformResponse(this.activeSession, data as any), false, {
+      await this.apiManager.submit(this.activeSession, transformResponse(this.activeSession, data as any), false, {
         // response: this.options.responseElements,
       }),
     );
@@ -865,7 +815,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to export timeline from");
       throw new Error("No active session to export timeline from");
     }
-    return exportTimeline(this.api, this.activeSession);
+    return this.apiManager.exportTimeline(this.activeSession);
   }
 
   // file management methods

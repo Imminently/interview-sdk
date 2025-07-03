@@ -1,6 +1,6 @@
 import { format, parseISO } from "date-fns";
 import { v4 as baseUuid } from "uuid";
-import type { AttributeValues, Control, EntityControlInstance, RenderableEntityControl, ResponseData, Session, State } from "./types";
+import type { AttributeValues, AuthConfig, Control, EntityControlInstance, RenderableEntityControl, ResponseData, Session, State } from "./types";
 import axios, { type AxiosRequestConfig, type AxiosRequestTransformer } from "axios";
 import { replaceTemplatedText } from "./helpers";
 
@@ -17,17 +17,25 @@ export const range = (size: number, startAt = 0) => {
 export const isStrNotNullOrBlank = (str: any): boolean => !/^\s*$/.test(str || "");
 export const isStrNullOrBlank = (str: any): boolean => !isStrNotNullOrBlank(str);
 
-export const createApiInstance = (baseURL: string, overrides: AxiosRequestConfig = {}) => {
-  const { transformRequest = [] } = overrides;
+export const createApiInstance = (baseURL: string, auth?: AuthConfig, overrides: AxiosRequestConfig = {}) => {
+  const { transformRequest = [], ...rest } = overrides;
   return axios.create({
     baseURL,
     timeout: 30000,
     headers: { "Content-Type": "application/json" },
     transformRequest: [
+      (data, headers) => {
+        // default auth transformer
+        if (headers && auth) {
+          headers.Authorization = auth.token;
+          headers["X-TENANCY"] = auth.tenancy ?? undefined;
+        }
+        return JSON.stringify(data);
+      },
       ...(transformRequest as AxiosRequestTransformer[]),
       ...(axios.defaults.transformRequest as AxiosRequestTransformer[]),
     ],
-    ...overrides,
+    ...rest,
   });
 };
 

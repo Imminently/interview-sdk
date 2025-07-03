@@ -1,5 +1,5 @@
 // core library files
-export * from "./api";
+export * from "./api-manager";
 // export * from "./init";
 export * from "./placeholders";
 export * from "./helpers";

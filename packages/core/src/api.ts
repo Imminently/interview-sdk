@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import { buildUrl } from "./util";
 
+/** @deprecated use ApiManger instead */
 export const create = async (api: AxiosInstance, options: SessionConfig = {}) => {
   const { initialData, project, release, responseElements, sessionId, ...rest } = options;
 
@@ -30,6 +31,7 @@ export const create = async (api: AxiosInstance, options: SessionConfig = {}) =>
   return res.data;
 };
 
+/** @deprecated use ApiManger instead */
 export const load = async (api: AxiosInstance, options: SessionConfig) => {
   const { project, sessionId, interactionId, initialData } = options;
 
@@ -53,6 +55,7 @@ export const load = async (api: AxiosInstance, options: SessionConfig) => {
  * @param data The data for the current step to submit
  * @param navigate The desired navigation after update, defaults to next
  * @param overrides Other params to pass through to payload
+ * @deprecated use ApiManger instead
  */
 export const submit = async (
   api: AxiosInstance,
@@ -72,6 +75,7 @@ export const submit = async (
 
 /**
  * Send a generative chat message
+ * @deprecated use ApiManger instead
  */
 export const chat = async (
   api: AxiosInstance,
@@ -99,8 +103,9 @@ export const chat = async (
 
 /**
  * Navigate to a specific step.
- *
+ * 
  * @param step The desired step ID
+ * @deprecated use ApiManger instead
  */
 export const navigate = async (api: AxiosInstance, session: Session, step: StepId, overrides?: Overrides) => {
   const res = await api.patch<Session>(
@@ -111,6 +116,7 @@ export const navigate = async (api: AxiosInstance, session: Session, step: StepI
   return res.data;
 };
 
+/** @deprecated use ApiManger instead */
 export const back = async (api: AxiosInstance, session: Session, overrides?: Overrides) => {
   const res = await api.patch<Session>(
     session.model,
@@ -120,6 +126,7 @@ export const back = async (api: AxiosInstance, session: Session, overrides?: Ove
   return res.data;
 };
 
+/** @deprecated use ApiManger instead */
 export const postSimulate = async (api: AxiosInstance, session: Session, data: Partial<Simulate>) => {
   // Dynamic interactions are now on a post (due to new interaction behaviour in backend)
   const res = await api.post<AttributeValues>(
@@ -136,6 +143,7 @@ export const postSimulate = async (api: AxiosInstance, session: Session, data: P
   return res.data;
 };
 
+/** @deprecated use ApiManger instead */
 export const exportTimeline = async (api: AxiosInstance, session: Session) => {
   const res = await api.post<string>(
     session.model,

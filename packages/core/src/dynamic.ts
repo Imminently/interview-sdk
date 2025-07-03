@@ -1,8 +1,7 @@
-import type { AxiosInstance } from "axios";
 import type { AttributeValues, Session, Simulate, State } from "./types";
-import { postSimulate } from "./api";
 import { SIDEBAR_DYNAMIC_DATA_INFO } from "./sidebars";
 import { createEntityPathedData, getEntityIds } from "./util";
+import { ApiManager } from "./api-manager";
 
 export type UnknownValues = Record<string, Partial<Simulate>>;
 
@@ -243,11 +242,11 @@ export const buildDynamicReplacementQueries = (
  */
 export const simulate = async (
   unKnownValues: Partial<Simulate>[],
-  api: AxiosInstance,
+  api: ApiManager,
   session: Session,
 ): Promise<AttributeValues> => {
   try {
-    const simResAll = (await Promise.all(unKnownValues.map((simReq) => postSimulate(api, session, simReq)))).reduce(
+    const simResAll = (await Promise.all(unKnownValues.map((simReq) => api.simulate(session, simReq)))).reduce(
       (acc, simRes, idx) => {
         const goal = unKnownValues[idx].goal;
         if (goal) {
