@@ -1,11 +1,13 @@
 import React, { PropsWithChildren } from "react";
+import { ManagerOptions } from "@imminently/interview-sdk";
 import * as Slots from "./slots";
-import { SidebarProvider } from "../components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "../components/ui/sidebar";
+import InterviewDebugPanel from "./InterviewDebugPanel";
 
 /**
  * Default render layout for an interview.
  */
-export const InterviewLayout = ({ children }: PropsWithChildren) => {
+export const InterviewLayout = ({ options, children }: PropsWithChildren<{ options: ManagerOptions }>) => {
   // Map of slot name to default slot element
   const slotDefaults: Record<string, React.ReactElement> = {
     error: <Slots.InterviewError key="interview-error" />,
@@ -43,7 +45,13 @@ export const InterviewLayout = ({ children }: PropsWithChildren) => {
 
   return (
     <SidebarProvider>
-      {ordered}
+      <Slots.InterviewError />
+      <Slots.InterviewLoading />
+      <Slots.InterviewSteps />
+      <SidebarInset>
+        <Slots.InterviewContent />
+      </SidebarInset>
+      {options.debug ? <InterviewDebugPanel /> : null}
     </SidebarProvider>
   );
 };

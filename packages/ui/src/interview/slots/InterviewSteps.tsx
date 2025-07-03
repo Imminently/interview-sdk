@@ -56,17 +56,19 @@ const InterviewSteps = ({ asChild, children, className, ...props }: InterviewSte
   if (state !== "success" && !session) {
     return null; // Don't render if not in success state
   }
-  const Comp = asChild ? Slot : "div";
-  return (
-    <Comp
-      className={cn(className)}
-      data-slot="steps"
-      slot-steps=""
-      {...props}
-    >
-      {children ?? <DefaultSteps />}
-    </Comp>
-  );
+  return (<DefaultSteps />);
+  // TOOD do we even want to support this?
+  // const Comp = asChild ? Slot : "div";
+  // return (
+  //   <Comp
+  //     className={cn(className)}
+  //     data-slot="steps"
+  //     slot-steps=""
+  //     {...props}
+  //   >
+  //     {children ?? <DefaultSteps />}
+  //   </Comp>
+  // );
 };
 
 export { InterviewSteps };

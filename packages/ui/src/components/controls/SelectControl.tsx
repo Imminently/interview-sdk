@@ -1,7 +1,7 @@
 import { OptionsControl } from "@imminently/interview-sdk";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
 import { InterviewControl } from "@/interview/InterviewControl";
-import { FormLabel, FormMessage } from "../ui/form";
+import { FormControl, FormLabel, FormMessage } from "../ui/form";
 
 export const SelectFormControl = ({ control }: { control: OptionsControl }) => {
   const { options } = control;
@@ -12,28 +12,33 @@ export const SelectFormControl = ({ control }: { control: OptionsControl }) => {
     <InterviewControl control={control}>
       {({ field }) => {
         return (
-          <Select
-            value={field.value}
-            onValueChange={field.onChange}
-            disabled={field.disabled}
-          >
+          <>
             <FormLabel>
               {control.label}
             </FormLabel>
-            <SelectTrigger className="w-full">
-              {field.value
-                ? options.find((option) => option.value === field.value)?.label
-                : "Select an option"}
-            </SelectTrigger>
+            <Select
+              name={field.name}
+              value={field.value}
+              onValueChange={field.onChange}
+              disabled={field.disabled}
+            >
+              <FormControl>
+                <SelectTrigger className="w-full">
+                  {field.value
+                    ? options.find((option) => option.value === field.value)?.label
+                    : "Select an option"}
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
-            <SelectContent>
-              {options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          </>
         );
       }}
     </InterviewControl>

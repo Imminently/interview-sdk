@@ -28,7 +28,7 @@ const InterviewContent = ({ asChild, children, className, ...props }: InterviewC
       {...props}
     >
       {children ?? (
-        <SidebarInset>
+        <>
           <InterviewForm className="flex-1 overflow p-4 w-2xl mx-auto" />
           <div className="flex gap-2 items-center justify-between mt-8 border-t p-4">
             <InterviewBack asChild>
@@ -38,7 +38,7 @@ const InterviewContent = ({ asChild, children, className, ...props }: InterviewC
               <Button>Next</Button>
             </InterviewNext>
           </div>
-        </SidebarInset>
+        </>
       )}
     </Comp>
   );

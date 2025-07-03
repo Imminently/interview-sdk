@@ -1,9 +1,8 @@
-import React, { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
+import { createContext, PropsWithChildren, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import type { Session, ControlsValue, ManagerOptions, ManagerState } from "@imminently/interview-sdk";
+import type { Session, ManagerOptions, ManagerState } from "@imminently/interview-sdk";
 import { SessionManager } from "@imminently/interview-sdk";
 import { IconMap, InterviewControls, Theme, ThemeProvider } from "../providers/ThemeProvider";
-import InterviewDebugPanel from "./InterviewDebugPanel";
 import { AttributeNestingProvider } from "@/providers";
 import { InterviewLayout } from "./InterviewLayout";
 
@@ -15,7 +14,6 @@ export type InterviewContextState = {
   isLoading: boolean;
   backDisabled: boolean;
   nextDisabled: boolean;
-  setFormValues: (values: ControlsValue) => void;
 }
 
 const InterviewContext = createContext<InterviewContextState | undefined>(undefined);
@@ -48,28 +46,10 @@ export const InterviewProvider = ({ options, theme, icons, slots, children }: In
 
   // TODO form reset on screen change?
 
-  // TODO where and why is this used?
-  const setFormValues = useCallback((values: ControlsValue) => {
-    // formMethods.current?.reset(values);
-    methods.reset(values);
-  }, []);
-
   const value = useMemo<InterviewContextState>(() => {
     const { session, state, error, loading } = snapshot;
     const buttons = session?.screen.buttons;
     const finished = manager.isLastStep && manager.isComplete;
-    // console.log("[InterviewProvider] value", {
-    //   sessionId: session?.interviewId,
-    //   state,
-    //   error,
-    //   loading,
-    //   finished,
-    //   isSubInterview: manager.isSubInterview,
-    //   isLastStep: manager.isLastStep,
-    //   isComplete: manager.isComplete,
-    //   isLoading: loading,
-    //   buttons,
-    // });
     return {
       manager,
       session: session!,
@@ -84,9 +64,8 @@ export const InterviewProvider = ({ options, theme, icons, slots, children }: In
           // !manager.canProgress ||
           (!manager.isSubInterview && finished) ||
           loading,
-      setFormValues,
     };
-  }, [snapshot, setFormValues]);
+  }, [snapshot]);
 
   const { session } = snapshot;
 
@@ -96,7 +75,7 @@ export const InterviewProvider = ({ options, theme, icons, slots, children }: In
     if (children) {
       return <>{children}</>;
     }
-    return <InterviewLayout key={session?.screen.id} />;
+    return <InterviewLayout key={session?.screen.id} options={options} />;
   };
 
   return (
@@ -105,7 +84,6 @@ export const InterviewProvider = ({ options, theme, icons, slots, children }: In
         <AttributeNestingProvider value={false}>
           <FormProvider {...methods}>
             {renderContent()}
-            {options.debug ? <InterviewDebugPanel /> : null}
           </FormProvider>
         </AttributeNestingProvider>
       </InterviewContext.Provider>
