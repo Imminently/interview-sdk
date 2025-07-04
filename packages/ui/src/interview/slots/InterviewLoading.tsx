@@ -2,6 +2,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/util";
 import { useInterview } from "../InterviewContext";
+import { useTheme } from "@/providers";
 
 export interface InterviewLoadingProps extends React.HTMLAttributes<HTMLDivElement> {
   asChild?: boolean;
@@ -9,21 +10,29 @@ export interface InterviewLoadingProps extends React.HTMLAttributes<HTMLDivEleme
   className?: string;
 }
 
-const InterviewLoading = ({ asChild, children, className, ...props }: InterviewLoadingProps) => {
+// default loading is centered div with translated text form.loading
+const DefaultLoading = ({ className }: InterviewLoadingProps) => {
+  const { t } = useTheme();
+  return (
+    <div className={cn("flex flex-col items-center justify-center h-full", className)}>
+      <p>{t("form.loading")}</p>
+    </div>
+  );
+}
+
+const InterviewLoading = ({ asChild, className, ...props }: InterviewLoadingProps) => {
   const { state, session } = useInterview();
   if (state !== "loading" || !!session) {
     return null; // Don't render if not in loading state or have the base session
   }
-  const Comp = asChild ? Slot : "div";
+  const Comp = asChild ? Slot : DefaultLoading;
   return (
     <Comp
       className={cn(className)}
       data-slot="loading"
       slot-loading=""
       {...props}
-    >
-      {children ?? "Interview Loading (default slot)"}
-    </Comp>
+    />
   );
 };
 

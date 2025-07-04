@@ -1,13 +1,12 @@
 import { UseControllerReturn } from "react-hook-form";
 import { Checkbox } from "../ui/checkbox";
 import { Explanation } from "./Explanation";
-import { InterviewControl } from "@/interview/InterviewControl";
 import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { BooleanControl } from "@imminently/interview-sdk";
-import { useTheme } from "@/providers/ThemeProvider";
+import { useTheme } from "@/providers";
 
-const DefaultBooleanControl = ({ field }: UseControllerReturn) => {
-  const { value, onChange } = field;
+export const BooleanFormControl = ({ field }: UseControllerReturn) => {
+  const { t } = useTheme();
   const { control } = useFormField<BooleanControl>();
 
   return (
@@ -15,13 +14,13 @@ const DefaultBooleanControl = ({ field }: UseControllerReturn) => {
       <FormLabel>
         <FormControl>
           <Checkbox
-            checked={value === true}
-            onCheckedChange={(val: boolean) => onChange(val)}
+            checked={field.value === undefined ? 'indeterminate' : field.value}
+            onCheckedChange={(val: boolean) => field.onChange(val)}
             disabled={control.readOnly ?? control.disabled}
             aria-label={control.label}
           />
         </FormControl>
-        {control.label}
+        {t(control.label)}
         <Explanation control={control} />
       </FormLabel>
       <FormDescription />
@@ -29,13 +28,3 @@ const DefaultBooleanControl = ({ field }: UseControllerReturn) => {
     </>
   );
 };
-
-export const BooleanFormControl = ({ control }: any) => {
-  const { getControl } = useTheme();
-  const Comp = getControl(control.type) ?? DefaultBooleanControl;
-  return (
-    <InterviewControl control={control}>
-      {(props) => <Comp {...props} />}
-    </InterviewControl>
-  )
-}

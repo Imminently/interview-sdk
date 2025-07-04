@@ -1,27 +1,24 @@
+import { UseControllerReturn } from "react-hook-form";
 import { DateControl } from "@imminently/interview-sdk";
-import { InterviewControl } from "@/interview/InterviewControl";
-import { FormControl, FormLabel, FormMessage } from "../ui/form";
+import { useTheme } from "@/providers";
+import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { DatePicker } from "../ui/date-picker";
 
-export const DateFormControl = ({ control }: { control: DateControl }) => {
+export const DateFormControl = ({ field }: UseControllerReturn) => {
+  const { t } = useTheme();
+  const { control } = useFormField<DateControl>();
   return (
-    <InterviewControl control={control}>
-      {({ field }) => {
-        return (
-          <>
-            <FormLabel>{control.label}</FormLabel>
-            <FormControl>
-              <DatePicker
-                value={field.value}
-                onChange={field.onChange}
-                disabled={field.disabled}
-              />
-            </FormControl>
-            <FormMessage />
-          </>
-        );
-      }}
-    </InterviewControl>
+    <>
+      <FormLabel>{t(control.label)}</FormLabel>
+      <FormControl>
+        <DatePicker
+          value={field.value}
+          onChange={field.onChange}
+          disabled={field.disabled}
+        />
+      </FormControl>
+      <FormMessage />
+    </>
   );
 };
 

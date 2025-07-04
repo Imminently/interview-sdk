@@ -13,6 +13,7 @@ import {
 import { Control } from "@imminently/interview-sdk"
 import { cn } from "@/util"
 import { Label } from "./label"
+import { useTheme } from "@/providers"
 
 const Form = FormProvider
 
@@ -135,6 +136,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
 }
 
 function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
+  const { t } = useTheme();
   const { control, formDescriptionId } = useFormField()
 
   const hasLongDescription = "longDescription" in control && control.longDescription && control.longDescription.length > 0;
@@ -150,14 +152,15 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
       className={cn("text-muted-foreground text-sm", className)}
       {...props}
     >
-      {control.longDescription}
+      {t(control.longDescription)}
     </p>
   )
 }
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
+  const { t } = useTheme();
   const { error, formMessageId } = useFormField()
-  const body = error ? String(error?.message ?? "") : props.children
+  const body = error ? t(String(error?.message ?? "")) : props.children
 
   if (!body) {
     return null

@@ -9,7 +9,8 @@ import { useAttributeToFieldName } from "../../util/attribute-to-field-name";
 import { RenderControl } from "../RenderControl";
 import { AttributeNestingProvider } from "@/providers";
 
-export const EntityFormControl = (props: any) => {
+/** @deprecated use `EntityFormControl` */
+export const EntityControl = (props: any) => {
   const { control, className } = props;
   const { entity, instances, template } = control;
   const { control: formControl, getValues, setValue } = useFormContext();

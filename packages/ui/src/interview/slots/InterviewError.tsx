@@ -2,6 +2,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/util";
 import { useInterview } from "../InterviewContext";
+import { useTheme } from "@/providers";
 
 export interface InterviewErrorProps extends React.HTMLAttributes<HTMLDivElement> {
   asChild?: boolean;
@@ -9,12 +10,23 @@ export interface InterviewErrorProps extends React.HTMLAttributes<HTMLDivElement
   className?: string;
 }
 
+// default loading is centered div with translated text form.loading
+const DefaultError = ({ children, className }: InterviewErrorProps) => {
+  const { t } = useTheme();
+  return (
+    <div className={cn("flex flex-col items-center justify-center h-full gap-2", className)}>
+      <h4>{t("form.error")}</h4>
+      <p>{children}</p>
+    </div>
+  );
+}
+
 const InterviewError = ({ asChild, children, className, ...props }: InterviewErrorProps) => {
   const { state, error } = useInterview();
   if (state !== "error") {
     return null; // Don't render if not in error state
   }
-  const Comp = asChild ? Slot : "div";
+  const Comp = asChild ? Slot : DefaultError;
   return (
     <Comp
       className={cn(className)}
@@ -22,7 +34,7 @@ const InterviewError = ({ asChild, children, className, ...props }: InterviewErr
       slot-error=""
       {...props}
     >
-      {children ?? error?.message ?? "Interview Error (default slot)"}
+      {children ?? error?.message}
     </Comp>
   );
 };

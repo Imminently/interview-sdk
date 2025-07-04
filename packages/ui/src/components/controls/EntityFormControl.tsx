@@ -7,7 +7,7 @@ import { Text } from "../ui/text";
 import { cn } from "@/util";
 import { useAttributeToFieldName } from "../../util/attribute-to-field-name";
 import { RenderControl } from "../RenderControl";
-import { AttributeNestingProvider } from "@/providers";
+import { AttributeNestingProvider, useTheme } from "@/providers";
 
 export interface EntityFormControlProps {
   control: RenderableEntityControl;
@@ -18,6 +18,7 @@ export const EntityFormControl = ({
   control,
   className
 }: EntityFormControlProps) => {
+  const { t } = useTheme();
   const { control: formControl } = useFormContext();
 
   const parentPath = useAttributeToFieldName(control.attribute);
@@ -150,15 +151,15 @@ export const EntityFormControl = ({
   return (
     <div
       className={cn("flex flex-col gap-4", className)}
-      data-deci-control={control.type}
-      data-deci-id={control.id}
-      data-deci-name={fieldName}
+      data-control={control.type}
+      data-id={control.id}
+      data-name={fieldName}
     >
       {/* Header with label and add button */}
       <div className="flex items-center justify-between">
         {control.label && (
           <Text variant="h6">
-            {control.label}
+            {t(control.label)}
           </Text>
         )}
 
@@ -168,16 +169,16 @@ export const EntityFormControl = ({
             variant="ghost"
             size="icon"
             onClick={handleAdd}
-            aria-label="Add new item"
+            aria-label={t("form.add_item")}
           >
             <Plus className="h-4 w-4" />
           </Button>
         )}
       </div>
       {fields.length === 0 ? (
-        <div className="text-muted-foreground text-center pt-4 pb-8">
+        <div data-slot="empty" className="text-muted-foreground text-center pt-4 pb-8">
           {/* Empty state */}
-          <Text variant="body">No items added yet</Text>
+          <Text variant="body">{t('form.no_items')}</Text>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -216,7 +217,7 @@ export const EntityFormControl = ({
                       size="icon"
                       onClick={() => handleDelete(index)}
                       className="text-destructive hover:text-destructive"
-                      aria-label="Delete item"
+                      aria-label={t("form.remove_item")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -227,7 +228,6 @@ export const EntityFormControl = ({
           </AttributeNestingProvider>
         </div>
       )}
-
     </div>
   );
 };

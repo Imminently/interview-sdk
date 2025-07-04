@@ -5,6 +5,7 @@ import { cn } from "@/util";
 import { useInterview } from "../InterviewContext";
 import { Progress as ProgressData } from "@imminently/interview-sdk";
 import { Progress } from "@/components/ui/progress";
+import { useTheme } from "@/providers";
 
 export interface InterviewProgressProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
@@ -13,12 +14,14 @@ export interface InterviewProgressProps extends React.ButtonHTMLAttributes<HTMLB
 }
 
 const DefaultProgress = ({ progress }: { progress: ProgressData }) => {
+  const { t } = useTheme();
+  // TODO the format distance will need its own translation layer, or they just override
   return (
     <div>
       <Progress data-slot={"progress-bar"} value={progress.percentage} />
       <div data-slot={"progress-info"}>
         <span data-slot={"progress-summary"}>
-          {progress.percentage === 100 ? "Complete" : `Progress ${progress.percentage.toFixed(0)}%`}
+          {progress.percentage === 100 ? t("form.complete") : `${t('form.progress')} ${progress.percentage.toFixed(0)}%`}
         </span>
         {progress.time > 0 && (
           <span data-slot={"progress-summary"}>

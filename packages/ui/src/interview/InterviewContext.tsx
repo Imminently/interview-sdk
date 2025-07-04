@@ -69,21 +69,17 @@ export const InterviewProvider = ({ options, theme, icons, slots, children }: In
 
   const { session } = snapshot;
 
-  // Render children or default layout
+  // note children needs encapsulating <></>
   // workaround for react 19, as react-hook-form appears to still be using react 18 which breaks the ReactNode type
-  const renderContent = () => {
-    if (children) {
-      return <>{children}</>;
-    }
-    return <InterviewLayout key={session?.screen.id} options={options} />;
-  };
 
   return (
     <ThemeProvider theme={theme} icons={icons} controls={slots}>
       <InterviewContext.Provider value={value}>
         <AttributeNestingProvider value={false}>
           <FormProvider {...methods}>
-            {renderContent()}
+            {
+              children ? <>{children}</> : <InterviewLayout key={session?.screen.id} options={options} />
+            }
           </FormProvider>
         </AttributeNestingProvider>
       </InterviewContext.Provider>

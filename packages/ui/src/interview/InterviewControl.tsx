@@ -1,32 +1,23 @@
 import React, { useMemo } from "react";
-import { RegisterOptions, useController, UseControllerReturn, useFormContext } from "react-hook-form";
+import { RegisterOptions, UseControllerReturn, useFormContext } from "react-hook-form";
 import { type Control } from "@imminently/interview-sdk";
 import { Error } from "../components/controls/Error";
 import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { generateValidatorForControl } from "../util/Validation";
 import { Explanation } from "../components/controls/Explanation";
-import Text from "../components/ui/text";
 import { FormField, FormItem } from "../components/ui/form";
-import { SlotProps } from "@radix-ui/react-slot";
+import Text from "../components/ui/text";
+import { useTheme } from "@/providers";
 
 export interface FormControlError {
   message: string;
 }
 
-// function Slot<P = React.HTMLAttributes<HTMLElement>>(props: SlotProps & P) {
-//   return <ReactSlot {...props} />;
-// }
-
-export type InterviewControlSlot<C extends Control, P = React.HTMLAttributes<HTMLElement>> = React.ComponentType<{
-  control: C;
-} & ReturnType<typeof useController> & SlotProps & P>;
-
 export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
   control: Control;
   renderValue?: (value: string) => React.ReactNode;
   children: (props: UseControllerReturn) => React.ReactElement;
-  // slot: InterviewControlSlot<Control>;
 }
 
 export interface FormControlRenderState {
@@ -47,14 +38,6 @@ const isLabelTooLong = (label: string | undefined): label is string => {
   return false;
 };
 
-// type ReadOnlyBasedMeta =
-//   | { type: "hasNoEffect" }
-//   | {
-//     type: "markControlDisabled";
-//     ctrlWithDisabledTrue: Control;
-//   }
-//   | { type: "overrideRender"; node: React.ReactNode };
-
 const isReadOnly = (control: Control) => {
   // if control type is not expected to have "readOnly" -> return
   if (
@@ -74,6 +57,7 @@ const isReadOnly = (control: Control) => {
 }
 
 const ReadOnlyControl = ({ control, renderValue = (v) => String(v) }: { control: Control, renderValue?: (v: any) => React.ReactNode }) => {
+  const { t } = useTheme();
   // const { attribute } = control;
   // const interview = useInterview();
   // const { getValues } = useFormContext();
@@ -85,7 +69,7 @@ const ReadOnlyControl = ({ control, renderValue = (v) => String(v) }: { control:
   // const firstValidation = validations?.[0];
 
   // @ts-ignore
-  const label = control.label;
+  const label = t(control.label);
   // @ts-ignore
   const value = renderValue(control.value);
 
@@ -98,15 +82,6 @@ const ReadOnlyControl = ({ control, renderValue = (v) => String(v) }: { control:
       <Error id={control.id} />
     </div>
   );
-
-  // og
-  // return (
-  //   <div className="flex flex-row gap-2">
-  //          <Text>{label}</Text>
-  //         <Text>{renderValue(String(controlLocal.value))}</Text>
-  //        <Explanation control={control} />
-  //       </div>
-  // )
 }
 
 export const InterviewControl = ({ control, renderValue, className, children }: InterviewControlProps) => {
@@ -134,10 +109,10 @@ export const InterviewControl = ({ control, renderValue, className, children }: 
   }
 
   // @ts-ignore
-  const defaultValue = resolvedControl.value ?? resolvedControl.default;
+  const defaultValue = resolvedControl.value ?? resolvedControl.default ?? undefined;
   // console.log(`[Control::${control.type}] defaultValue`, defaultValue, control);
   // const label = "label" in resolvedControl ? resolvedControl.label : undefined;
-  const rules: RegisterOptions = {
+  const rules: RegisterOptions = useMemo(() => ({
     validate: (value) => {
       const schema = generateValidatorForControl(resolvedControl as any);
       if (!schema) {
@@ -150,7 +125,7 @@ export const InterviewControl = ({ control, renderValue, className, children }: 
         return e.errors.join(", ");
       }
     },
-  };
+  }), [resolvedControl]);
 
   return (
     <FormField
@@ -159,7 +134,7 @@ export const InterviewControl = ({ control, renderValue, className, children }: 
       control={form.control}
       defaultValue={defaultValue}
       rules={rules}
-      shouldUnregister={true}
+      // shouldUnregister={true}
       render={(props) => {
         return (
           <FormItem className={className}>

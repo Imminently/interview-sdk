@@ -1,16 +1,13 @@
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cn } from "@/util";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Step } from "@imminently/interview-sdk";
 import { useInterview } from "../InterviewContext";
 import { Badge } from "@/components/ui/badge";
 import { CheckIcon } from "lucide-react";
 import { InterviewProgress } from "./InterviewProgress";
+import { useTheme } from "@/providers";
 
 export interface InterviewStepsProps extends React.HTMLAttributes<HTMLDivElement> {
-  asChild?: boolean;
-  children?: React.ReactNode;
   className?: string;
 }
 
@@ -22,21 +19,22 @@ const getVariant = (step: Step) => {
   return "secondary";
 }
 
-const DefaultSteps = () => {
+const DefaultSteps = ({ className }: InterviewStepsProps) => {
+  const { t } = useTheme();
   const { session } = useInterview();
   return (
-    <Sidebar>
+    <Sidebar className={className}>
       <SidebarContent>
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Steps</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('form.steps')}</SidebarGroupLabel>
           <SidebarMenu>
             {session?.steps.filter(s => s.visited || s.current).map((item, index) => (
               <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton tooltip={item.title}>
+                <SidebarMenuButton tooltip={t(item.title)}>
                   <Badge variant={getVariant(item)} className="rounded-full">
                     {index + 1}
                   </Badge>
-                  <span className="truncate">{item.title}</span>
+                  <span className="truncate">{t(item.title)}</span>
                   {item.complete ? <CheckIcon className="h4 w-4 ml-auto" /> : null}
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -51,24 +49,13 @@ const DefaultSteps = () => {
   )
 }
 
-const InterviewSteps = ({ asChild, children, className, ...props }: InterviewStepsProps) => {
+const InterviewSteps = (props: InterviewStepsProps) => {
   const { state, session } = useInterview();
   if (state !== "success" && !session) {
     return null; // Don't render if not in success state
   }
-  return (<DefaultSteps />);
-  // TOOD do we even want to support this?
-  // const Comp = asChild ? Slot : "div";
-  // return (
-  //   <Comp
-  //     className={cn(className)}
-  //     data-slot="steps"
-  //     slot-steps=""
-  //     {...props}
-  //   >
-  //     {children ?? <DefaultSteps />}
-  //   </Comp>
-  // );
+  // keep it simple and just render the default steps
+  return (<DefaultSteps {...props} />);
 };
 
 export { InterviewSteps };

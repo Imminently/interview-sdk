@@ -4,6 +4,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { useInterview } from "../InterviewContext";
 import { getCurrentStep, RenderableControl, Step } from "@imminently/interview-sdk";
 import { RenderControl } from "@/components/RenderControl";
+import { useTheme } from "@/providers";
 
 // TODO this only exists for getCurrentStep which is a recursive search
 export const DEFAULT_STEP: Step = {
@@ -26,7 +27,9 @@ export interface InterviewFormProps extends React.ButtonHTMLAttributes<HTMLFormE
   subinterviewRequired?: boolean;
 }
 
-const Controls = ({ controls }: { controls: RenderableControl[] }) => {
+// export this in case they want to override / make their own form component
+
+export const Controls = ({ controls }: { controls: RenderableControl[] }) => {
   // pre-fixing key with index, as repeat contains will cause multiple controls with the same id
   return (
     <div data-slot={"controls"} className="flex flex-col gap-4">
@@ -37,6 +40,7 @@ const Controls = ({ controls }: { controls: RenderableControl[] }) => {
 
 const InterviewForm = ({ asChild, children, className, subinterviewRequired = false, ...props }: InterviewFormProps) => {
   const methods = useFormContext();
+  const { t } = useTheme();
   const { manager, session } = useInterview();
   const { steps, screen } = session;
 
@@ -58,14 +62,14 @@ const InterviewForm = ({ asChild, children, className, subinterviewRequired = fa
   }, [watch]);
 
   if (!screen) return null;
-  const pageTitle = screen.title || step?.title || "";
+  const pageTitle = t(screen.title || step?.title || "");
   const Comp = asChild ? Slot : "form";
-
+  console.log('rendering form', { pageTitle, screen, step });
   return (
     <Comp {...props} className={className} data-slot={"form"}>
       {
         children ?? (
-          <div data-slot={"ContentForm"}>
+          <div data-slot={"form-content"}>
             <h4 data-slot={"heading"} className="text-2xl font-semibold mb-6">
               {pageTitle}
             </h4>

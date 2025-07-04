@@ -1,8 +1,9 @@
-import { InterviewControl } from "@/interview/InterviewControl";
+import { UseControllerReturn } from "react-hook-form";
 import { TimeControl } from "@imminently/interview-sdk";
 import { Time } from "../ui/time";
-import { FormControl, FormLabel, FormMessage } from "../ui/form";
+import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Explanation } from "./Explanation";
+import { useTheme } from "@/providers";
 
 // Helper to parse time string to {h, m, s}
 function parseTimeString(str: string): { h: number; m: number; s: number } | null {
@@ -94,33 +95,29 @@ function formatRawDigits(digits: string): string | null {
 // }
 // field.onChange(newValue);
 
-export const TimeFormControl = ({ control }: { control: TimeControl }) => {
+export const TimeFormControl = ({ field }: UseControllerReturn) => {
+  const { t } = useTheme();
+  const { control } = useFormField<TimeControl>();
+  // we have specified if its a number > 0
+  const specifiedIncrement = control.minutes_increment !== undefined && control.minutes_increment > 0;
   return (
-    <InterviewControl control={control}>
-      {
-        ({ field }) => {
-          return (
-            <>
-              <FormLabel>
-                {control.label}
-                <Explanation control={control} />
-              </FormLabel>
-              <FormControl>
-                <Time
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                  disabled={field.disabled}
-                  min={control.min}
-                  max={control.max}
-                  step={control.minutes_increment ? control.minutes_increment * 60 : undefined}
-                />
-              </FormControl>
-              <FormMessage />
-            </>
-          );
-        }
-      }
-    </InterviewControl>
-  )
+    <>
+      <FormLabel>
+        {t(control.label)}
+        <Explanation control={control} />
+      </FormLabel>
+      <FormControl>
+        <Time
+          value={field.value}
+          onChange={(e) => field.onChange(e.target.value)}
+          disabled={field.disabled}
+          min={control.min}
+          max={control.max}
+          step={specifiedIncrement ? (control.minutes_increment as number) * 60 : undefined}
+        />
+      </FormControl>
+      <FormMessage />
+    </>
+  );
 };
 

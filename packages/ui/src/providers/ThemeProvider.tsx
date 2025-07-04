@@ -1,20 +1,25 @@
 import React, { createContext, PropsWithChildren, ReactNode, useContext } from 'react';
 import { HelpCircleIcon } from 'lucide-react';
 import { RenderableControlType } from '@imminently/interview-sdk';
+import { t } from '@/util/translate-fn';
+
+// convert options into select and radio, so they can override with a more specific type
+// exlude the types we dont want to allow or do not yet support
+type SlottableTypes = "select" | "radio" | Exclude<RenderableControlType, "options" | "entity" | "interview_container" | "switch_container" | "certainty_container" | "repeating_container" | "data_container" | "generative_chat">;
 
 export type Theme = Record<string, any>;
 export type IconMap = Record<string, React.ComponentType<{ className?: string }>>;
-export type InterviewControls = Record<RenderableControlType, React.FC<any>>;
+export type InterviewControls = Record<SlottableTypes, React.FC<any>>;
 
 const useThemeContext = (theme: Theme = {}, customIcons: IconMap = {}, controls: Partial<InterviewControls> = {}) => {
-  const icons = { ...DefaultIcons, ...customIcons };
+  const icons = { ...DefaultIcons, ...customIcons } as IconMap;
 
   const merge = (part: string, overrides: Record<string, string> = {}) => {
     const themePart = theme[part + 'Styles'] ?? {};
     return { ...themePart, ...overrides };
   }
 
-  // TODO why does this need override?
+  // TODO why does this need override? makes more sense as a fallback
   const getIcon = (icon: string, override: ReactNode) => {
     if (override) return override;
     return icons?.[icon] ?? null;
@@ -30,7 +35,8 @@ const useThemeContext = (theme: Theme = {}, customIcons: IconMap = {}, controls:
     controls,
     merge,
     getIcon,
-    getControl
+    getControl,
+    t,
   };
 };
 

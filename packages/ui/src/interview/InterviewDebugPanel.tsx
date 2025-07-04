@@ -1,7 +1,7 @@
-import React from "react"
 import { useFormContext } from "react-hook-form"
 import { Badge } from "../components/ui/badge"
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar"
+import { useTheme } from "@/providers"
 
 const stringValue = (value: any) => {
   // support null -> null, undefined -> undefined, boolean -> true/false, number -> string
@@ -19,13 +19,14 @@ const stringValue = (value: any) => {
 }
 
 export default function InterviewDebugPanel() {
+  const { t } = useTheme();
   const { watch } = useFormContext();
   const values = watch();
   return (
     <Sidebar collapsible="offcanvas" className="sticky top-0 hidden h-svh border-l lg:flex">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="p-0 text-lg font-bold">Form values</SidebarGroupLabel>
+          <SidebarGroupLabel className="p-0 text-lg font-bold">{t('debug.form_values')}</SidebarGroupLabel>
           <SidebarMenu>
             {Object.entries(values).map(([key, value]) => (
               <SidebarMenuItem key={key} className="flex items-center justify-between py-1">

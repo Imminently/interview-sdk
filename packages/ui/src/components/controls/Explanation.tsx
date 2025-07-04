@@ -4,6 +4,7 @@ import { HelpCircle } from "lucide-react";
 import { useInterview } from "@/interview";
 import clsx from "clsx";
 import { CertaintyContainerControl, Control, DataContainerControl, DocumentControl, GenerativeChatControl, ImageControl, NumberOfInstancesControl, RepeatingContainerControl, SwitchContainerControl, TypographyControl } from "@imminently/interview-sdk";
+import { useTheme } from "@/providers";
 
 // Omit control types that do not have explanations
 type ExplanationControl = Exclude<Control, ImageControl | NumberOfInstancesControl | TypographyControl | DocumentControl | GenerativeChatControl | RepeatingContainerControl | CertaintyContainerControl | SwitchContainerControl | DataContainerControl>;
@@ -16,6 +17,7 @@ export type ExplanationProps = {
 // TODO should this be renamed and moved into FormExplanation?
 export const Explanation = (props: ExplanationProps) => {
   const { control, className } = props;
+  const { t } = useTheme();
   const { session } = useInterview();
   if ((control as ExplanationControl).showExplanation && control.attribute) {
     const explanation = session.explanations?.[control.attribute] || null;
@@ -24,12 +26,12 @@ export const Explanation = (props: ExplanationProps) => {
       <Popover>
         <PopoverTrigger asChild>
           <Button type="button" size="icon" variant="ghost" aria-label="Show explanation" className={clsx("size-6 rounded-full", className)}>
-            <span className="sr-only">Show explanation</span>
+            <span className="sr-only">{t('form.explanation')}</span>
             <HelpCircle className="size-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent>
-          {explanation}
+          {t(explanation)}
         </PopoverContent>
       </Popover>
     );

@@ -6,6 +6,8 @@ import { EntityFormControl } from "./EntityFormControl";
 import { Error } from "./Error";
 import { Explanation } from "./Explanation";
 import { FileFormControl } from "./FileControl";
+import { RadioFormControl } from "./RadioControl";
+import { SelectFormControl } from "./SelectControl";
 import { TextFormControl } from "./TextControl";
 import { TimeFormControl } from "./TimeControl";
 import { Typography } from "./Typography";
@@ -22,6 +24,8 @@ export default Object.assign({}, {
   File: FileFormControl,
   Error: Error,
   Explanation: Explanation,
+  Radio: RadioFormControl,
+  Select: SelectFormControl,
   Text: TextFormControl,
   Time: TimeFormControl,
   Typography: Typography,

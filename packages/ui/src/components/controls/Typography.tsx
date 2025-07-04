@@ -3,6 +3,7 @@ import { TypographyControl } from "@imminently/interview-sdk";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Alert, AlertDescription } from "../ui/alert";
 import { cn } from "@/util";
+import { useTheme } from "@/providers";
 
 type TextVariant = TypographyControl['style'];
 
@@ -72,6 +73,7 @@ export interface TypographyControlProps {
 export const Typography = ({ control }: TypographyControlProps) => {
   // merge is a bit weird here, as we actually would want to merge the cva variants
   // const { merge } = useTheme();
+  const { t } = useTheme();
   const variant: TextVariant = control.style || "body1";
   const Comp: React.ElementType = componentMap[variant] ?? "div";
 
@@ -85,7 +87,7 @@ export const Typography = ({ control }: TypographyControlProps) => {
       )}
     >
       {control.emoji ? <span className="mr-2">{control.emoji}</span> : null}
-      {control.text}
+      {t(control.text)}
     </Comp>
   );
 };

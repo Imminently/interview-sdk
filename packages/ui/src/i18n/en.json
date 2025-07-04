@@ -1,4 +1,22 @@
 {
+  "debug": {
+    "form_values": "Form values"
+  },
+  "form": {
+    "back": "Back",
+    "next": "Next",
+    "steps": "Steps",
+    "complete": "Complete",
+    "progress": "Progress",
+    "loading": "Loading...",
+    "error": "Error",
+    "explanation": "Show explanation",
+    "add_item": "Add item",
+    "remove_item": "Remove item",
+    "no_items": "No items added yet",
+    "select_placeholder": "Select an option",
+    "text_placeholder": "Enter text here..."
+  },
   "has_errors": "The interview has errors",
   "validations": {
     "required": "This field is required",
