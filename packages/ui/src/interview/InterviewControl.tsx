@@ -84,6 +84,21 @@ const ReadOnlyControl = ({ control, renderValue = (v) => String(v) }: { control:
   );
 }
 
+// as forms are weird, we need to ensure we have the correct default value for each control type
+const getControlDefault = (type: string) => {
+  switch (type) {
+    case "boolean":
+      return undefined; // use undefined as we support indeterminate state
+    case "currency":
+      return 0;
+    case "text":
+    case "number_of_instances":
+      return "";
+    default:
+      return undefined;
+  }
+}
+
 export const InterviewControl = ({ control, renderValue, className, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
@@ -109,7 +124,7 @@ export const InterviewControl = ({ control, renderValue, className, children }: 
   }
 
   // @ts-ignore
-  const defaultValue = resolvedControl.value ?? resolvedControl.default ?? undefined;
+  const defaultValue = resolvedControl.value ?? resolvedControl.default ?? getControlDefault(resolvedControl.type);
   // console.log(`[Control::${control.type}] defaultValue`, defaultValue, control);
   // const label = "label" in resolvedControl ? resolvedControl.label : undefined;
   const rules: RegisterOptions = useMemo(() => ({
@@ -134,7 +149,7 @@ export const InterviewControl = ({ control, renderValue, className, children }: 
       control={form.control}
       defaultValue={defaultValue}
       rules={rules}
-      // shouldUnregister={true}
+      shouldUnregister={true}
       render={(props) => {
         return (
           <FormItem className={className}>

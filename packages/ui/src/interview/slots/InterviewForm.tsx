@@ -1,6 +1,7 @@
-import React, { forwardRef, useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import { Slot } from "@radix-ui/react-slot";
+import debounce from "lodash-es/debounce";
 import { useInterview } from "../InterviewContext";
 import { getCurrentStep, RenderableControl, Step } from "@imminently/interview-sdk";
 import { RenderControl } from "@/components/RenderControl";
@@ -48,18 +49,24 @@ const InterviewForm = ({ asChild, children, className, subinterviewRequired = fa
 
   const { watch } = methods;
 
+  // Create debounced version of onScreenDataChange outside of useEffect
+  const debouncedOnScreenDataChange = useMemo(
+    () => debounce((value: any) => manager.onScreenDataChange(value), 300),
+    [manager]
+  );
+
   // this exists to update internals, dynamic values and calculate unknowns
   // this means is important we get the session to update and re-render the form
   useEffect(() => {
     const subscription = watch((value, { type }) => {
       if (type === "change") {
         // onControlDataChange?.(get(value, name), name);
-        manager.onScreenDataChange(value);
+        debouncedOnScreenDataChange(value);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [watch]);
+  }, [watch, debouncedOnScreenDataChange]);
 
   if (!screen) return null;
   const pageTitle = t(screen.title || step?.title || "");
