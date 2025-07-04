@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 /* source styles from module so tailwind knows to include them */
-@import "@imminently/interview-ui";
+@source "../../node_modules/@imminently/interview-ui";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -161,23 +161,5 @@
 
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@theme inline {
-  --animate-progress: progress 1s infinite ease-in-out;
-
-  @keyframes progress {
-    0% {
-      transform: translateX(0) scaleX(0);
-    }
-
-    40% {
-      transform: translateX(0) scaleX(0.4);
-    }
-
-    100% {
-      transform: translateX(100%) scaleX(0.5);
-    }
   }
 }

@@ -8,7 +8,6 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "build:ui": "turbo run build --filter=ui",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean",

@@ -48,7 +48,7 @@
     },
     "packages/core": {
       "name": "@imminently/interview-sdk",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "axios": "^1.10.0",
         "date-fns": "^4.1.0",
@@ -64,11 +64,21 @@
         "typescript": "^5.8.3",
       },
     },
+    "packages/theme-default": {
+      "name": "@imminently/interview-sdk-theme-default",
+      "version": "0.1.7",
+      "devDependencies": {
+        "autoprefixer": "^10.4.21",
+        "postcss": "^8.5.3",
+        "tailwindcss": "^4.1.11",
+        "tsup": "^8.5.0",
+        "typescript": "^5.8.3",
+      },
+    },
     "packages/ui": {
       "name": "@imminently/interview-ui",
-      "version": "0.1.0",
+      "version": "0.2.1",
       "dependencies": {
-        "@imminently/interview-sdk": "workspace:^",
         "@radix-ui/react-checkbox": "^1.2.3",
         "@radix-ui/react-collapsible": "^1.1.11",
         "@radix-ui/react-dialog": "^1.1.14",
@@ -88,6 +98,7 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "date-fns": "^4.1.0",
+        "lodash-es": "^4.17.21",
         "lucide-react": "^0.511.0",
         "motion": "^12.11.3",
         "react": "^19.0.0",
@@ -111,6 +122,9 @@
         "tailwindcss": "^4.1.11",
         "tsup": "^8.5.0",
         "typescript": "^5.8.3",
+      },
+      "peerDependencies": {
+        "@imminently/interview-sdk": ">= 0.2.0",
       },
     },
   },
@@ -216,6 +230,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
     "@imminently/interview-sdk": ["@imminently/interview-sdk@workspace:packages/core"],
+
+    "@imminently/interview-sdk-theme-default": ["@imminently/interview-sdk-theme-default@workspace:packages/theme-default"],
 
     "@imminently/interview-ui": ["@imminently/interview-ui@workspace:packages/ui"],
 
