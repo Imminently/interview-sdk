@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-sdk",
-  "version": "0.2.0",
+  "version": "0.2.8",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -27,8 +27,8 @@
     "dev": "tsup --watch",
     "lint": "eslint src/",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "bump:patch": "npm run build &&npm version patch --no-git-tag-version",
-    "publish:patch": "npm run bump:patch && npm publish"
+    "bump:patch": "npm run build && npm version patch --no-git-tag-version",
+    "deploy": "bun run bump:patch && bun publish"
   },
   "dependencies": {
     "axios": "^1.10.0",

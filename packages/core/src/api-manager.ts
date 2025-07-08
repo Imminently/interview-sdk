@@ -1,7 +1,7 @@
 import type { AxiosInstance, AxiosRequestConfig } from "axios";
 import type {
   AttributeValues,
-  AuthConfig,
+  AuthConfigGetter,
   ChatResponse,
   Navigate,
   Overrides,
@@ -17,7 +17,7 @@ const defaultPath = ["decisionapi", "session"];
 export interface ApiManagerOptions {
   host: string;
   path?: string | string[];
-  auth?: AuthConfig;
+  auth?: AuthConfigGetter;
   overrides?: AxiosRequestConfig;
 }
 

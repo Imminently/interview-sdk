@@ -1,6 +1,6 @@
 import { format, parseISO } from "date-fns";
 import { v4 as baseUuid } from "uuid";
-import type { AttributeValues, AuthConfig, Control, EntityControlInstance, RenderableEntityControl, ResponseData, Session, State } from "./types";
+import type { AttributeValues, AuthConfigGetter, Control, EntityControlInstance, RenderableEntityControl, ResponseData, Session, State } from "./types";
 import axios, { type AxiosRequestConfig, type AxiosRequestTransformer } from "axios";
 import { replaceTemplatedText } from "./helpers";
 
@@ -17,7 +17,7 @@ export const range = (size: number, startAt = 0) => {
 export const isStrNotNullOrBlank = (str: any): boolean => !/^\s*$/.test(str || "");
 export const isStrNullOrBlank = (str: any): boolean => !isStrNotNullOrBlank(str);
 
-export const createApiInstance = (baseURL: string, auth?: AuthConfig, overrides: AxiosRequestConfig = {}) => {
+export const createApiInstance = (baseURL: string, auth?: AuthConfigGetter, overrides: AxiosRequestConfig = {}) => {
   const { transformRequest = [], ...rest } = overrides;
   return axios.create({
     baseURL,
@@ -27,8 +27,9 @@ export const createApiInstance = (baseURL: string, auth?: AuthConfig, overrides:
       (data, headers) => {
         // default auth transformer
         if (headers && auth) {
-          headers.Authorization = auth.token;
-          headers["X-TENANCY"] = auth.tenancy ?? undefined;
+          const { token, tenancy } = auth();
+          headers.Authorization = token;
+          headers["X-TENANCY"] = tenancy ?? undefined;
         }
         return JSON.stringify(data);
       },
@@ -188,7 +189,7 @@ export const createEntityPathedData = (data: AttributeValues): AttributeValues =
   }> = [];
 
   for (const [key, value] of Object.entries(data)) {
-    if (value === undefined) {
+    if (value === undefined || value === null) {
       continue;
     }
 
@@ -203,10 +204,11 @@ export const createEntityPathedData = (data: AttributeValues): AttributeValues =
     result[parent.join("/")] = entities;
     for (let i = 0; i < entities.length; i++) {
       const entity = entities[i];
+      if (entity === undefined || entity === null) continue;
       const id = entity["@id"] || i + 1;
       const entityPath = [...parent, id];
       for (const [key, value] of Object.entries(entity)) {
-        if (value === undefined) {
+        if (value === undefined || value === null) {
           continue;
         }
 
@@ -264,9 +266,11 @@ export const pathToNested = (basePath: string, values: AttributeValues, nested: 
       flatResult.push(part);
     } else {
       // this is an entity ID
-      const entities: any = flatValues[flatResult.join("/")];
+      let entities: any = flatValues[flatResult.join("/")];
 
       if (Array.isArray(entities)) {
+        // ensure we only have valid entities
+        entities = entities.filter(e => e && typeof e === "object" && "@id" in e);
         if (wasNested) {
           const index = Number.parseInt(part, 10);
           flatResult.push(entities[index]["@id"]);

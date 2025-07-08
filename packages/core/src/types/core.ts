@@ -327,6 +327,9 @@ export interface AuthConfig {
   tenancy?: string;
 }
 
+/** A getter function that should return the latest auth value. Will run on each query */
+export type AuthConfigGetter = () => AuthConfig;
+
 export interface RulesEngine {
   solve(options: any, releaseHash: string, externalData: any, state: any): Promise<any>;
 }

@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-ui",
-  "version": "0.2.1",
+  "version": "0.2.9",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -30,7 +30,7 @@
     "lint": "eslint src/",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "bump:patch": "bun run build && npm version patch --no-git-tag-version",
-    "publish:patch": "bun run bump:patch && bun publish"
+    "deploy": "bun run bump:patch && bun publish"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.2.3",
@@ -55,10 +55,7 @@
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.511.0",
     "motion": "^12.11.3",
-    "react": "^19.0.0",
     "react-day-picker": "9.7.0",
-    "react-dom": "^19.0.0",
-    "react-hook-form": "^7.58.1",
     "react-markdown": "^10.1.0",
     "tailwind-merge": "^3.3.0",
     "vaul": "^1.1.2",
@@ -78,6 +75,9 @@
     "autoprefixer": "^10.4.21"
   },
   "peerDependencies": {
-    "@imminently/interview-sdk": ">= 0.2.0"
+    "@imminently/interview-sdk": ">= 0.2.0",
+    "react": ">= 18.0.0 < 20.0.0",
+    "react-dom": ">= 18.0.0 < 20.0.0",
+    "react-hook-form": ">= 7.58.1"
   }
 }

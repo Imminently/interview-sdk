@@ -1,6 +1,6 @@
 import { AxiosRequestConfig, type AxiosInstance } from "axios";
 import { tryCatch } from "./try-catch";
-import { AuthConfig, getIdFromFileAttributeRef } from "./types";
+import { AuthConfigGetter, getIdFromFileAttributeRef } from "./types";
 import get from "lodash-es/get";
 import { buildUrl, createApiInstance } from "./util";
 
@@ -34,7 +34,7 @@ export type FileManagerOptions = {
 } | {
   host: string;
   filePath?: string[];
-  auth?: AuthConfig;
+  auth?: AuthConfigGetter;
   overrides?: AxiosRequestConfig;
 };
 

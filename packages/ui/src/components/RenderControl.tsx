@@ -13,9 +13,10 @@ const MissingControl = ({ control }: { control: Control }) => {
   return <span key={control.id}>{control.type}: {label}</span>;
 };
 
-const SlottableFormControl = (slot: React.FC<any>) => ({ control }: any) => {
+// allow type override for controls like select and radio
+const SlottableFormControl = (slot: React.FC<any>, type?: string) => ({ control }: any) => {
   const { getControl } = useTheme();
-  const Comp = getControl(control.type) ?? slot;
+  const Comp = getControl(type ?? control.type) ?? slot;
   return (
     <InterviewControl control={control}>
       {(props) => <Comp {...props} />}
@@ -37,8 +38,8 @@ const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   date: SlottableFormControl(Controls.Date),
   entity: Controls.Entity, // do not support slottable yet, as entities are complicated
   file: SlottableFormControl(Controls.File),
-  radio: SlottableFormControl(Controls.Radio),
-  select: SlottableFormControl(Controls.Select),
+  radio: SlottableFormControl(Controls.Radio, 'radio'),
+  select: SlottableFormControl(Controls.Select, 'select'),
   text: SlottableFormControl(Controls.Text),
   time: SlottableFormControl(Controls.Time),
   typography: SlottableControl(Controls.Typography), // typography is a special case, as it is not a form control

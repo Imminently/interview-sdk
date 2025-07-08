@@ -99,6 +99,11 @@ interface SessionInternal {
 export interface ManagerOptions {
   /** Enables debug logs */
   debug?: boolean;
+  /**
+   * If true, will pre-load/cache client side dynamic runtime.
+   * Note requires an initial sessionConfig to be provided.
+   */
+  preCacheClient?: boolean;
   apiManager: ApiManager | ApiManagerOptions;
   fileManager: FileManager | FileManagerOptions;
   /** Initial session config. If provided, will automatically start an interview on creation */
@@ -160,10 +165,18 @@ export class SessionManager {
     if (options.sessionConfig) {
       const { sessionConfig } = options;
       this.log("Initializing session with config:", sessionConfig);
-      this.create(sessionConfig).catch((error) => {
-        console.error(LogGroup, "Error creating initial session:", error);
-        this.setState("error", error as Error);
-      });
+      this.create(sessionConfig)
+        .then(() => {
+          // if we successfully created a session, set the state to success
+          if (options.preCacheClient) {
+            this.log("Pre-caching client-side dynamic runtime");
+            this.rulesEnginePromise = this.loadRulesEngine();
+          }
+        })
+        .catch((error) => {
+          console.error(LogGroup, "Error creating initial session:", error);
+          this.setState("error", error as Error);
+        });
     }
 
     // @ts-ignore
