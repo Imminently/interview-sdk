@@ -457,26 +457,8 @@ export class SessionManager {
 
         this.log("Calculated replacement queries:", replacementQueries);
 
+        const newScreen = this.makeScreenCopy();
         if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
-          const newScreen = this.makeScreenCopy();
-          iterateControls(newScreen.controls, (control: any) => {
-            if (control.dynamicAttributes && Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
-              if (
-                control.dynamicAttributes.some((dynamic: string) => this.internals.unknownsRequiringSimulate[dynamic])
-              ) {
-                control.loading = true;
-              }
-            }
-            if (!control.loading) {
-              postProcessControl(control, this.internals.replacements, data, state, locale);
-            }
-          });
-
-          this.triggerUpdate({
-            externalLoading: true,
-            screen: newScreen,
-          });
-
           // Get all goals that need to be solved
           const goalsToSolve = Object.keys(this.internals.unknownsRequiringSimulate);
 
@@ -506,6 +488,7 @@ export class SessionManager {
             } else {
               Object.assign(input, this.internals.userValues);
             }
+
 
             const rulesEngine = await this.rulesEnginePromise;
             for (const goal of goalsToSolve) {
@@ -547,10 +530,17 @@ export class SessionManager {
             // Update screen with new values
             if (newScreen?.controls) {
               iterateControls(newScreen.controls, (control: any) => {
-                if (control.loading) {
-                  control.loading = undefined;
+                control.loading = undefined;
+                if (control.dynamicAttributes && Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
+                  if (
+                    control.dynamicAttributes.some((dynamic: string) => this.internals.unknownsRequiringSimulate[dynamic])
+                  ) {
+                    control.loading = true;
+                  }
                 }
-                postProcessControl(control, this.internals.replacements, data, state, locale);
+                if (!control.loading) {
+                  postProcessControl(control, this.internals.replacements, data, state, locale);
+                }
               });
             }
 

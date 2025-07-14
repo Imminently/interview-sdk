@@ -18,7 +18,7 @@ const mapControls = (controls: Control[], attribute?: string) => {
   return controls.map((it) => {
     if (it.attribute === undefined) return it;
 
-    if (it.attribute.startsWith(parentPathParts.join(".")) || it.attribute.startsWith(parentPathParts.join("/"))) {
+    if (it.attribute.startsWith(parentPathParts.join(".")) || it.attribute.includes("/")) {
       return it;
     }
 
