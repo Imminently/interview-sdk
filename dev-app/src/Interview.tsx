@@ -35,11 +35,6 @@ class CustomApi extends ApiManager {
 }
 
 export const getInterviewConfig = (interview?: string) => {
-  const token = user.id_token as string;
-  const auth: AuthConfig = {
-    token: `Bearer ${token}`,
-    tenancy: API.tenancy,
-  };
   return {
     debug: true,
     sessionConfig: {
@@ -50,7 +45,10 @@ export const getInterviewConfig = (interview?: string) => {
     apiManager: new CustomApi({
       host: API.baseUrl,
       // path: "timesheet",
-      auth,
+      auth: () => ({
+        token: `Bearer ${user.id_token as string}`,
+        tenancy: API.tenancy,
+      }),
     }),
     fileManager: {
       host: API.baseUrl,
