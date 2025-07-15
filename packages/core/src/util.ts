@@ -27,7 +27,7 @@ export const createApiInstance = (baseURL: string, auth?: AuthConfigGetter, over
       (data, headers) => {
         // default auth transformer
         if (headers && auth) {
-          const { token, tenancy } = typeof auth === "function" ? auth() : auth;
+          const { token, tenancy } = auth();
           headers.Authorization = token;
           headers["X-TENANCY"] = tenancy ?? undefined;
         }
