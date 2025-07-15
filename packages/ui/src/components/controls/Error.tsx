@@ -1,40 +1,22 @@
 import { useFormContext } from "react-hook-form";
 
 /**
- * @deprecated Use `FormMessage` instead.
+ * @deprecated
+ * A non FormControl error component that displays errors for a specific control by name.
+ * It uses the form state to find errors related to the control's name.
+ * 
+ * In most cases, you should use the `FormMessage` component instead.
+ *
+ * @param name - The name of the control to display errors for.
  */
-export const Error = ({ id }: { id: string }) => {
-  // const interview = useInterview();
+export const Error = ({ name }: { name: string }) => {
   const { formState } = useFormContext();
-  const error = formState.errors?.[id];
-
-  // const name: string = useAttributeToFieldName(attribute) ?? control.entity;
-  // // TODO this appears to be the same value
-  // // const pathedAttribute = attributeToPath(attribute, interview.session.data, getValues(), false);
-
-  // const pathedAttribute = name;
-
-  // const validations = control.attribute
-  //   ? // we want the validation with the least number of attributes first
-  //   interview.session.validations
-  //     ?.filter((v) => v.shown && v.attributes.includes(pathedAttribute as string))
-  //     .sort((a, b) => a.attributes.length - b.attributes.length)
-  //   : undefined;
-  // const firstValidation = validations?.[0];
-
-  // const validationSeverity = firstValidation?.severity;
-  // const validationMessage = firstValidation?.message;
-  // const resolvedError = error?.message
-  //         ? (error as FormControlError)
-  //         : validationSeverity === "error"
-  //           ? { message: validationMessage as string }
-  //           : undefined;
-  // const message = resolvedError?.message ?? validationMessage;
+  const error = formState.errors?.[name];
 
   if (!error) return null;
 
   return (
-    <div data-id={id} className="dcsvly-error-root">
+    <div data-name={name} data-slot="form-error">
       {Array.isArray(error)
         ? error.map((err: any, i: number) => <div key={i}>{err?.message ?? String(err)}</div>)
         : <div>{(error as any)?.message ?? String(error)}</div>

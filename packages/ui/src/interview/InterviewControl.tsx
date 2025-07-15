@@ -1,22 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { RegisterOptions, UseControllerReturn, useFormContext } from "react-hook-form";
 import { type Control } from "@imminently/interview-sdk";
-import { Error } from "../components/controls/Error";
 import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
-import { generateValidatorForControl } from "../util/Validation";
-import { Explanation } from "../components/controls/Explanation";
+import { generateValidatorForControl, useAttributeValidationErrors } from "../util/validation";
 import { FormField, FormItem } from "../components/ui/form";
-import Text from "../components/ui/text";
-import { useTheme } from "@/providers";
-
-export interface FormControlError {
-  message: string;
-}
+import { isReadOnly, ReadOnlyControl } from "@/components/controls/ReadOnlyControl";
 
 export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
   control: Control;
-  renderValue?: (value: string) => React.ReactNode;
   children: (props: UseControllerReturn) => React.ReactElement;
 }
 
@@ -38,52 +30,6 @@ const isLabelTooLong = (label: string | undefined): label is string => {
   return false;
 };
 
-const isReadOnly = (control: Control) => {
-  // if control type is not expected to have "readOnly" -> return
-  if (
-    control.type !== "boolean" &&
-    control.type !== "currency" &&
-    control.type !== "date" &&
-    control.type !== "time" &&
-    control.type !== "datetime" &&
-    control.type !== "options" &&
-    control.type !== "number_of_instances" &&
-    control.type !== "text"
-  ) {
-    return false;
-  }
-  // return readOnly property if it exists, otherwise return false
-  return control.readOnly ?? false;
-}
-
-const ReadOnlyControl = ({ control, renderValue = (v) => String(v) }: { control: Control, renderValue?: (v: any) => React.ReactNode }) => {
-  const { t } = useTheme();
-  // const { attribute } = control;
-  // const interview = useInterview();
-  // const { getValues } = useFormContext();
-
-  // const pathedAttribute = attributeToPath(attribute, interview.session.data, getValues(), false);
-  // const validations = interview.session.validations
-  //   ?.filter((v) => v.shown && v.attributes.includes(pathedAttribute as string))
-  //   .sort((a, b) => a.attributes.length - b.attributes.length);
-  // const firstValidation = validations?.[0];
-
-  // @ts-ignore
-  const label = t(control.label);
-  // @ts-ignore
-  const value = renderValue(control.value);
-
-  return (
-    <div className="flex flex-row gap-2">
-      <Text>{label}</Text>
-      <Text>{value}</Text>
-      <Explanation control={control} />
-      {/* {firstValidation && <Error id={control.id} />} */}
-      <Error id={control.id} />
-    </div>
-  );
-}
-
 // as forms are weird, we need to ensure we have the correct default value for each control type
 const getControlDefault = (type: string) => {
   switch (type) {
@@ -99,34 +45,19 @@ const getControlDefault = (type: string) => {
   }
 }
 
-export const InterviewControl = ({ control, renderValue, className, children }: InterviewControlProps) => {
+export const InterviewControl = ({ control, className, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
-  // const interview = useInterview();
   const form = useFormContext();
   const readOnly = isReadOnly(control);
 
   // take a local copy
-  const resolvedControl = useMemo(() => ({ ...control }), [control]);
+  const resolvedControl: Control & { disabled?: boolean } = useMemo(() => ({ ...control }), [control]);
   // @ts-ignore
   const name: string = useAttributeToFieldName(attribute) ?? control.entity;
-
-  if (hidden) {
-    return null;
-  }
-
-  // we only override the render if the control is readOnly and labelDisplay is "automatic"
-  if (readOnly && (control as any).labelDisplay === "automatic") {
-    return <ReadOnlyControl control={control} renderValue={renderValue} />;
-  } else {
-    // @ts-ignore
-    resolvedControl.disabled = true;
-  }
-
   // @ts-ignore
   const defaultValue = resolvedControl.value ?? resolvedControl.default ?? getControlDefault(resolvedControl.type);
-  // console.log(`[Control::${control.type}] defaultValue`, defaultValue, control);
-  // const label = "label" in resolvedControl ? resolvedControl.label : undefined;
+
   const rules: RegisterOptions = useMemo(() => ({
     validate: (value) => {
       const schema = generateValidatorForControl(resolvedControl as any);
@@ -142,12 +73,45 @@ export const InterviewControl = ({ control, renderValue, className, children }: 
     },
   }), [resolvedControl]);
 
+  // set validation errors from the session object
+  const { setError, clearErrors } = form;
+  const validations = useAttributeValidationErrors(control.attribute);
+  useEffect(() => {
+    if (validations.length > 0) {
+      setError(name, { type: "manual", message: validations[0].message });
+    } else {
+      clearErrors(name);
+    }
+  }, [name, validations, setError, clearErrors]);
+
+  // don't render if the control is hidden
+  if (hidden) {
+    return null;
+  }
+
+  // we only override the render if the control is readOnly and labelDisplay is "automatic"
+  if (readOnly && (control as any).labelDisplay === "automatic") {
+    return (
+      <FormField
+        name={name}
+        data={resolvedControl}
+        control={form.control}
+        defaultValue={defaultValue}
+        render={ReadOnlyControl}
+      />
+    );
+  } else if (readOnly) {
+    // @ts-ignore since its flagged readOnly, we want to force it disabled
+    resolvedControl.disabled = true;
+  }
+
   return (
     <FormField
       name={name}
       data={resolvedControl}
       control={form.control}
       defaultValue={defaultValue}
+      disabled={resolvedControl.disabled ?? false}
       rules={rules}
       shouldUnregister={true}
       render={(props) => {

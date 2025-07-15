@@ -5,7 +5,7 @@ import { t } from '@/util/translate-fn';
 
 // convert options into select and radio, so they can override with a more specific type
 // exlude the types we dont want to allow or do not yet support
-type SlottableTypes = "select" | "radio" | Exclude<RenderableControlType, "options" | "entity" | "interview_container" | "switch_container" | "certainty_container" | "repeating_container" | "data_container" | "generative_chat">;
+type SlottableTypes = "select" | "radio" | "renderValue" | Exclude<RenderableControlType, "options" | "entity" | "interview_container" | "switch_container" | "certainty_container" | "repeating_container" | "data_container" | "generative_chat">;
 
 export type Theme = Record<string, any>;
 export type IconMap = Record<string, React.ComponentType<{ className?: string }>>;

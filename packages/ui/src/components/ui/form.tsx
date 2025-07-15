@@ -37,10 +37,11 @@ const FormField = <
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 >({
+  data, // pull data (the control) out of the props
   ...props
 }: ControllerProps<TFieldValues, TName> & { data: Control }) => {
   return (
-    <FormFieldContext.Provider value={{ name: props.name, control: props.data }}>
+    <FormFieldContext.Provider value={{ name: props.name, control: data }}>
       <Controller {...props} />
     </FormFieldContext.Provider>
   )

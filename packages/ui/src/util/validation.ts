@@ -19,6 +19,7 @@ import {
 } from "react-hook-form";
 import * as yup from "yup";
 import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate } from "./index";
+import { useInterview } from "@/interview/InterviewContext";
 
 const setCustomValidity = (ref: Ref, fieldPath: string, errors: FieldErrors) => {
   if (ref && "reportValidity" in ref) {
@@ -347,4 +348,25 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
     default:
       return undefined;
   }
+};
+
+/**
+ * A utility hook to retrieve validation errors for a specific attribute.
+ * This hook filters the session's validations to find those that are shown
+ * and include the specified attribute, returning them sorted by the number of attributes.
+ * 
+ * @param attribute The attribute to check for validation errors.
+ * @returns An array of validation errors for the given attribute.
+ */
+export const useAttributeValidationErrors = (attribute: string | undefined) => {
+  const { session } = useInterview();
+
+  // if no attribute, return empty array
+  if (!attribute) return [];
+
+  const baseAttribute = attribute.split("/").pop() as string;
+
+  return (session.validations ?? [])
+    .filter((v) => v.shown && v.attributes.includes(baseAttribute))
+    .sort((a, b) => a.attributes.length - b.attributes.length);
 };
