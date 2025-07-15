@@ -1,10 +1,9 @@
-import { createContext, PropsWithChildren, useContext, useMemo, useState, useSyncExternalStore } from "react";
-import { FormProvider, useForm } from "react-hook-form";
-import type { Session, ManagerOptions, ManagerState } from "@imminently/interview-sdk";
+import { createContext, PropsWithChildren, useContext, useMemo, useSyncExternalStore } from "react";
+import { FormProvider, useForm, UseFormProps } from "react-hook-form";
+import type { Session, ManagerState } from "@imminently/interview-sdk";
 import { SessionManager } from "@imminently/interview-sdk";
 import { IconMap, InterviewControls, Theme, ThemeProvider } from "../providers/ThemeProvider";
-import { AttributeNestingProvider } from "@/providers";
-import { InterviewLayout } from "./InterviewLayout";
+import { AttributeNestingProvider, OptionsProvider } from "@/providers";
 
 export type InterviewContextState = {
   manager: SessionManager;
@@ -24,8 +23,17 @@ export const useInterview = () => {
   return ctx;
 };
 
+export type ExposedFormControls = Pick<UseFormProps, 'mode' | 'reValidateMode' | 'shouldFocusError'>;
+
 export interface InterviewProviderProps extends PropsWithChildren {
-  options: ManagerOptions;
+  /**
+   * The manager instance.
+   * 
+   * **IMPORTANT** ensure the instance is not re-created each render
+   */
+  manager: SessionManager;
+  /** Exposed limited set of props from `react-hook-form` */
+  form?: ExposedFormControls;
   theme?: Theme;
   icons?: IconMap;
   slots?: Partial<InterviewControls>;
@@ -35,16 +43,13 @@ export interface InterviewProviderProps extends PropsWithChildren {
  * InterviewProvider is a React context provider that manages the state and behavior of an interview session.
  * It provides methods to navigate through the interview steps, manage form values, and handle interactions.
  */
-export const InterviewProvider = ({ options, theme, icons, slots, children }: InterviewProviderProps) => {
-  const methods = useForm();
-  const [manager] = useState(() => new SessionManager(options));
+export const InterviewProvider = ({ manager, form, theme, icons, slots, children }: InterviewProviderProps) => {
+  const methods = useForm(form);
   const snapshot = useSyncExternalStore(manager.subscribe, manager.getSnapshot);
 
-  if (options.debug) {
+  if (manager.debug) {
     console.log("[InterviewProvider] Snapshot", snapshot);
   }
-
-  // TODO form reset on screen change?
 
   const value = useMemo<InterviewContextState>(() => {
     const { session, state, error, loading } = snapshot;
@@ -67,22 +72,17 @@ export const InterviewProvider = ({ options, theme, icons, slots, children }: In
     };
   }, [snapshot]);
 
-  const { session } = snapshot;
-
-  // note children needs encapsulating <></>
-  // workaround for react 19, as react-hook-form appears to still be using react 18 which breaks the ReactNode type
-
   return (
-    <ThemeProvider theme={theme} icons={icons} controls={slots}>
-      <InterviewContext.Provider value={value}>
-        <AttributeNestingProvider value={false}>
-          <FormProvider {...methods}>
-            {
-              children ? <>{children}</> : <InterviewLayout key={session?.screen.id} options={options} />
-            }
-          </FormProvider>
-        </AttributeNestingProvider>
-      </InterviewContext.Provider>
-    </ThemeProvider>
+    <OptionsProvider value={manager.options}>
+      <ThemeProvider theme={theme} icons={icons} controls={slots}>
+        <InterviewContext.Provider value={value}>
+          <AttributeNestingProvider value={false}>
+            <FormProvider {...methods}>
+              {children}
+            </FormProvider>
+          </AttributeNestingProvider>
+        </InterviewContext.Provider>
+      </ThemeProvider>
+    </OptionsProvider>
   );
 };

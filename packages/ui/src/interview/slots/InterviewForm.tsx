@@ -6,6 +6,7 @@ import { useInterview } from "../InterviewContext";
 import { getCurrentStep, RenderableControl, Step } from "@imminently/interview-sdk";
 import { RenderControl } from "@/components/RenderControl";
 import { useTheme } from "@/providers";
+import { cn } from "@/util";
 
 // TODO this only exists for getCurrentStep which is a recursive search
 export const DEFAULT_STEP: Step = {
@@ -24,12 +25,15 @@ export interface InterviewFormProps extends React.ButtonHTMLAttributes<HTMLFormE
   asChild?: boolean;
   children?: React.ReactNode;
   className?: string;
-  /** applicable only to nested interviews */
-  subinterviewRequired?: boolean;
+  titleClass?: string;
 }
 
-// export this in case they want to override / make their own form component
-
+/**
+ * Renders the controls for the current screen.
+ * This is a simple wrapper around the RenderControl component.
+ * It maps over the controls and renders each one.
+ * It also adds a key to each control to avoid React warnings about unique keys.
+ */
 export const Controls = ({ controls }: { controls: RenderableControl[] }) => {
   // pre-fixing key with index, as repeat contains will cause multiple controls with the same id
   return (
@@ -39,45 +43,50 @@ export const Controls = ({ controls }: { controls: RenderableControl[] }) => {
   );
 }
 
-const InterviewForm = ({ asChild, children, className, subinterviewRequired = false, ...props }: InterviewFormProps) => {
-  const methods = useFormContext();
-  const { t } = useTheme();
-  const { manager, session } = useInterview();
-  const { steps, screen } = session;
+/**
+ * Hook to sync form data with the session manager.
+ * Updates internals, dynamic values, and calculates unknowns.
+ * This is important to ensure the session updates and re-renders the form.
+ */
+export const useFormSync = (delay: number = 300) => {
+  const { watch } = useFormContext();
+  const { manager } = useInterview();
 
-  const step = getCurrentStep({ ...DEFAULT_STEP, steps });
-
-  const { watch } = methods;
-
-  // Create debounced version of onScreenDataChange outside of useEffect
-  const debouncedOnScreenDataChange = useMemo(
-    () => debounce((value: any) => manager.onScreenDataChange(value), 300),
+  const sync = useMemo(
+    () => debounce((value: any) => manager.onScreenDataChange(value), delay),
     [manager]
   );
 
-  // this exists to update internals, dynamic values and calculate unknowns
-  // this means is important we get the session to update and re-render the form
   useEffect(() => {
     const subscription = watch((value, { type }) => {
       if (type === "change") {
-        // onControlDataChange?.(get(value, name), name);
-        debouncedOnScreenDataChange(value);
+        sync(value);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [watch, debouncedOnScreenDataChange]);
+  }, [watch, sync]);
+};
+
+const InterviewForm = ({ asChild, children, className, titleClass, ...props }: InterviewFormProps) => {
+  const { t } = useTheme();
+  const { session } = useInterview();
+  const { steps, screen } = session;
+
+  useFormSync();
 
   if (!screen) return null;
+
+  const step = getCurrentStep({ ...DEFAULT_STEP, steps });
   const pageTitle = t(screen.title || step?.title || "");
   const Comp = asChild ? Slot : "form";
-  console.log('rendering form', { pageTitle, screen, step });
+
   return (
     <Comp {...props} className={className} data-slot={"form"}>
       {
         children ?? (
           <div data-slot={"form-content"}>
-            <h4 data-slot={"heading"} className="text-2xl font-semibold mb-6">
+            <h4 data-slot={"heading"} className={cn("text-2xl font-semibold mb-6", titleClass)}>
               {pageTitle}
             </h4>
             <Controls controls={screen.controls} />

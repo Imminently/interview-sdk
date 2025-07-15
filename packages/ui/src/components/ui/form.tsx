@@ -13,7 +13,7 @@ import {
 import { Control } from "@imminently/interview-sdk"
 import { cn } from "@/util"
 import { Label } from "./label"
-import { useTheme } from "@/providers"
+import { useOptions, useTheme } from "@/providers"
 
 const Form = FormProvider
 
@@ -102,7 +102,16 @@ function FormLabel({
   className,
   ...props
 }: React.ComponentProps<typeof LabelPrimitive.Root>) {
-  const { error, formItemId } = useFormField()
+  // pull the debug option, falling back to true if not set (ie likely in a mocked context)
+  const { debug } = useOptions({ debug: true });
+  const { error, formItemId, control } = useFormField()
+
+  const debugControl = debug ? () => {
+    console.debug("FormLabel", {
+      formItemId,
+      control
+    });
+  } : undefined
 
   return (
     <Label
@@ -110,6 +119,7 @@ function FormLabel({
       data-error={!!error}
       className={cn("data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
+      onClick={debugControl}
       {...props}
     />
   )

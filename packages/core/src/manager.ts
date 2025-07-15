@@ -120,9 +120,8 @@ export class SessionManager {
   private active: number;
   private state: ManagerState;
   private error?: Error;
-  private debug: boolean;
   private listeners: Set<() => void>;
-  private options: ManagerOptions;
+  private _options: ManagerOptions;
   private apiManager: ApiManager;
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
@@ -147,8 +146,7 @@ export class SessionManager {
     this.active = 0;
     this.state = "loading";
     this.error = undefined;
-    this.options = options;
-    this.debug = Boolean(options.debug);
+    this._options = options;
     this.listeners = new Set();
 
     // create the API manager
@@ -166,13 +164,6 @@ export class SessionManager {
       const { sessionConfig } = options;
       this.log("Initializing session with config:", sessionConfig);
       this.create(sessionConfig)
-        .then(() => {
-          // if we successfully created a session, set the state to success
-          if (options.preCacheClient) {
-            this.log("Pre-caching client-side dynamic runtime");
-            this.rulesEnginePromise = this.loadRulesEngine();
-          }
-        })
         .catch((error) => {
           console.error(LogGroup, "Error creating initial session:", error);
           this.setState("error", error as Error);
@@ -195,6 +186,14 @@ export class SessionManager {
     this.log("State updated:", this.state, this.error);
     this.notifyListeners();
   };
+
+  private preCacheClient = () => {
+    // try to pre-cache the client-side dynamic runtime
+    if (this.options.preCacheClient && !this.rulesEnginePromise) {
+      this.log("Pre-caching client-side dynamic runtime");
+      this.rulesEnginePromise = this.loadRulesEngine();
+    }
+  }
 
   /**
    * The session currently being used to display screen control.
@@ -227,6 +226,14 @@ export class SessionManager {
     return this.sessions.length;
   }
 
+  get options() {
+    return this._options;
+  }
+
+  get debug() {
+    return Boolean(this.options.debug);
+  }
+
   push = (session: Session) => {
     this.sessions.push(session);
     this.active = this.sessions.length - 1; // always set active to the last session
@@ -255,6 +262,8 @@ export class SessionManager {
     this.setState("success");
     this.push(session);
     this.updateSession(session);
+    // if we successfully created a session, try to pre-cache the client-side dynamic runtime
+    this.preCacheClient();
     return session;
   }
 
@@ -266,6 +275,8 @@ export class SessionManager {
     this.setState("success");
     this.push(session);
     this.updateSession(session);
+    // if we successfully created a session, try to pre-cache the client-side dynamic runtime
+    this.preCacheClient();
     return session;
   }
 
