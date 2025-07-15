@@ -45,7 +45,7 @@ const getControlDefault = (type: string) => {
   }
 }
 
-export const InterviewControl = ({ control, className, children }: InterviewControlProps) => {
+export const InterviewControl = ({ control, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
   const form = useFormContext();
@@ -97,7 +97,11 @@ export const InterviewControl = ({ control, className, children }: InterviewCont
         data={resolvedControl}
         control={form.control}
         defaultValue={defaultValue}
-        render={ReadOnlyControl}
+        render={(props) => (
+          <FormItem>
+            <ReadOnlyControl {...props} />
+          </FormItem>
+        )}
       />
     );
   } else if (readOnly) {
@@ -114,13 +118,11 @@ export const InterviewControl = ({ control, className, children }: InterviewCont
       disabled={resolvedControl.disabled ?? false}
       rules={rules}
       shouldUnregister={true}
-      render={(props) => {
-        return (
-          <FormItem className={className}>
-            {children(props)}
-          </FormItem>
-        );
-      }}
+      render={(props) => (
+        <FormItem>
+          {children(props)}
+        </FormItem>
+      )}
     />
   );
 };

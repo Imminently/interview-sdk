@@ -3,7 +3,6 @@ import { CurrencyFormControl } from "./CurrencyControl";
 import { DateFormControl } from "./DateControl";
 import { EntityFormControl } from "./EntityFormControl";
 // import { DateTimeControl } from "./DateTimeControl";
-import { Error } from "./Error";
 import { Explanation } from "./Explanation";
 import { FileFormControl } from "./FileControl";
 import { RadioFormControl } from "./RadioControl";
@@ -13,7 +12,6 @@ import { TimeFormControl } from "./TimeControl";
 import { Typography } from "./Typography";
 
 export * from "./Explanation";
-export * from "./Error";
 
 export default Object.assign({}, {
   Boolean: BooleanFormControl,

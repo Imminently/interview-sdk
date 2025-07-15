@@ -14,9 +14,9 @@ export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
         {t(control.label)}
         <Explanation control={control} />
       </FormLabel>
-      <div className="relative flex items-center rounded-md border focus-within:ring-1 focus-within:ring-ring pl-2">
-        <span className="text-muted-foreground">{control.symbol}</span>
-        <FormControl>
+      <FormControl>
+        <div className="relative flex items-center rounded-md border focus-within:ring-1 focus-within:ring-ring pl-2">
+          <span className="text-muted-foreground">{control.symbol}</span>
           <Input
             type={control.type}
             value={field.value}
@@ -24,8 +24,8 @@ export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
             disabled={field.disabled}
             className="border-0 focus-visible:ring-0 shadow-none"
           />
-        </FormControl>
-      </div>
+        </div>
+      </FormControl>
       <FormMessage />
     </>
   );

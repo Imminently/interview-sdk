@@ -81,15 +81,16 @@ const FormItemContext = React.createContext<FormItemContextValue>(
 )
 
 function FormItem({ className, ...props }: React.ComponentProps<"div">) {
-  const id = React.useId()
-  const { control, name } = useFormField()
+  const id = React.useId();
+  const { control, name } = useFormField();
+  // @ts-ignore the control may have a custom className, add it here so its always applied
+  const customClassName = control.customClassName ?? "";
 
   return (
     <FormItemContext.Provider value={{ id }}>
       <div
         data-slot="form-item"
-        immi-form-item=""
-        className={cn("grid gap-2", className)}
+        className={cn("grid gap-2", className, customClassName)}
         data-control={control.type}
         data-id={control.id}
         data-name={name}
@@ -105,14 +106,15 @@ function FormLabel({
 }: React.ComponentProps<typeof LabelPrimitive.Root>) {
   // pull the debug option, falling back to true if not set (ie likely in a mocked context)
   const { debug } = useOptions({ debug: true });
-  const { error, formItemId, control } = useFormField()
+  const { error, formItemId, name, control } = useFormField()
 
   const debugControl = debug ? () => {
-    console.debug("FormLabel", {
+    console.log("FormLabel", {
+      name,
       formItemId,
       control
     });
-  } : undefined
+  } : undefined;
 
   return (
     <Label
@@ -139,9 +141,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
           : `${formDescriptionId} ${formMessageId}`
       }
       aria-invalid={!!error}
-      // control={control}
       {...props}
-    // {...formProps}
     />
   )
 }

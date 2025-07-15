@@ -60,14 +60,11 @@ export const ReadOnlyControl = ({ field }: UseControllerReturn) => {
   // @ts-ignore
   const label = t(control.label);
   const value = renderValue(field.value) as ReactNode;
-  // @ts-ignore customClassName is on some of the controls
-  const customClass = control.customClassName ?? "";
-
   return (
-    <div className={cn("flex flex-col gap-2", customClass)}>
+    <>
       <FormLabel>{label}</FormLabel>
       <FormControl>{value}</FormControl>
       <FormMessage />
-    </div>
+    </>
   );
 };
