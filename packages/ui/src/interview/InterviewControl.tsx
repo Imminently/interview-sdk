@@ -73,16 +73,17 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     },
   }), [resolvedControl]);
 
+  // TEMP disabling as it was causing recursive updates and max depth exceeded errors
   // set validation errors from the session object
-  const { setError, clearErrors } = form;
-  const validations = useAttributeValidationErrors(control.attribute);
-  useEffect(() => {
-    if (validations.length > 0) {
-      setError(name, { type: "manual", message: validations[0].message });
-    } else {
-      clearErrors(name);
-    }
-  }, [name, validations, setError, clearErrors]);
+  // const { setError, clearErrors } = form;
+  // const validations = useAttributeValidationErrors(control.attribute);
+  // useEffect(() => {
+  //   if (validations.length > 0) {
+  //     setError(name, { type: "manual", message: validations[0].message });
+  //   } else {
+  //     clearErrors(name);
+  //   }
+  // }, [name, validations, setError, clearErrors]);
 
   // don't render if the control is hidden
   if (hidden) {

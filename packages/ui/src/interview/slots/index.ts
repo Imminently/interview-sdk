@@ -5,5 +5,5 @@ export { InterviewSteps } from "./InterviewSteps";
 export { InterviewNext } from "./InterviewNext";
 export { InterviewBack } from "./InterviewBack";
 export { InterviewProgress } from "./InterviewProgress";
-export { InterviewForm } from "./InterviewForm";
+export { InterviewForm, FormControls } from "./InterviewForm";
 export { InterviewProcessing } from "./InterviewProcessing";

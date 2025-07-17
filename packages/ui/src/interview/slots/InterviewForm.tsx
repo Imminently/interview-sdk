@@ -34,7 +34,7 @@ export interface InterviewFormProps extends React.ButtonHTMLAttributes<HTMLFormE
  * It maps over the controls and renders each one.
  * It also adds a key to each control to avoid React warnings about unique keys.
  */
-export const Controls = ({ controls }: { controls: RenderableControl[] }) => {
+export const FormControls = ({ controls }: { controls: RenderableControl[] }) => {
   // pre-fixing key with index, as repeat contains will cause multiple controls with the same id
   return (
     <div data-slot={"controls"} className="flex flex-col gap-4">
@@ -89,7 +89,7 @@ const InterviewForm = ({ asChild, children, className, titleClass, ...props }: I
             <h4 data-slot={"heading"} className={cn("text-2xl font-semibold mb-6", titleClass)}>
               {pageTitle}
             </h4>
-            <Controls controls={screen.controls} />
+            <FormControls controls={screen.controls} />
           </div>
         )
       }
