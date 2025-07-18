@@ -605,7 +605,7 @@ export class SessionManager {
                     input: input,
                     goal: goal,
                   },
-                  new Date().toISOString(),
+                  screen.id,
                   {
                     getRelease: () => {
                       return {
