@@ -1,5 +1,6 @@
 // import { debounceTime, map, filter } from 'rxjs/operators';
 import type { AttributeValues } from "./types";
+
 // import { produce } from 'immer';
 // import { SessionInstance } from "./types";
 // import { simulate } from "./api";
@@ -8,11 +9,11 @@ const templateRegex = /{{(.*?)}}/g;
 const splitRegex = /{{|}}/;
 
 export const render = (template: string, data: AttributeValues) => {
-  return template.replace(templateRegex, (match) => {
-    const attributeId = match.split(splitRegex).filter(Boolean)[0].trim();
-    const value = data[attributeId] || "...";
-    return typeof value === "string" ? value : String(value);
-  });
+	return template.replace(templateRegex, (match) => {
+		const attributeId = match.split(splitRegex).filter(Boolean)[0].trim();
+		const value = data[attributeId] || "...";
+		return typeof value === "string" ? value : String(value);
+	});
 };
 
 // react / fe could just use populate and debounce the state updates

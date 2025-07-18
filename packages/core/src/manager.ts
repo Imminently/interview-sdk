@@ -1,22 +1,71 @@
-import set from "lodash-es/set";
+import debounce from "lodash-es/debounce";
 import get from "lodash-es/get";
 import isEmpty from "lodash-es/isEmpty";
 import isEqual from "lodash-es/isEqual";
-import debounce from "lodash-es/debounce";
+import set from "lodash-es/set";
 import pako from "pako";
-import {
-  type AttributeValues,
-  type ChatResponse, InterviewContainerControl,
-  type Overrides, RulesEngine, type Screen,
-  type Session,
-  type SessionConfig, Step, type StepId
-} from "./types";
+import {ApiManager, type ApiManagerOptions} from "./api-manager";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
-import { type SidebarSimulate, type UnknownValues, buildDynamicReplacementQueries, simulate } from "./dynamic";
-import { SIDEBAR_DYNAMIC_DATA_INFO } from "./sidebars/sidebar";
-import { deepClone, iterateControls, pathToNested, postProcessControl, transformResponse } from "./util";
-import { FileManager, FileManagerOptions } from "./file-manager";
-import { ApiManager, ApiManagerOptions } from "./api-manager";
+import {buildDynamicReplacementQueries, type SidebarSimulate, type UnknownValues,} from "./dynamic";
+import {FileManager, type FileManagerOptions} from "./file-manager";
+import {SIDEBAR_DYNAMIC_DATA_INFO} from "./sidebars/sidebar";
+import type {
+  AttributeValues,
+  ChatResponse,
+  InterviewContainerControl,
+  Overrides,
+  RulesEngine,
+  Screen,
+  Session,
+  SessionConfig,
+  Step,
+  StepId,
+} from "./types";
+import {deepClone, iterateControls, pathToNested, postProcessControl, transformResponse,} from "./util";
+
+/**
+ * Constructs the input object from the preprocessed state for rules engine evaluation.
+ * This function reconstructs the entity structure and applies user values and previous values.
+ *
+ * @param preProcessedState - The preprocessed state containing entity structure and nodes
+ * @param data - The session data containing parent information
+ * @param userValues - The current user input values
+ * @returns The constructed input object for rules engine evaluation
+ */
+export const constructInputFromPreProcessed = (
+  preProcessedState: any,
+  data: Record<string, any> & { "@parent": string | undefined },
+  userValues: AttributeValues,
+): any => {
+  // reconstruct the entity structure from the preprocessed state
+  const input = preProcessedState?.entityStructure ?? {};
+  const parent = data["@parent"];
+
+  // Apply previous values from preprocessed nodes
+  if (preProcessedState?.nodes) {
+    for (const [key, value] of Object.entries(preProcessedState.nodes)) {
+      const prev = (value as any)?.previousValue;
+      if (prev !== undefined) {
+        const nestedPath = pathToNested(key, input, true).split(".");
+        set(input, nestedPath, prev);
+      }
+    }
+  }
+
+  // Apply user values to the appropriate parent context
+  if (parent) {
+    const nestedPath = pathToNested(parent, input, true).split(".");
+    const existing = get(input, nestedPath);
+    set(input, pathToNested(parent, input, true), {
+      ...existing,
+      ...userValues,
+    });
+  } else {
+    Object.assign(input, userValues);
+  }
+
+  return input;
+};
 
 const LogGroup = "SessionManager";
 
@@ -150,24 +199,25 @@ export class SessionManager {
     this.listeners = new Set();
 
     // create the API manager
-    this.apiManager = options.apiManager instanceof ApiManager
-      ? options.apiManager
-      : new ApiManager(options.apiManager as ApiManagerOptions);
+    this.apiManager =
+      options.apiManager instanceof ApiManager
+        ? options.apiManager
+        : new ApiManager(options.apiManager as ApiManagerOptions);
 
     // create the file manager
-    this.fileManager = options.fileManager instanceof FileManager
-      ? options.fileManager
-      : new FileManager(options.fileManager as FileManagerOptions);
+    this.fileManager =
+      options.fileManager instanceof FileManager
+        ? options.fileManager
+        : new FileManager(options.fileManager as FileManagerOptions);
 
     // auto start a session if sessionConfig is provided
     if (options.sessionConfig) {
-      const { sessionConfig } = options;
+      const {sessionConfig} = options;
       this.log("Initializing session with config:", sessionConfig);
-      this.create(sessionConfig)
-        .catch((error) => {
-          console.error(LogGroup, "Error creating initial session:", error);
-          this.setState("error", error as Error);
-        });
+      this.create(sessionConfig).catch((error) => {
+        console.error(LogGroup, "Error creating initial session:", error);
+        this.setState("error", error as Error);
+      });
     }
 
     // @ts-ignore
@@ -193,7 +243,7 @@ export class SessionManager {
       this.log("Pre-caching client-side dynamic runtime");
       this.rulesEnginePromise = this.loadRulesEngine();
     }
-  }
+  };
 
   /**
    * The session currently being used to display screen control.
@@ -237,22 +287,25 @@ export class SessionManager {
   push = (session: Session) => {
     this.sessions.push(session);
     this.active = this.sessions.length - 1; // always set active to the last session
-  }
+  };
 
   pop = () => {
     if (this.sessions.length === 0) return null;
     const session = this.sessions.pop();
     this.active = this.sessions.length - 1; // set active to the last session
     return session;
-  }
+  };
 
   setActive = (index: number) => {
     if (index < 0 || index >= this.sessions.length) {
-      console.warn(LogGroup, `Invalid session index: ${index}. Must be between 0 and ${this.sessions.length - 1}`);
+      console.warn(
+        LogGroup,
+        `Invalid session index: ${index}. Must be between 0 and ${this.sessions.length - 1}`,
+      );
       return;
     }
     this.active = index;
-  }
+  };
 
   create = async (config: SessionConfig): Promise<Session> => {
     this.log("Creating session:", config);
@@ -265,7 +318,7 @@ export class SessionManager {
     // if we successfully created a session, try to pre-cache the client-side dynamic runtime
     this.preCacheClient();
     return session;
-  }
+  };
 
   load = async (config: SessionConfig): Promise<Session> => {
     this.log("Loading session:", config);
@@ -278,7 +331,7 @@ export class SessionManager {
     // if we successfully created a session, try to pre-cache the client-side dynamic runtime
     this.preCacheClient();
     return session;
-  }
+  };
 
   createSubInterview = async (control: InterviewContainerControl) => {
     // this one can always use the parent session
@@ -287,10 +340,14 @@ export class SessionManager {
       return;
     }
 
-    const { interviewRef, initialData } = control;
+    const {interviewRef, initialData} = control;
     // NOTE do not support workspaceId yet
-    const { interactionMode, interviewId, projectId } = interviewRef;
-    if (!["same-session", "new-session", "different-project"].includes(interactionMode)) {
+    const {interactionMode, interviewId, projectId} = interviewRef;
+    if (
+      !["same-session", "new-session", "different-project"].includes(
+        interactionMode,
+      )
+    ) {
       console.error(LogGroup, `Invalid interaction mode: ${interactionMode}`);
       return;
     }
@@ -309,19 +366,24 @@ export class SessionManager {
       const subSession = await this.create(createOpts);
       this.log("Sub-interview created successfully:", subSession);
     } catch (error) {
-      console.error(LogGroup, "Error creating sub-interview:", createOpts, error);
+      console.error(
+        LogGroup,
+        "Error creating sub-interview:",
+        createOpts,
+        error,
+      );
       this.setState("error", error as Error);
     }
-  }
+  };
 
-  subscribe = (callback: () => void): () => void => {
+  subscribe = (callback: () => void): (() => void) => {
     this.log("Subscribing to session updates");
     this.listeners.add(callback);
     return () => {
       this.log("Unsubscribing from session updates");
       this.listeners.delete(callback);
-    }
-  }
+    };
+  };
 
   getSnapshot = (): SessionSnapshot => {
     // debugger;
@@ -329,7 +391,12 @@ export class SessionManager {
       state: this.state,
       error: this.error,
       loading: this.externalLoading,
-      session: this.session ? { ...this.session, screen: this.processedScreen ?? this.session?.screen } as Session : null,
+      session: this.session
+        ? ({
+          ...this.session,
+          screen: this.session?.screen,
+        } as Session)
+        : null,
       renderAt: this.renderAt,
     };
     // run json stringify to ensure we have a clean snapshot
@@ -341,20 +408,20 @@ export class SessionManager {
     this.log("Creating new snapshot", snap);
     this.snapCache = deepClone(snap);
     return this.snapCache;
-  }
+  };
 
   notifyListeners = () => {
     this.log("Notifying listeners of session update", this.session);
     for (const listener of this.listeners) {
       listener();
     }
-  }
+  };
 
   onScreenDataChange = (data: AttributeValues) => {
     this.log("Screen data changed:", data);
     Object.assign(this.internals.userValues, data);
     this.clientSideDynamic();
-  }
+  };
 
   // -- session getters
 
@@ -368,8 +435,10 @@ export class SessionManager {
       return session.decompressedClientGraph;
     }
 
-    // @ts-ignore string should work
-    const decompressed = JSON.parse(pako.inflate(session.clientGraph, { to: "string" }));
+    const decompressed = JSON.parse(
+      // @ts-ignore string should work
+      pako.inflate(session.clientGraph, {to: "string"}),
+    );
     return (session.decompressedClientGraph = decompressed);
   }
 
@@ -379,7 +448,7 @@ export class SessionManager {
 
   get isLastStep() {
     if (!this.activeSession) return false;
-    const { steps, screen } = this.activeSession;
+    const {steps, screen} = this.activeSession;
     return isLastStep(steps, screen.id);
   }
 
@@ -392,7 +461,7 @@ export class SessionManager {
     if (!this.activeSession) return undefined;
     const id = attribute.split(".").pop();
     return id && this.activeSession.explanations?.[id];
-  }
+  };
 
   // get screen() {
   //   return this.processedScreen ?? this.session.screen;
@@ -423,17 +492,44 @@ export class SessionManager {
   //   (this.session as any).report = report;
   // }
 
-  private triggerUpdate = (update: Partial<{ externalLoading: boolean; screen: Screen }>) => {
-    const { externalLoading, screen } = update;
+  private triggerUpdate = (
+    update: Partial<{ externalLoading: boolean; screen: Screen }>,
+  ) => {
+    const {externalLoading, screen} = update;
 
     if (typeof externalLoading === "boolean") {
       this.externalLoading = externalLoading;
     }
-    this.processedScreen = screen ?? this.processedScreen;
     this.renderAt = Date.now();
 
     this.log("Triggering update", update);
     this.notifyListeners();
+  };
+
+  private updateReportingWithReplacements() {
+    if (!this.activeSession?.reporting) return;
+    const reporting = this.activeSession.reporting;
+
+    // deep iterate reporting Record<string, any> and fill in the new values
+    const iterateReporting = (object: any) => {
+      for (const [key, value] of Object.entries(object)) {
+        if (typeof value === "object") {
+          iterateReporting(value);
+        } else if (Array.isArray(value)) {
+          for (const item of value) {
+            if (typeof item === "object") {
+              iterateReporting(item);
+            }
+          }
+        } else {
+          if (this.internals.replacements[key]) {
+            object[key] = this.internals.replacements[key];
+          }
+        }
+      }
+    };
+
+    iterateReporting(reporting);
   }
 
   private clientSideDynamic = async () => {
@@ -441,22 +537,35 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to process dynamic values");
       return;
     }
-    const { state, locale, data, screen } = this.activeSession;
+    const {state, locale, data, screen} = this.activeSession;
     this.internals.latestRequest = Date.now();
 
     if (state && screen) {
-      this.log("Checking for changes", this.internals.prevUserValues, this.internals.userValues);
+      this.log(
+        "Checking for changes",
+        this.internals.prevUserValues,
+        this.internals.userValues,
+      );
 
       if (
         !isEqual(this.internals.prevUserValues, this.internals.userValues) &&
         Object.keys(this.internals.userValues).length > 0
       ) {
-        const replacementQueries = buildDynamicReplacementQueries(this.activeSession, this.internals.userValues);
-        Object.assign(this.internals.replacements, replacementQueries?.knownValues);
+        const replacementQueries = buildDynamicReplacementQueries(
+          this.activeSession,
+          this.internals.userValues,
+        );
+        Object.assign(
+          this.internals.replacements,
+          replacementQueries?.knownValues,
+        );
 
-        for (const [key, value] of Object.entries(replacementQueries.unknownValues)) {
+        for (const [key, value] of Object.entries(
+          replacementQueries.unknownValues,
+        )) {
           if (value) {
-            const alreadySimulated = this.internals.unknownsAlreadySimulated[key];
+            const alreadySimulated =
+              this.internals.unknownsAlreadySimulated[key];
             if (alreadySimulated) {
               if (isEqual(alreadySimulated.data, value.data)) {
                 continue;
@@ -471,7 +580,9 @@ export class SessionManager {
         const newScreen = this.makeScreenCopy();
         if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
           // Get all goals that need to be solved
-          const goalsToSolve = Object.keys(this.internals.unknownsRequiringSimulate);
+          const goalsToSolve = Object.keys(
+            this.internals.unknownsRequiringSimulate,
+          );
 
           // Handle client-side calculations first
           if (goalsToSolve.length > 0 && this.clientGraph) {
@@ -480,26 +591,11 @@ export class SessionManager {
             }
 
             // reconstruct the entity structure from the preprocessed state
-            const input = this.activeSession.preProcessedState?.entityStructure ?? {};
-            const parent = data["@parent"];
-            if (this.activeSession.preProcessedState?.nodes) {
-              for (const [key, value] of Object.entries(this.activeSession.preProcessedState.nodes)) {
-                const prev = (value as any)?.previousValue;
-                if (prev !== undefined) {
-                  const nestedPath = pathToNested(key, input, true).split(".");
-                  set(input, nestedPath, prev);
-                }
-              }
-            }
-
-            if (parent) {
-              const nestedPath = pathToNested(parent, input, true).split(".");
-              const existing = get(input, nestedPath);
-              set(input, pathToNested(parent, input, true), { ...existing, ...this.internals.userValues });
-            } else {
-              Object.assign(input, this.internals.userValues);
-            }
-
+            const input = constructInputFromPreProcessed(
+              this.activeSession?.preProcessedState,
+              data,
+              this.internals.userValues,
+            );
 
             const rulesEngine = await this.rulesEnginePromise;
             for (const goal of goalsToSolve) {
@@ -509,7 +605,7 @@ export class SessionManager {
                     input: input,
                     goal: goal,
                   },
-                  screen.id,
+                  new Date().toISOString(),
                   {
                     getRelease: () => {
                       return {
@@ -518,8 +614,9 @@ export class SessionManager {
                       };
                     },
                   },
-                  this.activeSession.preProcessedState,
+                  this.activeSession?.preProcessedState
                 );
+
 
                 //if (result.result !== undefined) {
                 // Update replacements with solved values
@@ -527,30 +624,50 @@ export class SessionManager {
                   [goal]: result.result,
                 });
 
+                this.log(`[${LogGroup}] For goal '${goal}':`, input);
+                this.log(`[${LogGroup}] Calculated '${goal}':`, result);
+
                 // Remove from unknowns requiring simulate since it's been handled client-side
-                delete this.internals.unknownsRequiringSimulate[goal];
+                if (typeof result.result !== "undefined") {
+                  delete this.internals.unknownsRequiringSimulate[goal];
+                }
                 //} else {
                 //  console.log(result);
                 //}
               } catch (error) {
-                console.error(`[${LogGroup}] Error solving goal "${goal}" client-side:`, error);
+                console.error(
+                  `[${LogGroup}] Error solving goal "${goal}" client-side:`,
+                  error,
+                );
               }
             }
-            console.log(this.internals.unknownsRequiringSimulate, this.internals.replacements);
 
             // Update screen with new values
             if (newScreen?.controls) {
               iterateControls(newScreen.controls, (control: any) => {
                 control.loading = undefined;
-                if (control.dynamicAttributes && Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
+                if (
+                  control.dynamicAttributes &&
+                  Object.keys(this.internals.unknownsRequiringSimulate).length >
+                  0
+                ) {
                   if (
-                    control.dynamicAttributes.some((dynamic: string) => this.internals.unknownsRequiringSimulate[dynamic])
+                    control.dynamicAttributes.some(
+                      (dynamic: string) =>
+                        this.internals.unknownsRequiringSimulate[dynamic],
+                    )
                   ) {
                     control.loading = true;
                   }
                 }
                 if (!control.loading) {
-                  postProcessControl(control, this.internals.replacements, data, state, locale);
+                  postProcessControl(
+                    control,
+                    this.internals.replacements,
+                    data,
+                    state,
+                    locale,
+                  );
                 }
               });
             }
@@ -559,21 +676,33 @@ export class SessionManager {
             const nextButton = screen.buttons?.next;
             if (nextButton && typeof nextButton === "object") {
               this.internals.canProgress = nextButton.dependencies.every(
-                (attr) => (this.internals.userValues[attr] || this.internals.replacements[attr]) === true,
+                (attr) =>
+                  (this.internals.userValues[attr] ||
+                    this.internals.replacements[attr]) === true,
               );
             }
           }
+
+          this.updateReportingWithReplacements();
 
           this.internals.sidebarSimulate = replacementQueries.sidebarSimulate;
           if (newScreen.sidebars) {
             for (const sidebar of newScreen.sidebars) {
               if (sidebar.id) {
-                sidebar.loading = this.internals.sidebarSimulate?.ids.includes(sidebar.id);
+                sidebar.loading = this.internals.sidebarSimulate?.ids.includes(
+                  sidebar.id,
+                );
               }
             }
           }
 
-          const requiresServiceDynamic = Boolean(Object.keys(this.internals.unknownsRequiringSimulate).length > 0 || replacementQueries.sidebarSimulate?.ids?.length);
+          const requiresServiceDynamic = Boolean(
+            Object.keys(this.internals.unknownsRequiringSimulate).length > 0 ||
+            replacementQueries.sidebarSimulate?.ids?.length,
+          );
+
+          this.activeSession.screen = newScreen;
+          this.updateSession(this.activeSession);
 
           // Handle any remaining unknowns that require server-side simulation
           if (requiresServiceDynamic) {
@@ -592,88 +721,107 @@ export class SessionManager {
       }
     }
     this.internals.prevUserValues = structuredClone(this.internals.userValues);
-  }
+  };
 
   private loadRulesEngine = async (): Promise<RulesEngine> => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to load rules engine");
       throw new Error("No active session to load rules engine");
     }
-    const engine = await this.apiManager.getRulesEngine(this.activeSession.rulesEngineChecksum);
+    const engine = await this.apiManager.getRulesEngine(
+      this.activeSession.rulesEngineChecksum,
+    );
     // biome-ignore lint: https://esbuild.github.io/content-types/#direct-eval
     return (0, eval)(engine);
-  }
+  };
 
-  private makeScreenCopy = () => {
-    return deepClone(this.processedScreen ? this.processedScreen : this.activeSession!.screen);
-  }
+  private makeScreenCopy = (screen?: Screen) => {
+    return deepClone(
+      screen ?? this.activeSession!.screen,
+    );
+  };
+
 
   // this function is debounced
   private serverSideDynamic = async () => {
     if (!this.activeSession) {
-      console.warn(LogGroup, "No active session to process server-side dynamic values");
+      console.warn(
+        LogGroup,
+        "No active session to process server-side dynamic values",
+      );
       return;
     }
-    let newScreen: Screen | undefined = undefined;
-    const { state, locale, data, screen } = this.activeSession;
-    if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0 && this.activeSession.screen) {
+    let newScreen: Screen | undefined;
+    if (
+      Object.keys(this.internals.unknownsRequiringSimulate).length > 0 &&
+      this.activeSession.screen
+    ) {
       const requestId = this.internals.latestRequest;
 
-      const result = await simulate(Object.values(this.internals.unknownsRequiringSimulate), this.apiManager, this.activeSession);
+      const result = await this.apiManager.simulate(this.activeSession, {
+        goal: this.activeSession.goal,
+        mode: "interview",
+        data: {
+          "@parent": this.activeSession.data["@parent"],
+          ...(this.internals.userValues as any),
+        },
+      });
 
       // are we still the last request?
       if (this.internals.latestRequest === requestId) {
-        newScreen = this.makeScreenCopy();
+        newScreen = result.screen;
+        this.updateSession(result);
 
-        // ask the backend to solve for any dynamic attributes, based on the entered attributes
-        Object.assign(this.internals.replacements, result);
-
-        this.log("Got replacements:", JSON.stringify(newScreen.controls, null, 2), this.internals.replacements);
-
-        // replace anything replaceable on the screen
-        if (newScreen?.controls) {
-          iterateControls(newScreen.controls, (control: any) => {
-            if (control.loading) {
-              control.loading = undefined;
-            }
-            postProcessControl(control, this.internals.replacements, data, state, locale);
-          });
-        }
-
-        this.internals.unknownsAlreadySimulated = { ...this.internals.unknownsRequiringSimulate };
+        this.internals.unknownsAlreadySimulated = {
+          ...this.internals.unknownsRequiringSimulate,
+        };
         this.internals.unknownsRequiringSimulate = {};
       }
     }
 
-    this.log('Simulate sidebar?', this.internals.sidebarSimulate);
+    if (newScreen) {
+      this.log("Simulate sidebar?", this.internals.sidebarSimulate);
 
-    if (this.internals.sidebarSimulate) {
-      const result = await this.apiManager.simulate(this.activeSession, this.internals.sidebarSimulate.simulate);
-      for (const sidebarId of this.internals.sidebarSimulate.ids) {
-        if (!newScreen) {
-          newScreen = this.makeScreenCopy();
-        }
-
-        const screenSidebar = newScreen.sidebars?.find((s) => s.id === sidebarId);
-        if (screenSidebar) {
-          const dataInfo = SIDEBAR_DYNAMIC_DATA_INFO[screenSidebar.type as keyof typeof SIDEBAR_DYNAMIC_DATA_INFO];
-          if (dataInfo) {
-            try {
-              Object.assign(screenSidebar.data, dataInfo.generateData(screenSidebar.config, result));
-            } catch (error) {
-              console.error(`[${LogGroup}] Error generating sidebar data`, error);
+      if (this.internals.sidebarSimulate) {
+        const result = await this.apiManager.simulate(
+          this.activeSession,
+          this.internals.sidebarSimulate.simulate?.data,
+        );
+        for (const sidebarId of this.internals.sidebarSimulate.ids) {
+          const screenSidebar = newScreen.sidebars?.find(
+            (s) => s.id === sidebarId,
+          );
+          if (screenSidebar) {
+            const dataInfo =
+              SIDEBAR_DYNAMIC_DATA_INFO[
+                screenSidebar.type as keyof typeof SIDEBAR_DYNAMIC_DATA_INFO
+                ];
+            if (dataInfo) {
+              try {
+                Object.assign(
+                  screenSidebar.data,
+                  dataInfo.generateData(screenSidebar.config, result),
+                );
+              } catch (error) {
+                console.error(
+                  `[${LogGroup}] Error generating sidebar data`,
+                  error,
+                );
+              }
             }
+            screenSidebar.loading = false;
           }
-          screenSidebar.loading = false;
         }
       }
-    }
 
-    const nextButton = screen.buttons?.next;
-    if (nextButton && typeof nextButton === "object") {
-      this.internals.canProgress = nextButton.dependencies.every(
-        (attr) => (this.internals.userValues[attr] || this.internals.replacements[attr]) === true,
-      );
+      const nextButton = newScreen.buttons?.next;
+      if (nextButton && typeof nextButton === "object") {
+        this.internals.canProgress = nextButton.dependencies.every(
+          (attr) =>
+            (this.internals.userValues[attr] ||
+              this.internals.replacements[attr]) === true,
+        );
+      }
     }
 
     if (newScreen) {
@@ -682,7 +830,7 @@ export class SessionManager {
         screen: newScreen,
       });
     }
-  }
+  };
 
   /** NOTE Will run notifyListeners if changes occured */
   private updateSession = (session: Session) => {
@@ -738,25 +886,34 @@ export class SessionManager {
         screen: session.screen,
       });
     }
-  }
+  };
 
   // public methods
 
-  submit = async (data: AttributeValues, navigate?: any, overrides: Overrides = {}) => {
+  submit = async (
+    data: AttributeValues,
+    navigate?: any,
+    overrides: Overrides = {},
+  ) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to submit data");
       return Promise.resolve(null);
     }
-    this.triggerUpdate({ externalLoading: true });
+    this.triggerUpdate({externalLoading: true});
     this.updateSession(
-      await this.apiManager.submit(this.activeSession, transformResponse(this.activeSession, data as any), navigate, {
-        // response: this.options.responseElements,
-        ...overrides,
-      }),
+      await this.apiManager.submit(
+        this.activeSession,
+        transformResponse(this.activeSession, data as any),
+        navigate,
+        {
+          // response: this.options.responseElements,
+          ...overrides,
+        },
+      ),
     );
-    this.triggerUpdate({ externalLoading: false });
+    this.triggerUpdate({externalLoading: false});
     return this;
-  }
+  };
 
   chat = async (
     goal: string,
@@ -769,60 +926,76 @@ export class SessionManager {
       throw new Error("No active session to chat with");
     }
     try {
-      this.triggerUpdate({ externalLoading: true });
-      const payload = await this.apiManager.chat(this.activeSession, message, goal, overrides, interactionId);
-      this.triggerUpdate({ externalLoading: false });
+      this.triggerUpdate({externalLoading: true});
+      const payload = await this.apiManager.chat(
+        this.activeSession,
+        message,
+        goal,
+        overrides,
+        interactionId,
+      );
+      this.triggerUpdate({externalLoading: false});
       return payload;
     } catch (error) {
-      this.triggerUpdate({ externalLoading: false });
+      this.triggerUpdate({externalLoading: false});
       throw error;
     }
-  }
+  };
 
   navigate = async (step: StepId) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to navigate from");
       throw new Error("No active session to navigate from");
     }
-    this.triggerUpdate({ externalLoading: true });
-    this.updateSession(await this.apiManager.navigate(this.activeSession, step));
-    this.triggerUpdate({ externalLoading: false });
+    this.triggerUpdate({externalLoading: true});
+    this.updateSession(
+      await this.apiManager.navigate(this.activeSession, step),
+    );
+    this.triggerUpdate({externalLoading: false});
     return this;
-  }
+  };
 
   back = async () => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to go back from");
       throw new Error("No active session to go back from");
     }
-    this.triggerUpdate({ externalLoading: true });
-    if (this.isSubInterview && isFirstStep(this.activeSession.steps, this.activeSession.screen.id)) {
+    this.triggerUpdate({externalLoading: true});
+    if (
+      this.isSubInterview &&
+      isFirstStep(this.activeSession.steps, this.activeSession.screen.id)
+    ) {
       // pop the session, then we will invoke back on the parent
       this.pop();
     }
     this.updateSession(await this.apiManager.back(this.activeSession));
-    this.triggerUpdate({ externalLoading: false });
+    this.triggerUpdate({externalLoading: false});
     return this;
-  }
+  };
 
   next = async (data: AttributeValues) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to next data");
       throw new Error("No active session to next data");
     }
-    this.triggerUpdate({ externalLoading: true });
+    this.triggerUpdate({externalLoading: true});
     if (this.isSubInterview && isComplete(this.activeSession)) {
       // pop the session, then we will invoke next on the parent
       this.pop();
     }
     this.updateSession(
-      await this.apiManager.submit(this.activeSession, transformResponse(this.activeSession, data as any), false, {
-        // response: this.options.responseElements,
-      }),
+      await this.apiManager.submit(
+        this.activeSession,
+        transformResponse(this.activeSession, data as any),
+        false,
+        {
+          // response: this.options.responseElements,
+        },
+      ),
     );
-    this.triggerUpdate({ externalLoading: false });
+    this.triggerUpdate({externalLoading: false});
     return this;
-  }
+  };
 
   exportTimeline = () => {
     if (!this.activeSession) {
@@ -830,7 +1003,7 @@ export class SessionManager {
       throw new Error("No active session to export timeline from");
     }
     return this.apiManager.exportTimeline(this.activeSession);
-  }
+  };
 
   // file management methods
 

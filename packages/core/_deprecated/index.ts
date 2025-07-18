@@ -1,18 +1,18 @@
 // core library files
 export * from "./api";
-export * from "./init";
-export * from "./placeholders";
-export * from "./helpers";
 export * from "./constants";
 export * from "./formatting";
+export * from "./helpers";
+export * from "./init";
+export * from "./placeholders";
 export * from "./sidebars/sidebar";
 
 export {
-  iterateControls,
-  applyInstancesToEntityControl,
-  uuid,
-  formatDate,
-  createEntityPathedData,
-  instanceControl,
-  attributeToPath,
+	applyInstancesToEntityControl,
+	attributeToPath,
+	createEntityPathedData,
+	formatDate,
+	instanceControl,
+	iterateControls,
+	uuid,
 } from "./util";

@@ -1,15 +1,15 @@
 export type UploadFileArg = {
-  /** file name, e.g. "test.txt" */
-  name: string;
-  /** file contents presented as data uri, e.g. "data:text/plain;base64,qweasdzxc" */
-  data: string;
+	/** file name, e.g. "test.txt" */
+	name: string;
+	/** file contents presented as data uri, e.g. "data:text/plain;base64,qweasdzxc" */
+	data: string;
 };
 
 export type UploadFileReturn = {
-  /** @example 'data:id={uuid};base64,{base64-file-name}' */
-  reference: string;
-  /** uuid */
-  id: string;
+	/** @example 'data:id={uuid};base64,{base64-file-name}' */
+	reference: string;
+	/** uuid */
+	id: string;
 };
 
 export type UploadFile = (arg: UploadFileArg) => Promise<UploadFileReturn>;
@@ -19,7 +19,9 @@ export type UploadFile = (arg: UploadFileArg) => Promise<UploadFileReturn>;
  * before final submit (in data container control). But I guess can also be used\
  * when uploading files and those are in temporary storage (for more general code)
  */
-export type RemoveFile = (ref: UploadFileReturn["reference"]) => Promise<unknown>;
+export type RemoveFile = (
+	ref: UploadFileReturn["reference"],
+) => Promise<unknown>;
 
 /**
  * as it is possible to specify max file size, we need to take care of a proper\
