@@ -336,9 +336,8 @@ export const pathToNested = (
 			result.push(part);
 			flatResult.push(part);
 		} else {
-
 			let id: string | number = part;
-  
+
 			if (!Number.isNaN(id)) {
 				id = Number.parseInt(id) - 1;
 			}
@@ -372,7 +371,6 @@ export const pathToNested = (
 				const index = entities.findIndex(
 					(entity: any) => entity["@id"] === part,
 				);
-     
 
 				if (index >= 0) {
 					result.push(index.toString());
