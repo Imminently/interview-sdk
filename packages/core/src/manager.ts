@@ -591,7 +591,8 @@ export class SessionManager {
             }
 
             // reconstruct the entity structure from the preprocessed state
-            const input = constructInputFromPreProcessed(
+            // @ts-ignore
+            const input = this.activeSession?.__deprecatedSessionData ?? constructInputFromPreProcessed(
               this.activeSession?.preProcessedState,
               data,
               this.internals.userValues,
