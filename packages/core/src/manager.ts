@@ -808,6 +808,7 @@ export class SessionManager {
 						this.internals.replacements,
 						this.activeSession.data?.["@parent"],
 					);
+					this.log("New reporting object", this.activeSession.reporting);
 
 					this.internals.sidebarSimulate = replacementQueries.sidebarSimulate;
 					if (newScreen.sidebars) {
