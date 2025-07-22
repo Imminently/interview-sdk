@@ -260,6 +260,7 @@ export interface Session {
 	// data index
 	index?: string;
 	reporting?: any;
+	inferredOrder?: string[];
 }
 
 export interface SessionConfig {

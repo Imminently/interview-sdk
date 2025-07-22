@@ -26,7 +26,8 @@ import type {
 	StepId,
 } from "./types";
 import {
-	deepClone,
+	createEntityPathedData,
+	deepClone, flattenObject,
 	iterateControls,
 	pathToNested,
 	postProcessControl,
@@ -52,15 +53,13 @@ export const constructInputFromPreProcessed = (
 	const input = existingData ?? preProcessedState?.entityStructure ?? {};
 	const parent = data["@parent"];
 
-	if (!existingData) {
-		// Apply previous values from preprocessed nodes
-		if (preProcessedState?.nodes) {
-			for (const [key, value] of Object.entries(preProcessedState.nodes)) {
-				const prev = (value as any)?.previousValue;
-				if (prev !== undefined) {
-					const nestedPath = pathToNested(key, input, true).split(".");
-					set(input, nestedPath, prev);
-				}
+	// Apply previous values from preprocessed nodes
+	if (preProcessedState?.nodes) {
+		for (const [key, value] of Object.entries(preProcessedState.nodes)) {
+			const prev = (value as any)?.previousValue;
+			if (prev !== undefined) {
+				const nestedPath = pathToNested(key, input, true).split(".");
+				set(input, nestedPath, prev);
 			}
 		}
 	}
@@ -730,8 +729,17 @@ export class SessionManager {
 				this.log("Calculated replacement queries:", replacementQueries);
 
 				const newScreen = this.makeScreenCopy();
+				if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
 					// Get all goals that need to be solved
-					const goalsToSolve = this.activeSession.state?.map(state => state.id) || [];
+					const goalsToSolveSet = new Set(Object.keys(
+						this.internals.unknownsRequiringSimulate,
+					));
+					if (this.activeSession.state) {
+						for (const stateItem of this.activeSession.state) {
+							goalsToSolveSet.add(stateItem.id);
+						}
+					}
+					const goalsToSolve = Array.from(goalsToSolveSet);
 
 					// Handle client-side calculations first
 					if (goalsToSolve.length > 0 && this.clientGraph) {
@@ -749,76 +757,71 @@ export class SessionManager {
 						);
 
 						const rulesEngine = await this.rulesEnginePromise;
-						for (const goal of goalsToSolve) {
+
 							try {
+								const roots = goalsToSolve;
 								const result = await rulesEngine.solve(
 									{
 										input: input,
-										goal: goal,
+										roots: roots,
+										goal: roots[0],
+										response_elements: [
+											{
+												type: "attributes",
+												ids: roots.map(path => path.split("/").pop(),)
+											}
+										]
 									},
 									screen.id,
 									{
 										getRelease: () => {
-											return {
+											const release = {
+												id: screen.id,
 												relationships: this.activeSession!.relationships || [],
 												rule_graph: this.clientGraph,
+												inferredOrder: this.activeSession!.inferredOrder,
 											};
+
+											this.log(`[${LogGroup}] Release':`, release);
+
+											return release;
 										},
 									},
-									this.activeSession?.preProcessedState,
+									{},
 								);
+
+								this.log(`[${LogGroup}] For goal '${this.activeSession.goal}':`, input, roots);
+								this.log(`[${LogGroup}] Calculated':`, result);
+								const replacements = createEntityPathedData({...result.reporting.global, ...result.reporting, global: undefined});
+								this.log(`[${LogGroup}] Replacements':`, replacements);
 
 								//if (result.result !== undefined) {
 								// Update replacements with solved values
-								Object.assign(this.internals.replacements, {
-									[goal]: result.result,
-								});
+								Object.assign(this.internals.replacements, replacements);
 
-								this.log(`[${LogGroup}] For goal '${goal}':`, input);
-								this.log(`[${LogGroup}] Calculated '${goal}':`, result);
+								this.activeSession.validations = result.validations;
 
-								// Remove from unknowns requiring simulate since it's been handled client-side
-								if (typeof result.result !== "undefined") {
-									delete this.internals.unknownsRequiringSimulate[goal];
-								}
-								//} else {
-								//  console.log(result);
-								//}
+
+
 							} catch (error) {
 								console.error(
-									`[${LogGroup}] Error solving goal "${goal}" client-side:`,
+									`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`,
 									error,
 								);
-							}
+
 						}
 
 						// Update screen with new values
 						if (newScreen?.controls) {
 							iterateControls(newScreen.controls, (control: any) => {
 								control.loading = undefined;
-								if (
-									control.dynamicAttributes &&
-									Object.keys(this.internals.unknownsRequiringSimulate).length >
-										0
-								) {
-									if (
-										control.dynamicAttributes.some(
-											(dynamic: string) =>
-												this.internals.unknownsRequiringSimulate[dynamic],
-										)
-									) {
-										control.loading = true;
-									}
-								}
-								if (!control.loading) {
-									postProcessControl(
-										control,
-										this.internals.replacements,
-										data,
-										state,
-										locale,
-									);
-								}
+								postProcessControl(
+									control,
+									this.internals.replacements,
+									data,
+									state,
+									locale,
+								);
 							});
 						}
 
@@ -832,48 +835,48 @@ export class SessionManager {
 							);
 						}
 					}
+				}
 
-					this.activeSession.reporting = updateReportingWithReplacements(
-						this.activeSession.reporting,
-						this.internals.replacements,
-						this.activeSession.data?.["@parent"],
-					);
-					this.log("New reporting object", this.activeSession.reporting);
+				this.activeSession.reporting = updateReportingWithReplacements(
+					this.activeSession.reporting,
+					this.internals.replacements,
+					this.activeSession.data?.["@parent"],
+				);
+				this.log("New reporting object", this.activeSession.reporting);
 
-					this.internals.sidebarSimulate = replacementQueries.sidebarSimulate;
-					if (newScreen.sidebars) {
-						for (const sidebar of newScreen.sidebars) {
-							if (sidebar.id) {
-								sidebar.loading = this.internals.sidebarSimulate?.ids.includes(
-									sidebar.id,
-								);
-							}
+				this.internals.sidebarSimulate = replacementQueries.sidebarSimulate;
+				if (newScreen.sidebars) {
+					for (const sidebar of newScreen.sidebars) {
+						if (sidebar.id) {
+							sidebar.loading = this.internals.sidebarSimulate?.ids.includes(
+								sidebar.id,
+							);
 						}
 					}
+				}
 
-					const requiresServiceDynamic = Boolean(
-						!this.clientGraph &&
-							(Object.keys(this.internals.unknownsRequiringSimulate).length >
-								0 ||
-								replacementQueries.sidebarSimulate?.ids?.length),
-					);
+				const requiresServiceDynamic = Boolean(
+					!this.clientGraph &&
+						(Object.keys(this.internals.unknownsRequiringSimulate).length > 0 ||
+							replacementQueries.sidebarSimulate?.ids?.length),
+				);
 
-					this.activeSession.screen = newScreen;
-					this.updateSession(this.activeSession);
+				this.activeSession.screen = newScreen;
+				this.updateSession(this.activeSession);
 
-					// Handle any remaining unknowns that require server-side simulation
-					if (requiresServiceDynamic) {
-						this.triggerUpdate({
-							externalLoading: true,
-							screen: newScreen,
-						});
-						this.serverSideDynamic();
-					} else {
-						this.triggerUpdate({
-							externalLoading: false,
-							screen: newScreen,
-						});
-					}
+				// Handle any remaining unknowns that require server-side simulation
+				if (requiresServiceDynamic) {
+					this.triggerUpdate({
+						externalLoading: true,
+						screen: newScreen,
+					});
+					this.serverSideDynamic();
+				} else {
+					this.triggerUpdate({
+						externalLoading: false,
+						screen: newScreen,
+					});
+				}
 			}
 		}
 		this.internals.prevUserValues = structuredClone(this.internals.userValues);
