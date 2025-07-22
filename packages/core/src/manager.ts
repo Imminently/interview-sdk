@@ -52,13 +52,15 @@ export const constructInputFromPreProcessed = (
 	const input = existingData ?? preProcessedState?.entityStructure ?? {};
 	const parent = data["@parent"];
 
-	// Apply previous values from preprocessed nodes
-	if (preProcessedState?.nodes) {
-		for (const [key, value] of Object.entries(preProcessedState.nodes)) {
-			const prev = (value as any)?.previousValue;
-			if (prev !== undefined) {
-				const nestedPath = pathToNested(key, input, true).split(".");
-				set(input, nestedPath, prev);
+	if (!existingData) {
+		// Apply previous values from preprocessed nodes
+		if (preProcessedState?.nodes) {
+			for (const [key, value] of Object.entries(preProcessedState.nodes)) {
+				const prev = (value as any)?.previousValue;
+				if (prev !== undefined) {
+					const nestedPath = pathToNested(key, input, true).split(".");
+					set(input, nestedPath, prev);
+				}
 			}
 		}
 	}
@@ -697,11 +699,8 @@ export class SessionManager {
 				this.log("Calculated replacement queries:", replacementQueries);
 
 				const newScreen = this.makeScreenCopy();
-				if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
 					// Get all goals that need to be solved
-					const goalsToSolve = Object.keys(
-						this.internals.unknownsRequiringSimulate,
-					);
+					const goalsToSolve = this.activeSession.state?.map(state => state.id) || [];
 
 					// Handle client-side calculations first
 					if (goalsToSolve.length > 0 && this.clientGraph) {
@@ -844,7 +843,6 @@ export class SessionManager {
 							screen: newScreen,
 						});
 					}
-				}
 			}
 		}
 		this.internals.prevUserValues = structuredClone(this.internals.userValues);
