@@ -70,7 +70,7 @@ export const InterviewProvider = ({ manager, form, theme, icons, slots, children
           (!manager.isSubInterview && finished) ||
           loading,
     };
-  }, [snapshot]);
+  }, [snapshot, manager]);
 
   return (
     <OptionsProvider value={manager.options}>
