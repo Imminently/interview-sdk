@@ -158,6 +158,11 @@ interface SessionInternal {
 	canProgress: boolean;
 }
 
+export interface Storage {
+	get: () => any;
+	set: (value: any) => void;
+}
+
 export interface ManagerOptions {
 	/** Enables debug logs */
 	debug?: boolean;
@@ -170,6 +175,8 @@ export interface ManagerOptions {
 	fileManager: FileManager | FileManagerOptions;
 	/** Initial session config. If provided, will automatically start an interview on creation */
 	sessionConfig?: SessionConfig;
+	/** EXPERIMENTAL: trying out adding support to load/store sessions */
+	sessionStore?: Storage;
 }
 
 export const updateReportingWithReplacements = (
@@ -338,9 +345,10 @@ export class SessionManager {
 	};
 
 	constructor(options: ManagerOptions) {
-		this.sessions = [];
-		this.active = 0;
-		this.state = "loading";
+		const store = options.sessionStore?.get() ?? { sessions: [], active: 0 };
+		this.sessions = store.sessions;
+		this.active = store.active;
+		this.state = this.sessions.length > 0 ? "success" : "loading";
 		this.error = undefined;
 		this._options = options;
 		this.listeners = new Set();
@@ -358,7 +366,7 @@ export class SessionManager {
 				: new FileManager(options.fileManager as FileManagerOptions);
 
 		// auto start a session if sessionConfig is provided
-		if (options.sessionConfig) {
+		if (options.sessionConfig && this.sessions.length === 0) {
 			const { sessionConfig } = options;
 			this.log("Initializing session with config:", sessionConfig);
 			this.create(sessionConfig).catch((error) => {
@@ -434,12 +442,24 @@ export class SessionManager {
 	push = (session: Session) => {
 		this.sessions.push(session);
 		this.active = this.sessions.length - 1; // always set active to the last session
+		if (this.options.sessionStore) {
+			this.options.sessionStore.set({
+				sessions: this.sessions,
+				active: this.active,
+			});
+		}
 	};
 
 	pop = () => {
 		if (this.sessions.length === 0) return null;
 		const session = this.sessions.pop();
 		this.active = this.sessions.length - 1; // set active to the last session
+		if (this.options.sessionStore) {
+			this.options.sessionStore.set({
+				sessions: this.sessions,
+				active: this.active,
+			});
+		}
 		return session;
 	};
 
@@ -452,6 +472,12 @@ export class SessionManager {
 			return;
 		}
 		this.active = index;
+		if (this.options.sessionStore) {
+			this.options.sessionStore.set({
+				sessions: this.sessions,
+				active: this.active,
+			});
+		}
 	};
 
 	create = async (config: SessionConfig): Promise<Session> => {
@@ -512,6 +538,7 @@ export class SessionManager {
 		try {
 			const subSession = await this.create(createOpts);
 			this.log("Sub-interview created successfully:", subSession);
+			return subSession;
 		} catch (error) {
 			console.error(
 				LogGroup,
@@ -538,12 +565,12 @@ export class SessionManager {
 			state: this.state,
 			error: this.error,
 			loading: this.externalLoading,
-			session: this.session
-				? ({
-						...this.session,
-						screen: this.session?.screen,
-					} as Session)
-				: null,
+			session: this.session,
+			// ? ({
+			//   ...this.session,
+			//   screen: this.session?.screen,
+			// } as Session)
+			// : null,
 			renderAt: this.renderAt,
 		};
 		// run json stringify to ensure we have a clean snapshot
@@ -578,15 +605,15 @@ export class SessionManager {
 		}
 
 		const session = this.activeSession as Session;
-		if (session.decompressedClientGraph) {
-			return session.decompressedClientGraph;
+		if (!session.decompressedClientGraph) {
+			const decompressed = JSON.parse(
+				// @ts-ignore string should work
+				pako.inflate(session.clientGraph, { to: "string" }),
+			);
+			session.decompressedClientGraph = decompressed;
 		}
 
-		const decompressed = JSON.parse(
-			// @ts-ignore string should work
-			pako.inflate(session.clientGraph, { to: "string" }),
-		);
-		return (session.decompressedClientGraph = decompressed);
+		return session.decompressedClientGraph;
 	}
 
 	get canProgress() {
@@ -648,7 +675,11 @@ export class SessionManager {
 			this.externalLoading = externalLoading;
 		}
 		this.renderAt = Date.now();
-
+		// update store
+		this.options.sessionStore?.set({
+			sessions: this.sessions,
+			active: this.active,
+		});
 		this.log("Triggering update", update);
 		this.notifyListeners();
 	};

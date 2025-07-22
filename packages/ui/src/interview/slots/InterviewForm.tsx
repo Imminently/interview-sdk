@@ -3,7 +3,7 @@ import { useFormContext } from "react-hook-form";
 import { Slot } from "@radix-ui/react-slot";
 import debounce from "lodash-es/debounce";
 import { useInterview } from "../InterviewContext";
-import { getCurrentStep, RenderableControl, Step } from "@imminently/interview-sdk";
+import { getCurrentStep, type RenderableControl, type Step } from "@imminently/interview-sdk";
 import { RenderControl } from "@/components/RenderControl";
 import { useTheme } from "@/providers";
 import { cn } from "@/util";
@@ -54,7 +54,7 @@ export const useFormSync = (delay: number = 300) => {
 
   const sync = useMemo(
     () => debounce((value: any) => manager.onScreenDataChange(value), delay),
-    [manager]
+    [manager, delay]
   );
 
   useEffect(() => {
