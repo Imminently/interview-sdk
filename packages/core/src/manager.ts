@@ -184,128 +184,57 @@ export const updateReportingWithReplacements = (
 	parent?: string,
 ) => {
 	if (!reporting) return;
-
 	const result = structuredClone(reporting);
 
-	// Helper function to recursively merge arrays
-	const mergeArrays = (
-		existingArray: any[],
-		replacementArray: any[],
-	): any[] => {
-		return existingArray.map((existingItem: any, index: number) => {
-			const replacementItem =
-				replacementArray[index] ||
-				replacementArray.find(
-					(item: any) => item["@id"] === existingItem["@id"],
-				);
-			if (replacementItem) {
-				// Only merge properties that are explicitly being updated
-				// Filter out properties that are not in the original item or are not being updated
-				const filteredReplacement = { ...replacementItem };
-				for (const key in filteredReplacement) {
-					if (!(key in existingItem) && key !== "@id") {
-						delete filteredReplacement[key];
-					}
-				}
-				return mergeObjects(existingItem, filteredReplacement);
-			}
-			return existingItem;
-		});
-	};
-
-	// Helper function to recursively merge objects
-	const mergeObjects = (existingObj: any, replacementObj: any): any => {
-		if (!existingObj || typeof existingObj !== "object") return replacementObj;
-		if (!replacementObj || typeof replacementObj !== "object")
-			return existingObj;
-
-		const result = { ...existingObj };
-
-		for (const [key, value] of Object.entries(replacementObj)) {
-			if (Array.isArray(value) && Array.isArray(result[key])) {
-				result[key] = mergeArrays(result[key], value);
-			} else if (
-				typeof value === "object" &&
-				value !== null &&
-				typeof result[key] === "object" &&
-				result[key] !== null
-			) {
-				result[key] = mergeObjects(result[key], value);
-			} else {
-				result[key] = value;
-			}
+	// Step 1: Normalize all arrays in replacements to objects keyed by @id or index
+	const normalizeIdBasedObject = (object: any) => {
+		if (!object || typeof object !== "object") {
+			return object;
 		}
-
+		if (Array.isArray(object)) {
+			return object.reduce((idBasedObject, item, index) => {
+				let key = item && item["@id"] ? item["@id"] : index;
+				// Remove @id from the nested object
+				let { ["@id"]: _omit, ...rest } = item || {};
+				idBasedObject[key] = normalizeIdBasedObject(rest);
+				return idBasedObject;
+			}, {} as any);
+		}
+		const result: any = {};
+		for (const [key, value] of Object.entries(object)) {
+			if (key === "@id") continue;
+			if (key.includes("/")) continue;
+			result[key] = normalizeIdBasedObject(value);
+		}
 		return result;
 	};
 
-	// Helper function to convert 1-based array indices to 0-based
-	const convertPathIndices = (pathParts: string[]): string[] => {
-		return pathParts.map((part, index) => {
-			// Only convert numeric parts that are likely array indices
-			if (!isNaN(Number(part)) && Number(part) > 0 && index > 0) {
-				// Check if the path up to the previous position leads to an array
-				const pathToPrev = pathParts.slice(0, index);
-				const prevValue = get(result, pathToPrev);
-				if (Array.isArray(prevValue)) {
-					// Convert 1-based to 0-based indexing
-					return (Number(part) - 1).toString();
-				}
+	const normalized = normalizeIdBasedObject(replacements);
+
+	// Step 2: For any keys in the normalized object that contain '/', split and use lodash set to build a flat newValues object
+
+	const handleSlashKeys = (obj: any, out: any = {}) => {
+		for (const [key, value] of Object.entries(obj)) {
+			if (key.includes("/")) {
+				const path = key.split("/");
+				set(out, path, value);
+			} else {
+				out[key] = value;
 			}
-			return part;
-		});
+		}
+		return out;
 	};
 
-	// Process all replacements in a single pass
-	for (const [key, value] of Object.entries(replacements)) {
-		if (key.includes("/")) {
-			// Handle path-based replacements
-			const pathParts = key.split("/");
-			const convertedPathParts = convertPathIndices(pathParts);
-			const existingValue = get(result, convertedPathParts);
-			// Only update if the path exists in the original object
-			if (existingValue !== undefined) {
-				set(result, convertedPathParts, value);
-			}
-		} else {
-			// Handle simple key replacements
-			// If parent is provided, try to set the value in the parent context
-			if (parent) {
-				const parentPath = parent.split("/");
-				const existing = get(result, parentPath);
-				if (existing && typeof existing === "object" && key in existing) {
-					// Special handling for arrays - merge objects within arrays if both are arrays
-					if (Array.isArray(existing[key]) && Array.isArray(value)) {
-						existing[key] = mergeArrays(existing[key], value);
-					} else if (
-						typeof value === "object" &&
-						value !== null &&
-						typeof existing[key] === "object" &&
-						existing[key] !== null
-					) {
-						existing[key] = mergeObjects(existing[key], value);
-					} else {
-						existing[key] = value;
-					}
-				}
-			} else {
-				// If no parent, try to set at root level only if the key exists
-				if (key in result) {
-					// Special handling for arrays - merge objects within arrays if both are arrays
-					if (Array.isArray(result[key]) && Array.isArray(value)) {
-						result[key] = mergeArrays(result[key], value);
-					} else if (
-						typeof value === "object" &&
-						value !== null &&
-						typeof result[key] === "object" &&
-						result[key] !== null
-					) {
-						result[key] = mergeObjects(result[key], value);
-					} else {
-						result[key] = value;
-					}
-				}
-			}
+	let newValues = handleSlashKeys(normalized);
+
+	const flattened = flattenObject(newValues, "/");
+	
+
+	// Step 3: For each key in newValues, if the path exists in reporting, update it
+	for (const [key, value] of Object.entries(flattened)) {
+		const path = key.split("/");
+		if (get(result, path) !== undefined) {
+			set(result, path, value);
 		}
 	}
 
@@ -791,7 +720,7 @@ export class SessionManager {
 								);
 
 								this.log(`[${LogGroup}] For goal '${this.activeSession.goal}':`, input, roots);
-								this.log(`[${LogGroup}] Calculated':`, result);
+								this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
 								const replacements = createEntityPathedData({...result.reporting.global, ...result.reporting, global: undefined});
 								this.log(`[${LogGroup}] Replacements':`, replacements);
 
