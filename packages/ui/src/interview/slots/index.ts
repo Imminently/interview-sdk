@@ -7,3 +7,4 @@ export { InterviewBack } from "./InterviewBack";
 export { InterviewProgress } from "./InterviewProgress";
 export { InterviewForm, FormControls } from "./InterviewForm";
 export { InterviewProcessing } from "./InterviewProcessing";
+export { InterviewValidations } from "./InterviewValidations";

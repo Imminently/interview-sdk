@@ -5,6 +5,7 @@ import { InterviewForm } from "./InterviewForm";
 import { InterviewBack } from "./InterviewBack";
 import { InterviewNext } from "./InterviewNext";
 import { useInterview } from "../InterviewContext";
+import {InterviewValidations} from "./InterviewValidations";
 
 export interface InterviewContentProps extends React.HTMLAttributes<HTMLDivElement> {
   asChild?: boolean;
@@ -26,6 +27,7 @@ const InterviewContent = ({ asChild, children, className, ...props }: InterviewC
       {...props}
     >
       <InterviewForm className="flex-1 overflow p-4 w-2xl mx-auto" />
+      <InterviewValidations/>
       <div className="flex gap-2 items-center justify-between mt-8 border-t p-4">
         <InterviewBack />
         <InterviewNext />
