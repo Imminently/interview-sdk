@@ -240,7 +240,7 @@ export const formatDate = (
 	dateFormat: string,
 	options?: any,
 ): string => {
-	return format(new UTCDate(argument), dateFormat, options);
+	return format(argument, dateFormat, options);
 };
 
 export const createEntityPathedData = (
