@@ -40,7 +40,7 @@ export const ReadOnlyControl = ({ field }: UseControllerReturn) => {
         {label}
         <Explanation control={control} />
       </FormLabel>
-      <FormControl>{value}</FormControl>
+      <FormControl aria-readonly>{value}</FormControl>
       <FormMessage />
     </>
   );
