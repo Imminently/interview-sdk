@@ -768,9 +768,12 @@ export class SessionManager {
 							);
 
 							this.log(
-								`[${LogGroup}] For goal '${this.activeSession.goal}':`,
-								input,
-								roots,
+								`[${LogGroup}] Payload:`,
+								{
+									"@goal": result.goal,
+									"@root": roots,
+									...input,
+								}
 							);
 							this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
 							const replacements = createEntityPathedData({
