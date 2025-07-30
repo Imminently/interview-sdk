@@ -735,6 +735,15 @@ export class SessionManager {
 						);
 
 						const rulesEngine = await this.rulesEnginePromise;
+						const release = {
+							id: screen.id,
+							relationships: this.activeSession!.relationships || [],
+							rule_graph: this.clientGraph,
+							inferredOrder: this.activeSession!.inferredOrder,
+						};
+
+						this.log(`[${LogGroup}] Release':`, release);
+
 						try {
 							const roots = goalsToSolve;
 							const result = await rulesEngine.solve(
@@ -752,15 +761,6 @@ export class SessionManager {
 								screen.id,
 								{
 									getRelease: () => {
-										const release = {
-											id: screen.id,
-											relationships: this.activeSession!.relationships || [],
-											rule_graph: this.clientGraph,
-											inferredOrder: this.activeSession!.inferredOrder,
-										};
-
-										this.log(`[${LogGroup}] Release':`, release);
-
 										return release;
 									},
 								},

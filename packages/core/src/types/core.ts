@@ -332,7 +332,6 @@ export interface Validation {
 	parent?: string;
 	severity: "error" | "warning";
 	attributes: string[];
-	conditions: any;
 	shown?: boolean;
 }
 
