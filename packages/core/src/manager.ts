@@ -228,7 +228,7 @@ export const updateReportingWithReplacements = (
 	let newValues = handleSlashKeys(normalized);
 
 	const flattened = flattenObject(newValues, "/");
-	
+
 
 	// Step 3: For each key in newValues, if the path exists in reporting, update it
 	for (const [key, value] of Object.entries(flattened)) {
@@ -240,6 +240,27 @@ export const updateReportingWithReplacements = (
 
 	return result;
 };
+
+interface ClientGraphBookmarkData {
+	id: string;
+	clientGraph: any;
+}
+
+const getClientGraphForSession = (session: Session) => {
+	if (!session?.clientGraph && !session?.decompressedClientGraph) {
+		return undefined;
+	}
+
+	if (!session.decompressedClientGraph) {
+		const decompressed = JSON.parse(
+			// @ts-ignore string should work
+			pako.inflate(session.clientGraph, { to: "string" }),
+		);
+		session.decompressedClientGraph = decompressed;
+	}
+
+	return session.decompressedClientGraph;
+}
 
 /**
  * SessionManager is the main class for managing sessions in the interview SDK.
@@ -408,6 +429,34 @@ export class SessionManager {
 		}
 	};
 
+	private handleClientGraphBookmark(session: Session) {
+		const bookmarkKey = "immi_cg_bookmark_2";
+		if (session.clientGraphBookmark) {
+			if (!session.clientGraph) {
+				const bookmarkRaw = localStorage.getItem(bookmarkKey);
+				if (!bookmarkRaw) {
+					return;
+				}
+
+        const bookmarkData = JSON.parse(bookmarkRaw) as ClientGraphBookmarkData;
+        if (bookmarkData.id === session.clientGraphBookmark) {
+          session.clientGraph = bookmarkData.clientGraph;
+          this.log("Loaded client graph from bookmark", {
+            id: session.clientGraphBookmark,
+          });
+        }
+      } else {
+        this.log("Saved client graph bookmark", {
+          id: session.clientGraphBookmark,
+        });
+        localStorage.setItem(bookmarkKey, JSON.stringify({
+          clientGraph: session.clientGraph,
+          id: session.clientGraphBookmark,
+        } satisfies ClientGraphBookmarkData));
+      }
+    }
+	}
+
 	create = async (config: SessionConfig): Promise<Session> => {
 		this.log("Creating session:", config);
 		this.setState("loading");
@@ -528,20 +577,10 @@ export class SessionManager {
 	// -- session getters
 
 	get clientGraph() {
-		if (!this.activeSession?.clientGraph) {
-			return undefined;
+		if (!this.activeSession) {
+			return null;
 		}
-
-		const session = this.activeSession as Session;
-		if (!session.decompressedClientGraph) {
-			const decompressed = JSON.parse(
-				// @ts-ignore string should work
-				pako.inflate(session.clientGraph, { to: "string" }),
-			);
-			session.decompressedClientGraph = decompressed;
-		}
-
-		return session.decompressedClientGraph;
+		return getClientGraphForSession(this.activeSession);
 	}
 
 	get canProgress() {
@@ -686,7 +725,6 @@ export class SessionManager {
 						);
 
 						const rulesEngine = await this.rulesEnginePromise;
-
 							try {
 								const roots = goalsToSolve;
 								const result = await rulesEngine.solve(
@@ -965,6 +1003,8 @@ export class SessionManager {
       this.updateDynamicValues.flush();*/
 		}
 
+		this.handleClientGraphBookmark(session);
+
 		// hasn't updated, force it
 		if (currentRenderAt === this.renderAt) {
 			this.triggerUpdate({
@@ -985,17 +1025,17 @@ export class SessionManager {
 			return Promise.resolve(null);
 		}
 		this.triggerUpdate({ externalLoading: true });
-		this.updateSession(
-			await this.apiManager.submit(
-				this.activeSession,
-				transformResponse(this.activeSession, data as any),
-				navigate,
-				{
-					// response: this.options.responseElements,
-					...overrides,
-				},
-			),
+
+		const session = await this.apiManager.submit(
+			this.activeSession,
+			transformResponse(this.activeSession, data as any),
+			navigate,
+			{
+				// response: this.options.responseElements,
+				...overrides,
+			},
 		);
+		this.updateSession(session);
 		this.triggerUpdate({ externalLoading: false });
 		return this;
 	};

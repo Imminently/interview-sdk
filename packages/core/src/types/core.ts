@@ -252,6 +252,7 @@ export interface Session {
 	locale?: string;
 	validations?: Validation[];
 	clientGraph?: string;
+	clientGraphBookmark?: string;
 	/** The client graph, decompressed, as a graph object */
 	decompressedClientGraph?: any;
 	relationships?: Relationship[];
