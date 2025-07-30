@@ -285,6 +285,7 @@ export interface SessionConfig {
 	goal?: string;
 	/** the session goal */
 	sessionGoal?: string;
+	clientGraphBookmark?: string;
 }
 
 export type Overrides = Record<string, any>;

@@ -27,12 +27,15 @@ import type {
 } from "./types";
 import {
 	createEntityPathedData,
-	deepClone, flattenObject,
+	deepClone,
+	flattenObject,
 	iterateControls,
 	pathToNested,
 	postProcessControl,
 	transformResponse,
 } from "./util";
+
+const BOOKMARK_KEY = "immi_cg_bookmark_2";
 
 /**
  * Constructs the input object from the preprocessed state for rules engine evaluation.
@@ -193,9 +196,9 @@ export const updateReportingWithReplacements = (
 		}
 		if (Array.isArray(object)) {
 			return object.reduce((idBasedObject, item, index) => {
-				let key = item && item["@id"] ? item["@id"] : index;
+				const key = item && item["@id"] ? item["@id"] : index;
 				// Remove @id from the nested object
-				let { ["@id"]: _omit, ...rest } = item || {};
+				const { ["@id"]: _omit, ...rest } = item || {};
 				idBasedObject[key] = normalizeIdBasedObject(rest);
 				return idBasedObject;
 			}, {} as any);
@@ -225,10 +228,9 @@ export const updateReportingWithReplacements = (
 		return out;
 	};
 
-	let newValues = handleSlashKeys(normalized);
+	const newValues = handleSlashKeys(normalized);
 
 	const flattened = flattenObject(newValues, "/");
-
 
 	// Step 3: For each key in newValues, if the path exists in reporting, update it
 	for (const [key, value] of Object.entries(flattened)) {
@@ -260,7 +262,7 @@ const getClientGraphForSession = (session: Session) => {
 	}
 
 	return session.decompressedClientGraph;
-}
+};
 
 /**
  * SessionManager is the main class for managing sessions in the interview SDK.
@@ -430,37 +432,42 @@ export class SessionManager {
 	};
 
 	private handleClientGraphBookmark(session: Session) {
-		const bookmarkKey = "immi_cg_bookmark_2";
 		if (session.clientGraphBookmark) {
 			if (!session.clientGraph) {
-				const bookmarkRaw = localStorage.getItem(bookmarkKey);
+				const bookmarkRaw = localStorage.getItem(BOOKMARK_KEY);
 				if (!bookmarkRaw) {
 					return;
 				}
 
-        const bookmarkData = JSON.parse(bookmarkRaw) as ClientGraphBookmarkData;
-        if (bookmarkData.id === session.clientGraphBookmark) {
-          session.clientGraph = bookmarkData.clientGraph;
-          this.log("Loaded client graph from bookmark", {
-            id: session.clientGraphBookmark,
-          });
-        }
-      } else {
-        this.log("Saved client graph bookmark", {
-          id: session.clientGraphBookmark,
-        });
-        localStorage.setItem(bookmarkKey, JSON.stringify({
-          clientGraph: session.clientGraph,
-          id: session.clientGraphBookmark,
-        } satisfies ClientGraphBookmarkData));
-      }
-    }
+				const bookmarkData = JSON.parse(bookmarkRaw) as ClientGraphBookmarkData;
+				if (bookmarkData.id === session.clientGraphBookmark) {
+					session.clientGraph = bookmarkData.clientGraph;
+					this.log("Loaded client graph from bookmark", {
+						id: session.clientGraphBookmark,
+					});
+				}
+			} else {
+				this.log("Saved client graph bookmark", {
+					id: session.clientGraphBookmark,
+				});
+				localStorage.setItem(
+					BOOKMARK_KEY,
+					JSON.stringify({
+						clientGraph: session.clientGraph,
+						id: session.clientGraphBookmark,
+					} satisfies ClientGraphBookmarkData),
+				);
+			}
+		}
 	}
 
 	create = async (config: SessionConfig): Promise<Session> => {
 		this.log("Creating session:", config);
 		this.setState("loading");
-		const session = await this.apiManager.create(config);
+		const session = await this.apiManager.create({
+			...config,
+			clientGraphBookmark: this.getClientGraphBookmark(),
+		});
 		this.log("Session created successfully:", session);
 		this.setState("success");
 		this.push(session);
@@ -473,7 +480,10 @@ export class SessionManager {
 	load = async (config: SessionConfig): Promise<Session> => {
 		this.log("Loading session:", config);
 		this.setState("loading");
-		const session = await this.apiManager.load(config);
+		const session = await this.apiManager.load({
+			...config,
+			clientGraphBookmark: this.getClientGraphBookmark(),
+		});
 		this.log("Session loaded successfully:", session);
 		this.setState("success");
 		this.push(session);
@@ -699,9 +709,9 @@ export class SessionManager {
 				const newScreen = this.makeScreenCopy();
 				if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
 					// Get all goals that need to be solved
-					const goalsToSolveSet = new Set(Object.keys(
-						this.internals.unknownsRequiringSimulate,
-					));
+					const goalsToSolveSet = new Set(
+						Object.keys(this.internals.unknownsRequiringSimulate),
+					);
 					if (this.activeSession.state) {
 						for (const stateItem of this.activeSession.state) {
 							goalsToSolveSet.add(stateItem.id);
@@ -725,57 +735,61 @@ export class SessionManager {
 						);
 
 						const rulesEngine = await this.rulesEnginePromise;
-							try {
-								const roots = goalsToSolve;
-								const result = await rulesEngine.solve(
-									{
-										input: input,
-										roots: roots,
-										goal: roots[0],
-										response_elements: [
-											{
-												type: "attributes",
-												ids: roots.map(path => path.split("/").pop(),)
-											}
-										]
-									},
-									screen.id,
-									{
-										getRelease: () => {
-											const release = {
-												id: screen.id,
-												relationships: this.activeSession!.relationships || [],
-												rule_graph: this.clientGraph,
-												inferredOrder: this.activeSession!.inferredOrder,
-											};
-
-											this.log(`[${LogGroup}] Release':`, release);
-
-											return release;
+						try {
+							const roots = goalsToSolve;
+							const result = await rulesEngine.solve(
+								{
+									input: input,
+									roots: roots,
+									goal: roots[0],
+									response_elements: [
+										{
+											type: "attributes",
+											ids: roots.map((path) => path.split("/").pop()),
 										},
+									],
+								},
+								screen.id,
+								{
+									getRelease: () => {
+										const release = {
+											id: screen.id,
+											relationships: this.activeSession!.relationships || [],
+											rule_graph: this.clientGraph,
+											inferredOrder: this.activeSession!.inferredOrder,
+										};
+
+										this.log(`[${LogGroup}] Release':`, release);
+
+										return release;
 									},
-									{},
-								);
+								},
+								{},
+							);
 
-								this.log(`[${LogGroup}] For goal '${this.activeSession.goal}':`, input, roots);
-								this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
-								const replacements = createEntityPathedData({...result.reporting.global, ...result.reporting, global: undefined});
-								this.log(`[${LogGroup}] Replacements':`, replacements);
+							this.log(
+								`[${LogGroup}] For goal '${this.activeSession.goal}':`,
+								input,
+								roots,
+							);
+							this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
+							const replacements = createEntityPathedData({
+								...result.reporting.global,
+								...result.reporting,
+								global: undefined,
+							});
+							this.log(`[${LogGroup}] Replacements':`, replacements);
 
-								//if (result.result !== undefined) {
-								// Update replacements with solved values
-								Object.assign(this.internals.replacements, replacements);
+							//if (result.result !== undefined) {
+							// Update replacements with solved values
+							Object.assign(this.internals.replacements, replacements);
 
-								this.activeSession.validations = result.validations;
-
-
-
-							} catch (error) {
-								console.error(
-									`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`,
-									error,
-								);
-
+							this.activeSession.validations = result.validations;
+						} catch (error) {
+							console.error(
+								`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`,
+								error,
+							);
 						}
 
 						// Update screen with new values
@@ -1013,6 +1027,14 @@ export class SessionManager {
 		}
 	};
 
+	private getClientGraphBookmark() {
+		const bookmarkRaw = localStorage.getItem(BOOKMARK_KEY);
+		if (bookmarkRaw) {
+			return (JSON.parse(bookmarkRaw) as ClientGraphBookmarkData).id;
+		}
+		return undefined;
+	}
+
 	// public methods
 
 	submit = async (
@@ -1034,6 +1056,7 @@ export class SessionManager {
 				// response: this.options.responseElements,
 				...overrides,
 			},
+			this.getClientGraphBookmark(),
 		);
 		this.updateSession(session);
 		this.triggerUpdate({ externalLoading: false });
@@ -1116,6 +1139,7 @@ export class SessionManager {
 				{
 					// response: this.options.responseElements,
 				},
+				this.getClientGraphBookmark(),
 			),
 		);
 		this.triggerUpdate({ externalLoading: false });

@@ -63,7 +63,13 @@ export class ApiManager {
 	};
 
 	load = async (options: SessionConfig) => {
-		const { project, sessionId, interactionId, initialData } = options;
+		const {
+			project,
+			sessionId,
+			interactionId,
+			initialData,
+			clientGraphBookmark,
+		} = options;
 
 		if (!project) {
 			throw new Error("Project ID is required to load a session.");
@@ -71,7 +77,7 @@ export class ApiManager {
 
 		const res = await this.api.patch<Session>(
 			project,
-			{ data: initialData ?? {} },
+			{ data: initialData ?? {}, clientGraphBookmark },
 			{
 				params: { session: sessionId, interaction: interactionId },
 			},
@@ -91,6 +97,7 @@ export class ApiManager {
 		data: AttributeValues,
 		navigate: Navigate,
 		overrides?: Overrides,
+		clientGraphBookmark?: string,
 	) => {
 		const url =
 			session.release === undefined
@@ -102,6 +109,7 @@ export class ApiManager {
 				data,
 				navigate: navigate || undefined,
 				index: session.index,
+				clientGraphBookmark,
 				...overrides,
 			},
 			{
