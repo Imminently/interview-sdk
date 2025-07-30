@@ -17,7 +17,7 @@ import type {
 	AttributeValues,
 	ChatResponse,
 	InterviewContainerControl,
-	Overrides,
+	Overrides, PreProcessedState,
 	RulesEngine,
 	Screen,
 	Session,
@@ -35,7 +35,7 @@ import {
 	transformResponse,
 } from "./util";
 
-const BOOKMARK_KEY = "immi_cg_bookmark_2";
+const BOOKMARK_KEY = "immi_cg_bookmark_3";
 
 /**
  * Constructs the input object from the preprocessed state for rules engine evaluation.
