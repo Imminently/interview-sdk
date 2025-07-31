@@ -6,6 +6,7 @@ import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { generateValidatorForControl, useAttributeValidationErrors } from "../util/validation";
 import { FormField, FormItem } from "../components/ui/form";
 import { isReadOnly, ReadOnlyControl } from "@/components/controls/ReadOnlyControl";
+import { useInterview } from "./InterviewContext";
 
 export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
   control: Control;
@@ -48,8 +49,9 @@ const getControlDefault = (type: string) => {
 export const InterviewControl = ({ control, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
+  const { readOnly: forceReadOnly } = useInterview();
   const form = useFormContext();
-  const readOnly = isReadOnly(control);
+  const readOnly = forceReadOnly ?? isReadOnly(control);
 
   // take a local copy
   const resolvedControl: Control & { disabled?: boolean } = useMemo(() => ({ ...control }), [control]);
