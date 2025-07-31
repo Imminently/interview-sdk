@@ -1,34 +1,100 @@
-import { type Control, RenderableEntityControl, uuid } from "@imminently/interview-sdk";
+import {
+  type Control,
+  type RenderableEntityControl,
+  uuid,
+} from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
-import { Button } from "../ui/button";
-import { Text } from "../ui/text";
+import { useInterview } from "@/interview";
+import { AttributeNestingProvider, useTheme } from "@/providers";
 import { cn } from "@/util";
 import { useAttributeToFieldName } from "../../util/attribute-to-field-name";
 import { RenderControl } from "../RenderControl";
-import { AttributeNestingProvider, useTheme } from "@/providers";
+import { Button } from "../ui/button";
+import { Text } from "../ui/text";
 
 export interface EntityFormControlProps {
   control: RenderableEntityControl;
   className?: string;
 }
 
+interface FieldControlProps {
+  control: RenderableEntityControl;
+  index: number;
+  parentPath?: string;
+}
+
+const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
+  // First check if we have instances with controls for this specific field
+  const instanceControls = control.instances?.[index]?.controls;
+
+  const renderInstance = useCallback((subControl: Control, controlIndex: number) => {
+    const key = `${controlIndex}-${subControl.id}`;
+
+    if (subControl.type === "typography") {
+      return <RenderControl key={key} control={subControl} />;
+    }
+
+    if ("attribute" in subControl || subControl.type === "entity") {
+      // @ts-ignore subControl.entity is not always defined
+      const key = (subControl.attribute || subControl.entity)
+        ?.split("/")
+        .pop();
+      if (!key) return null;
+
+      const path = parentPath
+        ? `${parentPath}.${index}.${key}`
+        : `${control.entity}.${index}.${key}`;
+
+      const childControl = {
+        ...subControl,
+        attribute: path,
+      } as Control;
+
+      const content = (
+        <RenderControl key={key} control={childControl} />
+      );
+
+      if (subControl.type === "entity") {
+        return (
+          <div key={key} className="p-4 border border-border rounded-md">
+            {content}
+          </div>
+        );
+      }
+
+      return content;
+    }
+
+    console.warn("Unsupported instance control", subControl);
+    return null;
+  }, [control, index, parentPath]);
+
+  if (instanceControls && instanceControls.length > 0) {
+    return instanceControls.map(renderInstance);
+  }
+
+  // Fallback to template controls if no instance-specific controls
+  if (!control.template || control.template.length === 0) return null;
+
+  return control.template.map(renderInstance);
+};
+
 export const EntityFormControl = ({
   control,
-  className
+  className,
 }: EntityFormControlProps) => {
   const { t } = useTheme();
   const { control: formControl } = useFormContext();
+  const { readOnly: forceReadOnly } = useInterview();
 
   const parentPath = useAttributeToFieldName(control.attribute);
   const fieldName = parentPath ?? control.entity;
+  // @ts-ignore check control as we will probably add readOnly in future
+  const readOnly = forceReadOnly ?? control.readOnly;
 
-  const {
-    fields,
-    append,
-    remove
-  } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: formControl,
     name: fieldName,
     shouldUnregister: true,
@@ -38,7 +104,12 @@ export const EntityFormControl = ({
   const [initialized, setInitialized] = React.useState(false);
 
   useEffect(() => {
-    if (!initialized && fields.length === 0 && control.instances && control.instances.length > 0) {
+    if (
+      !initialized &&
+      fields.length === 0 &&
+      control.instances &&
+      control.instances.length > 0
+    ) {
       const initialValues = control.instances.map((instance) => ({
         "@id": instance.id || uuid(),
       }));
@@ -51,8 +122,10 @@ export const EntityFormControl = ({
     }
   }, [control.instances, fields.length, append, initialized]);
 
-  const canAddMore = control.max === undefined || control.max > fields.length;
-  const canDelete = control.min === undefined || fields.length > control.min;
+  const canAddMore =
+    !readOnly && (control.max === undefined || control.max > fields.length);
+  const canDelete =
+    !readOnly && (control.min === undefined || fields.length > control.min);
 
   const handleAdd = React.useCallback(() => {
     if (!canAddMore) return;
@@ -64,89 +137,18 @@ export const EntityFormControl = ({
     append(newItem);
   }, [canAddMore, append]);
 
-  const handleDelete = React.useCallback((index: number) => {
-    if (!canDelete) return;
-    remove(index);
-  }, [canDelete, remove]);
+  const handleDelete = React.useCallback(
+    (index: number) => {
+      if (!canDelete) return;
+      remove(index);
+    },
+    [canDelete, remove],
+  );
 
-  const renderFieldControls = React.useCallback((fieldIndex: number) => {
-    // First check if we have instances with controls for this specific field
-    const instanceControls = control.instances?.[fieldIndex]?.controls;
-    if (instanceControls && instanceControls.length > 0) {
-      return instanceControls.map((subControl: any, controlIndex: number) => {
-        if (subControl.type === "typography") {
-          return <RenderControl key={controlIndex} control={subControl} />;
-        }
-
-        if ("attribute" in subControl || subControl.type === "entity") {
-          const key = (subControl.attribute || subControl.entity)?.split("/").pop();
-          if (!key) return null;
-
-          const path = parentPath
-            ? `${parentPath}.${fieldIndex}.${key}`
-            : `${control.entity}.${fieldIndex}.${key}`;
-
-          const childControl = {
-            ...subControl,
-            attribute: path,
-          } as Control;
-
-          const content = <RenderControl key={controlIndex} control={childControl} />;
-
-          if (subControl.type === "entity") {
-            return (
-              <div key={controlIndex} className="p-4 border border-border rounded-md">
-                {content}
-              </div>
-            );
-          }
-
-          return content;
-        }
-
-        console.warn("Unsupported instance control", subControl);
-        return null;
-      });
-    }
-
-    // Fallback to template controls if no instance-specific controls
-    if (!control.template || control.template.length === 0) return null;
-
-    return control.template.map((subControl: any, controlIndex: number) => {
-      if (subControl.type === "typography") {
-        return <RenderControl key={controlIndex} control={subControl} />;
-      }
-
-      if ("attribute" in subControl || subControl.type === "entity") {
-        const key = (subControl.attribute || subControl.entity)?.split("/").pop();
-        if (!key) return null;
-
-        const path = parentPath
-          ? `${parentPath}.${fieldIndex}.${key}`
-          : `${control.entity}.${fieldIndex}.${key}`;
-
-        const childControl = {
-          ...subControl,
-          attribute: path,
-        } as Control;
-
-        const content = <RenderControl key={controlIndex} control={childControl} />;
-
-        if (subControl.type === "entity") {
-          return (
-            <div key={controlIndex} className="p-4 border border-border rounded-md">
-              {content}
-            </div>
-          );
-        }
-
-        return content;
-      }
-
-      console.warn("Unsupported template control", subControl);
-      return null;
-    });
-  }, [control.template, control.instances, control.entity, parentPath]);
+  if (fields.length === 0 && readOnly) {
+    // If there are no fields and readOnly, hide the control
+    return null;
+  }
 
   return (
     <div
@@ -157,11 +159,7 @@ export const EntityFormControl = ({
     >
       {/* Header with label and add button */}
       <div className="flex items-center justify-between">
-        {control.label && (
-          <Text variant="h6">
-            {t(control.label)}
-          </Text>
-        )}
+        {control.label && <Text variant="h6">{t(control.label)}</Text>}
 
         {canAddMore && (
           <Button
@@ -176,9 +174,12 @@ export const EntityFormControl = ({
         )}
       </div>
       {fields.length === 0 ? (
-        <div data-slot="empty" className="text-muted-foreground text-center pt-4 pb-8">
+        <div
+          data-slot="empty"
+          className="text-muted-foreground text-center pt-4 pb-8"
+        >
           {/* Empty state */}
-          <Text variant="body">{t('form.no_items')}</Text>
+          <Text variant="body">{t("form.no_items")}</Text>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -186,14 +187,15 @@ export const EntityFormControl = ({
           <AttributeNestingProvider value={true}>
             {fields.map((field, index) => {
               const isLastItem = index === fields.length - 1;
-              const showDeleteButton = canDelete && fields.length > (control.min ?? 0);
+              const showDeleteButton =
+                canDelete && fields.length > (control.min ?? 0);
 
               return (
                 <div
                   key={field.id}
                   className={cn(
                     "flex items-start gap-4",
-                    !isLastItem && "pb-4 border-b border-border"
+                    !isLastItem && "pb-4 border-b border-border",
                   )}
                 >
                   {/* Hidden controller for the @id field */}
@@ -206,7 +208,11 @@ export const EntityFormControl = ({
 
                   {/* Field content */}
                   <div className="flex-1 space-y-4">
-                    {renderFieldControls(index)}
+                    <FieldControl
+                      control={control}
+                      index={index}
+                      parentPath={parentPath}
+                    />
                   </div>
 
                   {/* Delete button */}

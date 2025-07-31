@@ -1,14 +1,20 @@
-import React, { useEffect, useMemo } from "react";
-import { RegisterOptions, UseControllerReturn, useFormContext } from "react-hook-form";
-import { type Control } from "@imminently/interview-sdk";
+import type { Control, RenderableControl } from "@imminently/interview-sdk";
+import type React from "react";
+import { useMemo } from "react";
+import {
+  type RegisterOptions,
+  type UseControllerReturn,
+  useFormContext,
+} from "react-hook-form";
+import { isReadOnly } from "@/components/controls/ReadOnlyControl";
+import { FormField, FormItem } from "../components/ui/form";
 import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
-import { generateValidatorForControl, useAttributeValidationErrors } from "../util/validation";
-import { FormField, FormItem } from "../components/ui/form";
-import { isReadOnly, ReadOnlyControl } from "@/components/controls/ReadOnlyControl";
+import { generateValidatorForControl } from "../util/validation";
 import { useInterview } from "./InterviewContext";
 
-export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
+export interface InterviewControlProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   control: Control;
   children: (props: UseControllerReturn) => React.ReactElement;
 }
@@ -44,36 +50,47 @@ const getControlDefault = (type: string) => {
     default:
       return undefined;
   }
-}
+};
 
 export const InterviewControl = ({ control, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
   const { readOnly: forceReadOnly } = useInterview();
   const form = useFormContext();
-  const readOnly = forceReadOnly ?? isReadOnly(control);
 
   // take a local copy
-  const resolvedControl: Control & { disabled?: boolean } = useMemo(() => ({ ...control }), [control]);
+  // TODO why do some of the controls have booleans listed as type 'true'?
+  const resolvedControl: Omit<Control, 'disabled'> & { disabled: boolean } = useMemo(
+    () => ({ ...control, disabled: forceReadOnly ?? isReadOnly(control) }),
+    [control, forceReadOnly],
+  );
   // @ts-ignore
   const name: string = useAttributeToFieldName(attribute) ?? control.entity;
-  // @ts-ignore
-  const defaultValue = resolvedControl.value ?? resolvedControl.default ?? getControlDefault(resolvedControl.type);
 
-  const rules: RegisterOptions = useMemo(() => ({
-    validate: (value) => {
-      const schema = generateValidatorForControl(resolvedControl as any);
-      if (!schema) {
-        return true;
-      }
-      try {
-        schema.validateSync(value);
-        return true;
-      } catch (e: any) {
-        return e.errors.join(", ");
-      }
-    },
-  }), [resolvedControl]);
+  const defaultValue =
+    // @ts-ignore
+    resolvedControl.value ??
+    // @ts-ignore
+    resolvedControl.default ??
+    getControlDefault(resolvedControl.type);
+
+  const rules: RegisterOptions = useMemo(
+    () => ({
+      validate: (value) => {
+        const schema = generateValidatorForControl(resolvedControl as RenderableControl);
+        if (!schema) {
+          return true;
+        }
+        try {
+          schema.validateSync(value);
+          return true;
+        } catch (e: any) {
+          return e.errors.join(", ");
+        }
+      },
+    }),
+    [resolvedControl],
+  );
 
   // TEMP disabling as it was causing recursive updates and max depth exceeded errors
   // set validation errors from the session object
@@ -93,39 +110,35 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   }
 
   // we only override the render if the control is readOnly and labelDisplay is "automatic"
-  if (readOnly && (control as any).labelDisplay === "automatic") {
-    return (
-      <FormField
-        name={name}
-        data={resolvedControl}
-        control={form.control}
-        defaultValue={defaultValue}
-        render={(props) => (
-          <FormItem>
-            <ReadOnlyControl {...props} />
-          </FormItem>
-        )}
-      />
-    );
-  } else if (readOnly) {
-    // @ts-ignore since its flagged readOnly, we want to force it disabled
-    resolvedControl.disabled = true;
-  }
+  // if (readOnly && (control as any).labelDisplay === "automatic") {
+  //   return (
+  //     <FormField
+  //       name={name}
+  //       data={resolvedControl}
+  //       control={form.control}
+  //       defaultValue={defaultValue}
+  //       render={(props) => (
+  //         <FormItem>
+  //           <ReadOnlyControl {...props} />
+  //         </FormItem>
+  //       )}
+  //     />
+  //   );
+  // } else if (readOnly) {
+  //   // @ts-ignore since its flagged readOnly, we want to force it disabled
+  //   resolvedControl.disabled = true;
+  // }
 
   return (
     <FormField
       name={name}
-      data={resolvedControl}
+      data={resolvedControl as Control}
       control={form.control}
       defaultValue={defaultValue}
       disabled={resolvedControl.disabled ?? false}
       rules={rules}
       shouldUnregister={true}
-      render={(props) => (
-        <FormItem>
-          {children(props)}
-        </FormItem>
-      )}
+      render={(props) => <FormItem>{children(props)}</FormItem>}
     />
   );
 };
