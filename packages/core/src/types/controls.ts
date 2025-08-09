@@ -467,6 +467,7 @@ export interface TypographyControl extends BaseControl {
 	id: string;
 	type: "typography";
 	text: string;
+	label?: string;
 	customClassName?: string;
 	style:
 		| "h1"

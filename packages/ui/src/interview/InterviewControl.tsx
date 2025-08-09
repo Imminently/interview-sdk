@@ -1,6 +1,6 @@
 import type { Control, RenderableControl } from "@imminently/interview-sdk";
 import type React from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   type RegisterOptions,
   type UseControllerReturn,
@@ -46,6 +46,9 @@ const getControlDefault = (type: string) => {
       return 0;
     case "text":
     case "number_of_instances":
+    // case "date":
+    // case "datetime":
+    case "time":
       return "";
     default:
       return undefined;
@@ -55,13 +58,15 @@ const getControlDefault = (type: string) => {
 export const InterviewControl = ({ control, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
-  const { readOnly: forceReadOnly } = useInterview();
-  const form = useFormContext();
-
+  const { readOnly: forceReadOnly, manager } = useInterview();
+  const { unregister, ...form } = useFormContext();
   // take a local copy
   // TODO why do some of the controls have booleans listed as type 'true'?
-  const resolvedControl: Omit<Control, 'disabled'> & { disabled: boolean } = useMemo(
-    () => ({ ...control, disabled: forceReadOnly ?? isReadOnly(control) }),
+  const resolvedControl: Omit<Control, 'disabled'> & { disabled: boolean, readOnly: boolean } = useMemo(
+    () => {
+      const readOnly = forceReadOnly || isReadOnly(control);
+      return { ...control, readOnly, disabled: readOnly }
+    },
     [control, forceReadOnly],
   );
   // @ts-ignore
@@ -91,6 +96,25 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     }),
     [resolvedControl],
   );
+
+  useEffect(() => {
+    // if (manager.debug) {
+    //   console.log("[InterviewControl] Registering control", {
+    //     name,
+    //     control: resolvedControl,
+    //   });
+    // }
+
+    // return a cleanup function to unregister the control
+    return () => {
+      if (manager.isOnScreen(resolvedControl as Control)) return; // don't unregister if the control is on screen
+      // if the control is not on screen, we can safely unregister it
+      if (manager.debug) {
+        console.log("[InterviewControl] Unregistering control", name);
+      }
+      unregister(name);
+    };
+  }, [manager, resolvedControl, name, unregister]);
 
   // TEMP disabling as it was causing recursive updates and max depth exceeded errors
   // set validation errors from the session object
@@ -137,8 +161,24 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
       defaultValue={defaultValue}
       disabled={resolvedControl.disabled ?? false}
       rules={rules}
-      shouldUnregister={true}
-      render={(props) => <FormItem>{children(props)}</FormItem>}
+      // shouldUnregister={true}
+      render={(props) => ( // { field, fieldState, formState }
+        <FormItem>
+          {
+            // children({
+            //   fieldState,
+            //   formState,
+            //   field: {
+            //     ...field,
+            //     // we want to use the control value if we are readOnly, as it might get dynamically updated, which is outisde of the form
+            //     // @ts-ignore if value doesn't exist, it'll just use the field value
+            //     value: resolvedControl.readOnly && resolvedControl.value ? resolvedControl.value : field.value
+            //   }
+            // })
+            children(props)
+          }
+        </FormItem>
+      )}
     />
   );
 };

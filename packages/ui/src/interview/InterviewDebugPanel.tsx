@@ -1,7 +1,14 @@
-import { useFormContext } from "react-hook-form"
-import { Badge } from "../components/ui/badge"
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar"
-import { useTheme } from "@/providers"
+import { useFormContext } from "react-hook-form";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { useTheme } from "@/providers";
+import { Badge } from "../components/ui/badge";
 
 const stringValue = (value: any) => {
   // support null -> null, undefined -> undefined, boolean -> true/false, number -> string
@@ -16,27 +23,39 @@ const stringValue = (value: any) => {
   } else {
     return String(value);
   }
-}
+};
 
-export default function InterviewDebugPanel() {
+export const InterviewDebugPanel = () => {
   const { t } = useTheme();
   const { watch } = useFormContext();
   const values = watch();
   return (
-    <Sidebar collapsible="offcanvas" className="sticky top-0 hidden h-svh border-l lg:flex">
+    <Sidebar
+      collapsible="offcanvas"
+      className="sticky top-0 hidden h-svh border-l lg:flex"
+    >
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="p-0 text-lg font-bold">{t('debug.form_values')}</SidebarGroupLabel>
+          <SidebarGroupLabel className="p-0 text-lg font-bold">
+            {t("debug.form_values")}
+          </SidebarGroupLabel>
           <SidebarMenu>
             {Object.entries(values).map(([key, value]) => (
-              <SidebarMenuItem key={key} className="flex items-center justify-between py-1">
-                <span className="text-sm font-mono text-muted-foreground">{key}</span>
-                <Badge className="rounded-full text-sm font-mono">{stringValue(value)}</Badge>
+              <SidebarMenuItem
+                key={key}
+                className="flex items-center justify-between py-1"
+              >
+                <span className="text-sm font-mono text-muted-foreground">
+                  {key}
+                </span>
+                <Badge className="rounded-full text-sm font-mono">
+                  {stringValue(value)}
+                </Badge>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  )
-}
+  );
+};
