@@ -1,6 +1,5 @@
-import type { Navigation } from "fumadocs-ui";
-
-export const navigation: Navigation = {
+// Minimal navigation shape compatible with DocsLayout tree prop
+export const navigation = {
   items: [
     { title: "Introduction", url: "/" },
     {

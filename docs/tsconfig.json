@@ -3,17 +3,14 @@
   "compilerOptions": {
     "jsx": "preserve",
     "allowJs": true,
-    "types": [
-      "node",
-      "react",
-      "react-dom"
-    ],
+    "types": ["node", "react", "react-dom"],
     "baseUrl": ".",
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+    "moduleResolution": "node16",
+  "module": "Node16",
+  "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "resolvePackageJsonExports": true,
+    "plugins": [{ "name": "next" }]
   },
   "include": [
     "./**/*.ts",
