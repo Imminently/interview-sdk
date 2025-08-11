@@ -1,0 +1,5 @@
+import { Playground } from '../../components/Playground';
+
+# Live Playground
+
+<Playground code={`import React from 'react';\nconst apiManager = new ApiManager({ baseUrl: 'https://api.example.com' });\nconst fileManager = new FileManager({});\nconst manager = new SessionManager({ apiManager, fileManager, sessionConfig: { project: 'proj', interview: 'play' } });\n\nexport default function Demo(){\n  return <Interview manager={manager} />;\n}`} />

@@ -1,0 +1,20 @@
+# API / Data Flow
+
+Sequence:
+1. `new SessionManager({ apiManager, fileManager, sessionConfig? })`
+2. `manager.create()` or `manager.load()`
+3. `manager.onScreenDataChange(partialValues)` triggers dynamic
+4. `manager.next(values)` persists & advances
+5. Completion -> `manager.isComplete`
+
+```text
+SessionConfig -> create/load -> Session
+   |          \-- navigate/back -->
+ onScreenDataChange -> dynamic -> screen
+   |                                \
+   +--> unknowns -> simulate (server) -> replacements
+```
+
+```ts
+// TODO implement example ApiManager customization
+```

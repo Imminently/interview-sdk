@@ -1,0 +1,26 @@
+# Conditional Logic
+
+Visibility / enablement updates after `manager.onScreenDataChange` and dynamic passes.
+
+Example:
+```ts
+manager.onScreenDataChange({ age: 17 });
+manager.onScreenDataChange({ age: 18 });
+```
+
+Function predicate (if supported by your schema):
+```ts
+{
+  id: 'licenseNumber',
+  type: 'text',
+  label: 'Driver License #',
+  visibleIf: (values: any) => Number(values.age) >= 16
+}
+```
+
+Dependencies gating progression:
+```ts
+// next button dependencies example (pseudo)
+// screen.buttons.next.dependencies = ['agree'];
+manager.onScreenDataChange({ agree: true });
+```

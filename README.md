@@ -121,3 +121,18 @@ The Interview SDK is ideal for:
 - **Data collection applications**
 - **Assessment and evaluation tools**
 - **Customer onboarding flows**
+
+## Documentation
+
+Local documentation site (Next.js + fumadocs) lives in `docs/`.
+
+Run locally:
+```bash
+bun install
+bun run dev:docs
+```
+
+Build docs:
+```bash
+bun run build:docs
+```

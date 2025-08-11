@@ -1,0 +1,18 @@
+# File Handling
+
+`SessionManager` proxies to `FileManager`.
+
+```ts
+import { SessionManager, ApiManager, FileManager } from '@imminently/interview-sdk';
+const apiManager = new ApiManager({ baseUrl: 'https://api.example.com' });
+const fileManager = new FileManager({ maxSizeBytes: 5 * 1024 * 1024 });
+const manager = new SessionManager({ apiManager, fileManager });
+
+await manager.uploadFile(file, control);
+await manager.removeFile({ url: 'https://cdn.example.com/resume.pdf' });
+```
+
+Callbacks:
+```ts
+// TODO implement example for onFileTooBig
+```

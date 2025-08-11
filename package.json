@@ -3,11 +3,14 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "dev-app"
+    "dev-app",
+    "docs"
   ],
   "scripts": {
     "dev": "turbo run dev",
+    "dev:docs": "turbo run dev --filter=interview-sdk-docs",
     "build": "turbo run build",
+    "build:docs": "turbo run build --filter=interview-sdk-docs",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean",

@@ -65,3 +65,6 @@ packages/*/coverage/
 *.log
 packages/*/*.log
 packages/*/tsup.config.bundled*
+
+# Next
+.next/

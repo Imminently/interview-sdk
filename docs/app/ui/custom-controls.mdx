@@ -1,0 +1,23 @@
+# Custom Controls
+
+Wrap or override default renderer.
+
+```tsx
+import { InterviewProvider, RenderControl, Interview } from '@imminently/interview-ui';
+
+function MyRenderControl(props: any){
+  if(props.control.type === 'text'){
+    return <div className='relative'><RenderControl {...props} /><span className='absolute top-1 right-2 text-[10px] text-muted-foreground'>TXT</span></div>;
+  }
+  return <RenderControl {...props} />;
+}
+```
+
+```tsx
+// TODO implement example hooking components map
+```
+
+New type:
+```tsx
+// TODO implement example rating control
+```

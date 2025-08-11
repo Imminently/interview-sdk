@@ -1,0 +1,21 @@
+# Quick Start: Interview
+
+```tsx
+import React from 'react';
+import { SessionManager, ApiManager, FileManager } from '@imminently/interview-sdk';
+import { Interview } from '@imminently/interview-ui';
+import '@imminently/interview-sdk-theme-default/dist/theme.css';
+
+const apiManager = new ApiManager({ baseUrl: 'https://api.example.com' });
+const fileManager = new FileManager({});
+const manager = new SessionManager({ apiManager, fileManager, sessionConfig: { project: 'proj', interview: 'quick' } });
+
+export default function App(){
+  return <Interview manager={manager} />;
+}
+```
+
+Manual creation:
+```tsx
+// TODO implement example (use effect to call manager.create)
+```
