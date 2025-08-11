@@ -1,6 +1,6 @@
 {
 	"name": "@imminently/interview-sdk",
-	"version": "0.2.96",
+	"version": "0.2.98",
 	"repository": {
 		"type": "git",
 		"url": "git://github.com/imminently/interview-sdk.git"
@@ -32,7 +32,7 @@
 		"test:watch": "jest --watch",
 		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
 		"bump:patch": "npm run build && npm version patch --no-git-tag-version",
-		"deploy": "bun run bump:patch && bun publish"
+		"deploy": "bun run bump:patch && npm publish"
 	},
 	"dependencies": {
 		"@date-fns/utc": "^2.1.0",

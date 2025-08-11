@@ -1,7 +1,7 @@
 import React from "react";
 import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs";
-import { useInterview } from "@imminently/interview-sdk-ui";
+import { useInterview } from "@imminently/interview-ui";
 
 export const InterviewValuesViewer = () => {
   const { values, fields, errors } = useInterview();

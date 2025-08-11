@@ -5,6 +5,7 @@ export * from "./file-manager";
 export * from "./formatting";
 export * from "./helpers";
 export * from "./manager";
+export * from "./dynamic";
 // export * from "./init";
 export * from "./placeholders";
 export * from "./sidebars/sidebar";
@@ -17,4 +18,5 @@ export {
 	instanceControl,
 	iterateControls,
 	uuid,
+	buildUrl
 } from "./util";
