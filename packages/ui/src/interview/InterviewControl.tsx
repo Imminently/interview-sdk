@@ -97,24 +97,24 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     [resolvedControl],
   );
 
-  useEffect(() => {
-    // if (manager.debug) {
-    //   console.log("[InterviewControl] Registering control", {
-    //     name,
-    //     control: resolvedControl,
-    //   });
-    // }
+  // useEffect(() => {
+  //   // if (manager.debug) {
+  //   //   console.log("[InterviewControl] Registering control", {
+  //   //     name,
+  //   //     control: resolvedControl,
+  //   //   });
+  //   // }
 
-    // return a cleanup function to unregister the control
-    return () => {
-      if (manager.isOnScreen(resolvedControl as Control)) return; // don't unregister if the control is on screen
-      // if the control is not on screen, we can safely unregister it
-      if (manager.debug) {
-        console.log("[InterviewControl] Unregistering control", name);
-      }
-      unregister(name);
-    };
-  }, [manager, resolvedControl, name, unregister]);
+  //   // return a cleanup function to unregister the control
+  //   return () => {
+  //     if (manager.isOnScreen(resolvedControl as Control)) return; // don't unregister if the control is on screen
+  //     // if the control is not on screen, we can safely unregister it
+  //     if (manager.debug) {
+  //       console.log("[InterviewControl] Unregistering control", name);
+  //     }
+  //     unregister(name);
+  //   };
+  // }, [manager, resolvedControl, name, unregister]);
 
   // TEMP disabling as it was causing recursive updates and max depth exceeded errors
   // set validation errors from the session object
@@ -161,7 +161,7 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
       defaultValue={defaultValue}
       disabled={resolvedControl.disabled ?? false}
       rules={rules}
-      // shouldUnregister={true}
+      shouldUnregister={true}
       render={(props) => ( // { field, fieldState, formState }
         <FormItem>
           {
