@@ -26,12 +26,11 @@ const mapControls = (controls: Control[], attribute?: string) => {
   });
 };
 
-export const SwitchContainer = ({ control, className }: { control: RenderableSwitchContainerControl, className?: string }) => {
+export const SwitchContainer = ({ control }: { control: RenderableSwitchContainerControl }) => {
   const { outcome_true, outcome_false, branch, attribute } = control;
   const { watch } = useFormContext();
   const value = attribute ? watch(attribute) : false; // Ensure the switch is aware of its target attribute
   const controls = ((branch === "true" || value) ? outcome_true : outcome_false) || [];
-  // console.log("SwitchContainer controls", { controls, branch, attribute, value });
 
   const mappedControls = useMemo(() => mapControls(controls, attribute), [controls, attribute]);
 
@@ -39,19 +38,7 @@ export const SwitchContainer = ({ control, className }: { control: RenderableSwi
 
   return (
     <>
-      {mappedControls.map((value) => <RenderControl key={value.id} control={value} />)}
+      {mappedControls.map((ctrl, index) => <RenderControl key={`${index}-${ctrl.id}`} control={ctrl} />)}
     </>
   );
-
-  // return (
-  //   <div
-  //     data-id={control.id}
-  //     data-control={control.type}
-  //     // data-attribute={control.attribute}
-  //     data-loading={(control as any).loading ? "true" : undefined}
-  //     className={className}
-  //   >
-  //     {mappedControls.map((value) => <RenderControl key={value.id} control={value} />)}
-  //   </div>
-  // );
 };
