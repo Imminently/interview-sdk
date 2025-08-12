@@ -1,0 +1,65 @@
+---
+title: SessionManager
+description: Session lifecycle, navigation, files, snapshots
+---
+
+# Manager (SessionManager)
+
+`SessionManager` orchestrates session lifecycle, dynamic evaluation, navigation, and file/chat/timeline features.
+
+## Instantiation
+```ts
+import { SessionManager, ApiManager, FileManager, type SessionConfig } from '@imminently/interview-sdk';
+
+const apiManager = new ApiManager({ baseUrl: 'https://api.example.com' });
+const fileManager = new FileManager({});
+
+const manager = new SessionManager({
+  apiManager,
+  fileManager,
+  debug: true,
+  sessionConfig: { project: 'proj_123', interview: 'onboarding' } as SessionConfig
+});
+```
+
+If `sessionConfig` provided creation starts automatically.
+
+## Create / Load Later
+```ts
+await manager.create({ project: 'proj_123', interview: 'onboarding' });
+await manager.load({ project: 'proj_123', interview: 'onboarding', sessionId: 'sess_abc' });
+```
+
+## Subscription (React Example)
+```tsx
+import { useSyncExternalStore } from 'react';
+function useSessionSnapshot(m: SessionManager){
+  return useSyncExternalStore(cb => m.subscribe(cb), () => m.getSnapshot());
+}
+```
+
+## Input / Navigation
+```ts
+manager.onScreenDataChange({ firstName: 'Ada' });
+await manager.next({});
+await manager.back();
+await manager.navigate('confirm-step');
+```
+
+Flags: `manager.canProgress`, `manager.isLastStep`, `manager.isComplete`.
+
+## File Handling
+```ts
+await manager.uploadFile(file, control);
+await manager.removeFile(ref);
+```
+
+## Snapshot
+```ts
+const snap = manager.getSnapshot();
+```
+
+## Sub-Interviews
+```ts
+await manager.createSubInterview(control);
+```

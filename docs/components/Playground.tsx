@@ -1,9 +1,5 @@
 "use client";
-import {
-  ApiManager,
-  FileManager,
-  SessionManager,
-} from "@imminently/interview-sdk";
+import { ApiManager, FileManager, SessionManager } from "@imminently/interview-sdk";
 import * as InterviewUI from "@imminently/interview-ui";
 import React from "react";
 import { LiveEditor, LiveError, LivePreview, LiveProvider } from "react-live";

@@ -1,0 +1,28 @@
+---
+title: Core Overview
+description: Core package responsibilities and flow
+---
+
+# Core Overview
+
+The core package centralizes:
+- Interview session orchestration (`SessionManager`)
+- Dynamic evaluation & conditional logic (client + server simulate)
+- API abstraction (`ApiManager`)
+- File handling (`FileManager`)
+- Sidebars / navigation helpers
+- Formatting & utilities
+
+## Key Entrypoints
+```ts
+import { SessionManager, ApiManager, FileManager } from '@imminently/interview-sdk';
+```
+
+## Flow
+1. Instantiate `SessionManager` with `apiManager`, `fileManager`, (optional) `sessionConfig`
+2. `create()` or `load()` returns a Session
+3. UI subscribes via `manager.subscribe`
+4. Input -> `manager.onScreenDataChange(values)`
+5. Navigate with `manager.next(values)`, `manager.back()`, `manager.navigate(stepId)`
+
+Core does NOT assume React.
