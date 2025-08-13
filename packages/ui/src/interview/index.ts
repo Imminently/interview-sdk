@@ -1,9 +1,13 @@
-import { InterviewProvider } from "./InterviewContext";
 import { Interview as BasicInterview } from "./Interview";
+import { InterviewProvider } from "./InterviewContext";
+import { InterviewDebugPanel } from "./InterviewDebugPanel";
 import * as Slots from "./slots";
 
+export type {
+  InterviewContextState,
+  InterviewProviderProps,
+} from "./InterviewContext";
 export { useInterview } from "./InterviewContext";
-export type { InterviewProviderProps, InterviewContextState } from "./InterviewContext";
 
 export * from "./slots";
 export const Interview = Object.assign(BasicInterview, {
@@ -18,4 +22,5 @@ export const Interview = Object.assign(BasicInterview, {
   Progress: Slots.InterviewProgress,
   Processing: Slots.InterviewProcessing,
   Validations: Slots.InterviewValidations,
+  Debug: InterviewDebugPanel,
 });

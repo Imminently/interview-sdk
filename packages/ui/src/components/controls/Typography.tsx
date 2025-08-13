@@ -1,11 +1,12 @@
-import React from "react";
-import { TypographyControl } from "@imminently/interview-sdk";
+import type { TypographyControl } from "@imminently/interview-sdk";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Alert, AlertDescription } from "../ui/alert";
+import type React from "react";
+import { useOptions, useTheme } from "@/providers";
 import { cn } from "@/util";
-import { useTheme } from "@/providers";
+import { Alert, AlertDescription } from "../ui/alert";
+import { FormControl, FormField, FormItem, FormLabel } from "../ui/form";
 
-type TextVariant = TypographyControl['style'];
+type TextVariant = TypographyControl["style"];
 
 // CVA typography variants with shadcn/tailwind styles
 const typographyVariants = cva("", {
@@ -32,17 +33,19 @@ const typographyVariants = cva("", {
   },
 });
 
-interface BannerProps extends React.HTMLAttributes<HTMLElement>, VariantProps<typeof typographyVariants> {
+interface BannerProps
+  extends React.HTMLAttributes<HTMLElement>,
+  VariantProps<typeof typographyVariants> {
   "data-typography": TextVariant;
 }
 
 const Banner = ({ className, children, ...props }: BannerProps) => {
   const variant = props["data-typography"];
   return (
-    <Alert variant={variant.replace("banner-", "") as "yellow" | "red" | "green"}>
-      <AlertDescription>
-        {children}
-      </AlertDescription>
+    <Alert
+      variant={variant.replace("banner-", "") as "yellow" | "red" | "green"}
+    >
+      <AlertDescription>{children}</AlertDescription>
     </Alert>
   );
 };
@@ -73,21 +76,44 @@ export interface TypographyControlProps {
 export const Typography = ({ control }: TypographyControlProps) => {
   // merge is a bit weird here, as we actually would want to merge the cva variants
   // const { merge } = useTheme();
+  const { debug } = useOptions({ debug: true });
   const { t } = useTheme();
   const variant: TextVariant = control.style || "body1";
   const Comp: React.ElementType = componentMap[variant] ?? "div";
 
-  return (
+  const debugControl = debug ? () => {
+    console.log("Typography", {
+      variant,
+      control
+    });
+  } : undefined;
+
+  const component = (
     <Comp
+      onClick={debugControl}
       data-type={control.type}
       data-typography={variant}
-      className={cn(
-        typographyVariants({ variant }),
-        control.customClassName,
-      )}
+      className={cn(typographyVariants({ variant }), control.customClassName)}
     >
       {control.emoji ? <span className="mr-2">{control.emoji}</span> : null}
       {t(control.text)}
     </Comp>
   );
+
+  if (control.label) {
+    return (
+      <FormField
+        name={control.attribute ?? control.id}
+        data={control}
+        render={() => (
+          <FormItem>
+            <FormLabel>{t(control.label)}</FormLabel>
+            <FormControl>{component}</FormControl>
+          </FormItem>
+        )}
+      />
+    );
+  }
+
+  return component;
 };

@@ -7,7 +7,6 @@ import type {
 	Overrides,
 	Session,
 	SessionConfig,
-	Simulate,
 	StepId,
 } from "./types";
 import { buildUrl, createApiInstance } from "./util";
@@ -19,6 +18,18 @@ export interface ApiManagerOptions {
 	path?: string | string[];
 	auth?: AuthConfigGetter;
 	overrides?: AxiosRequestConfig;
+	/** API getters for each function */
+	apiGetters?: {
+		create?: (options: SessionConfig) => string;
+		load?: (options: SessionConfig) => string;
+		submit?: (session: Session, data: AttributeValues, navigate: Navigate) => string;
+		chat?: (session: Session, message: string, goal: string) => string;
+		navigate?: (session: Session, step: StepId) => string;
+		back?: (session: Session) => string;
+		simulate?: (session: Session, data: Partial<AttributeValues>) => string;
+		exportTimeline?: (session: Session) => string;
+		getRulesEngine?: (checksum?: string) => string;
+	}
 }
 
 export class ApiManager {
@@ -46,12 +57,12 @@ export class ApiManager {
 			...rest
 		} = options;
 
-		if (!project) {
-			throw new Error("Project ID is required to create a session.");
-		}
+		const url = this.options.apiGetters?.create
+			? this.options.apiGetters.create(options)
+			: buildUrl(project, release);
 
 		const res = await this.api.post<Session>(
-			buildUrl(project, release),
+			url,
 			{
 				data: initialData ?? {},
 				response: responseElements,
@@ -71,12 +82,12 @@ export class ApiManager {
 			clientGraphBookmark,
 		} = options;
 
-		if (!project) {
-			throw new Error("Project ID is required to load a session.");
-		}
+		const url = this.options.apiGetters?.load
+			? this.options.apiGetters.load(options)
+			: buildUrl(project);
 
 		const res = await this.api.patch<Session>(
-			project,
+			url,
 			{ data: initialData ?? {}, clientGraphBookmark },
 			{
 				params: { session: sessionId, interaction: interactionId },
@@ -100,8 +111,8 @@ export class ApiManager {
 		clientGraphBookmark?: string,
 	) => {
 		const url =
-			session.release === undefined
-				? session.model
+			this.options.apiGetters?.submit
+				? this.options.apiGetters.submit(session, data, navigate)
 				: buildUrl(session.model, session.release);
 		const res = await this.api.patch<Session>(
 			url,
@@ -134,10 +145,16 @@ export class ApiManager {
 	): Promise<ChatResponse> => {
 		const resolvedInteractionId =
 			interactionId !== undefined ? interactionId : session.interactionId;
+
+		const url =
+			this.options.apiGetters?.chat
+				? this.options.apiGetters.chat(session, message, goal)
+				: buildUrl(session.model);
+
 		const res = await this.api[
 			resolvedInteractionId ? "patch" : "post"
 		]<ChatResponse>(
-			session.model,
+			url,
 			{
 				prompt: message,
 				turbo: false,
@@ -162,8 +179,11 @@ export class ApiManager {
 	 * @param step The desired step ID
 	 */
 	navigate = async (session: Session, step: StepId, overrides?: Overrides) => {
+		const url = this.options.apiGetters?.navigate
+			? this.options.apiGetters.navigate(session, step)
+			: buildUrl(session.model);
 		const res = await this.api.patch<Session>(
-			session.model,
+			url,
 			{ navigate: step, ...overrides },
 			{
 				params: {
@@ -176,8 +196,11 @@ export class ApiManager {
 	};
 
 	back = async (session: Session, overrides?: Overrides) => {
+		const url = this.options.apiGetters?.back
+			? this.options.apiGetters.back(session)
+			: buildUrl(session.model);
 		const res = await this.api.patch<Session>(
-			session.model,
+			url,
 			{ navigate: "@back", ...overrides },
 			{
 				params: {
@@ -190,9 +213,12 @@ export class ApiManager {
 	};
 
 	simulate = async (session: Session, data: Partial<AttributeValues>) => {
+		const url = this.options.apiGetters?.simulate
+			? this.options.apiGetters.simulate(session, data)
+			: buildUrl(session.model, session.release);
 		// Dynamic interactions are now on a post (due to new interaction behaviour in backend)
 		const res = await this.api.post<Session>(
-			buildUrl(session.model, session.release),
+			url,
 			{
 				mode: "api",
 				save: false,
@@ -209,8 +235,11 @@ export class ApiManager {
 	};
 
 	exportTimeline = async (session: Session) => {
+		const url = this.options.apiGetters?.exportTimeline
+			? this.options.apiGetters.exportTimeline(session)
+			: buildUrl(session.model);
 		const res = await this.api.post<string>(
-			session.model,
+			url,
 			{
 				exportTimeline: true,
 			},
@@ -239,7 +268,11 @@ export class ApiManager {
 	 * @returns The rules engine script as a string
 	 */
 	getRulesEngine = async (checksum?: string) => {
-		const res = await this.api.get(this.getRulesEngineUrl(checksum), {
+		const url = this.options.apiGetters?.getRulesEngine
+			? this.options.apiGetters.getRulesEngine(checksum)
+			: this.getRulesEngineUrl(checksum);
+
+		const res = await this.api.get(url, {
 			adapter: "fetch",
 			fetchOptions: { cache: "force-cache" },
 		});

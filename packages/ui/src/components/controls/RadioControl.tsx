@@ -1,13 +1,13 @@
-import { UseControllerReturn } from "react-hook-form";
-import { OptionsControl } from "@imminently/interview-sdk";
-import { FormControl, FormLabel, useFormField } from "../ui/form";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Label } from "../ui/label";
+import type { OptionsControl } from "@imminently/interview-sdk";
+import type { UseControllerReturn } from "react-hook-form";
 import { useTheme } from "@/providers";
+import { FormControl, FormLabel, useFormField } from "../ui/form";
+import { Label } from "../ui/label";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 export const RadioFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
-  const { control } = useFormField<OptionsControl>();
+  const { control, formItemId } = useFormField<OptionsControl>();
   const { options } = control;
 
   if (!options || options.length === 0) {
@@ -23,22 +23,24 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
           onValueChange={field.onChange}
           className="flex flex-col"
         >
-          {
-            options.map((option) => (
-              <div className="flex items-center space-x-2" key={option.value}>
+          {options.map((option) => {
+            // generate a unique id for each option, as we need to ensure it doesn't conflict with other controls
+            const id = `${formItemId}-${option.value}`;
+            return (
+              <div className="flex items-center space-x-2" key={id}>
                 <RadioGroupItem
-                  id={option.value}
+                  id={id}
                   value={option.value}
                   disabled={field.disabled}
                 />
-                <Label htmlFor={option.value} className="cursor-pointer font-normal">
+                <Label htmlFor={id} className="cursor-pointer font-normal">
                   {t(option.label)}
                 </Label>
               </div>
-            ))
-          }
+            );
+          })}
         </RadioGroup>
       </FormControl>
     </>
   );
-}
+};

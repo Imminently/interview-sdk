@@ -1,8 +1,8 @@
-import * as Slots from "./slots";
-import { SidebarInset, SidebarProvider } from "../components/ui/sidebar";
-import InterviewDebugPanel from "./InterviewDebugPanel";
-import { useInterview } from "./InterviewContext";
 import { useOptions } from "@/providers";
+import { SidebarInset, SidebarProvider } from "../components/ui/sidebar";
+import { useInterview } from "./InterviewContext";
+import { InterviewDebugPanel } from "./InterviewDebugPanel";
+import * as Slots from "./slots";
 
 // TEMP disable the idea of slots using slotName as it did not provide the control we wanted.
 // It was also kind of awkward to use.
@@ -60,7 +60,7 @@ export const InterviewLayout = () => {
         <Slots.InterviewError />
         <Slots.InterviewLoading />
       </>
-    )
+    );
   }
 
   return (

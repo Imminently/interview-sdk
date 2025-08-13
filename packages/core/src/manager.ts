@@ -16,6 +16,7 @@ import { SIDEBAR_DYNAMIC_DATA_INFO } from "./sidebars/sidebar";
 import type {
 	AttributeValues,
 	ChatResponse,
+	Control,
 	InterviewContainerControl,
 	Overrides, PreProcessedState,
 	RulesEngine,
@@ -388,6 +389,20 @@ export class SessionManager {
 
 	get debug() {
 		return Boolean(this.options.debug);
+	}
+
+	isOnScreen = (control: Control, screen?: Screen): boolean => {
+		if (!screen && !this.activeSession) return false;
+		// const { screen } = this.activeSession;
+		screen = screen || this.activeSession?.screen;
+		if (!screen) return false;
+		let isOnScreen = false;
+		iterateControls(screen.controls, (c) => {
+			if (c.id === control.id) {
+				isOnScreen = true;
+			}
+		}, true);
+		return isOnScreen;
 	}
 
 	push = (session: Session) => {
@@ -841,8 +856,8 @@ export class SessionManager {
 
 				const requiresServiceDynamic = Boolean(
 					!this.clientGraph &&
-						(Object.keys(this.internals.unknownsRequiringSimulate).length > 0 ||
-							replacementQueries.sidebarSimulate?.ids?.length),
+					(Object.keys(this.internals.unknownsRequiringSimulate).length > 0 ||
+						replacementQueries.sidebarSimulate?.ids?.length),
 				);
 
 				this.activeSession.screen = newScreen;
@@ -934,7 +949,7 @@ export class SessionManager {
 					if (screenSidebar) {
 						const dataInfo =
 							SIDEBAR_DYNAMIC_DATA_INFO[
-								screenSidebar.type as keyof typeof SIDEBAR_DYNAMIC_DATA_INFO
+							screenSidebar.type as keyof typeof SIDEBAR_DYNAMIC_DATA_INFO
 							];
 						if (dataInfo) {
 							try {
@@ -1006,18 +1021,18 @@ export class SessionManager {
 				};
 			}
 			/*this.processedScreen = produce(session.screen as Screen, (draft) => {
-        iterateControls(draft.controls, (control: any) => {
-          postProcessControl(control, this.internals.replacements);
-        });
-      });
+				iterateControls(draft.controls, (control: any) => {
+					postProcessControl(control, this.internals.replacements);
+				});
+			});
 
-      // call this first so the debounce doesn't fire during unknown calculation
-      this.updateDynamicValues();
-      this.calculateUnknowns();
+			// call this first so the debounce doesn't fire during unknown calculation
+			this.updateDynamicValues();
+			this.calculateUnknowns();
 
-      // force trigger an update of dynamic values
-      // @ts-ignore
-      this.updateDynamicValues.flush();*/
+			// force trigger an update of dynamic values
+			// @ts-ignore
+			this.updateDynamicValues.flush();*/
 		}
 
 		this.handleClientGraphBookmark(session);

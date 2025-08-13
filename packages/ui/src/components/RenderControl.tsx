@@ -59,7 +59,7 @@ const getControlComponent = (control: Control): React.ComponentType<any> => {
 };
 
 export const RenderControl = ({ control }: { control: Control }) => {
-  const Component = getControlComponent(control);
+  const Component = control ? getControlComponent(control) : null;
   if (!Component) return null;
   return <Component control={control} />;
 };

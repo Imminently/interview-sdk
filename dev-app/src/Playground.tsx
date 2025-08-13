@@ -5,7 +5,7 @@ import { highlight, languages } from 'prismjs';
 import 'prismjs/components/prism-json';
 import 'prismjs/themes/prism.css';
 import { convertDefinitionToResponse } from './interview.util';
-import { InterviewForm, InterviewProvider, InterviewSteps, ThemeProvider } from '@imminently/interview-ui';
+import { InterviewActions, InterviewForm, InterviewAlert, InterviewProvider, InterviewSidebar, InterviewSteps, InterviewTitle, ThemeProvider } from '@imminently/interview-ui';
 import * as defaultTheme from '@imminently/interview-sdk-theme-default';
 import { InterviewValuesViewer } from './InterviewValuesViewer';
 

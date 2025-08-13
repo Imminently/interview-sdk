@@ -11,7 +11,9 @@ import type {
 	AuthConfigGetter,
 	Control,
 	EntityControlInstance,
+	RenderableCertaintyContainerControl,
 	RenderableEntityControl,
+	RenderableSwitchContainerControl,
 	ResponseData,
 	Session,
 	State,
@@ -132,31 +134,44 @@ export const getEntityIds = (
 export const iterateControls = (
 	controls: Control[],
 	func: (control: Control) => void,
+	/** if true, will only interate valid / on screen controls */
+	filtered?: boolean,
 	template?: boolean,
 ) => {
 	for (const control of controls) {
 		func(control);
 		if (control.type === "repeating_container") {
 			const ctrl = control;
-
 			if (ctrl.controls) {
-				iterateControls(ctrl.controls, func, template);
+				iterateControls(ctrl.controls, func, filtered, template);
 			}
 		} else if (control.type === "switch_container") {
-			const ctrl = control;
+			const ctrl = control as RenderableSwitchContainerControl;
+			const outcome = ctrl.branch === "true";
+			if (filtered) {
+				const ctrls = outcome ? ctrl.outcome_true : ctrl.outcome_false;
+				iterateControls(ctrls ?? [], func, filtered, template);
+				continue;
+			}
 			if (ctrl.outcome_false) {
-				iterateControls(ctrl.outcome_false, func, template);
+				iterateControls(ctrl.outcome_false, func, filtered, template);
 			}
 			if (ctrl.outcome_true) {
-				iterateControls(ctrl.outcome_true, func, template);
+				iterateControls(ctrl.outcome_true, func, filtered, template);
 			}
 		} else if (control.type === "certainty_container") {
-			const ctrl = control;
+			const ctrl = control as RenderableCertaintyContainerControl;
+			const outcome = ctrl.branch === "certain";
+			if (filtered) {
+				const ctrls = outcome ? ctrl.certain : ctrl.uncertain;
+				iterateControls(ctrls ?? [], func, filtered, template);
+				continue;
+			}
 			if (ctrl.certain) {
-				iterateControls(ctrl.certain, func, template);
+				iterateControls(ctrl.certain, func, filtered, template);
 			}
 			if (ctrl.uncertain) {
-				iterateControls(ctrl.uncertain, func, template);
+				iterateControls(ctrl.uncertain, func, filtered, template);
 			}
 		} else if (control.type === "entity") {
 			const ctrl = control as RenderableEntityControl;
@@ -164,15 +179,15 @@ export const iterateControls = (
 			if (ctrl.instances && !template) {
 				// @ts-ignore
 				for (const instance of ctrl.instances) {
-					iterateControls(instance.controls, func, template);
+					iterateControls(instance.controls, func, filtered, template);
 				}
 			} else if (ctrl.template) {
-				iterateControls(ctrl.template, func, template);
+				iterateControls(ctrl.template, func, filtered, template);
 			}
 		} else if (control.type === "data_container") {
 			const ctrl = control;
 			if (ctrl.controls) {
-				iterateControls(ctrl.controls, func, template);
+				iterateControls(ctrl.controls, func, filtered, template);
 			}
 		}
 	}
