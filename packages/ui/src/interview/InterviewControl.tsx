@@ -12,6 +12,8 @@ import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { generateValidatorForControl } from "../util/validation";
 import { useInterview } from "./InterviewContext";
+import { useDebugSettings } from "@/providers";
+import InterviewControlDebug from "./InterviewControlDebug";
 
 export interface InterviewControlProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
@@ -153,6 +155,8 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   //   resolvedControl.disabled = true;
   // }
 
+  const {debugUIEnabled} = useDebugSettings();
+  
   return (
     <FormField
       name={name}
@@ -162,7 +166,8 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
       disabled={resolvedControl.disabled ?? false}
       rules={rules}
       shouldUnregister={true}
-      render={(props) => ( // { field, fieldState, formState }
+      render={(props) => <>
+        {debugUIEnabled && resolvedControl ? <InterviewControlDebug control={resolvedControl as Control} /> : null}
         <FormItem>
           {
             // children({
@@ -178,7 +183,8 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
             children(props)
           }
         </FormItem>
-      )}
+        </>
+      }
     />
   );
 };

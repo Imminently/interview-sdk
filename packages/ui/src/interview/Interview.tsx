@@ -6,6 +6,7 @@ import {
   InterviewProvider
 } from "./InterviewContext";
 import { InterviewLayout } from "./InterviewLayout";
+import { DebugSettingsProvider } from "@/providers";
 
 export interface InterviewProps extends PropsWithChildren, InterviewConfig {
   options: ManagerOptions;
@@ -23,6 +24,8 @@ export const Interview = ({
   const [manager] = useState(() => new SessionManager(options));
 
   return (
+    <DebugSettingsProvider initialDebug={options?.debug}>
+
     <InterviewProvider manager={manager} {...props}>
       {children ? (
         children
@@ -30,5 +33,6 @@ export const Interview = ({
         <InterviewLayout key={manager.session?.screen.id} />
       )}
     </InterviewProvider>
+    </DebugSettingsProvider>
   );
 };
