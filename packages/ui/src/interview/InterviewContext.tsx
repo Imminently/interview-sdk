@@ -1,4 +1,5 @@
 import type {
+  Control,
   ManagerState,
   Session,
   SessionManager,
@@ -22,6 +23,7 @@ import {
 export type InterviewContextState = {
   manager: SessionManager;
   session: Session;
+  callbacks: InterviewCallbacks;
   state: ManagerState;
   error?: Error;
   readOnly?: boolean;
@@ -29,6 +31,10 @@ export type InterviewContextState = {
   backDisabled: boolean;
   nextDisabled: boolean;
 };
+
+export interface InterviewCallbacks {
+  onDebugControlClick?: (control: Control, interview: InterviewContextState) => void;
+}
 
 /** Base user configurable controls for the interview. */
 export type InterviewConfig = {
@@ -39,6 +45,7 @@ export type InterviewConfig = {
   slots?: Partial<InterviewControls>;
   /** Force all controls into readOnly */
   readOnly?: boolean;
+  callbacks?: InterviewCallbacks;
 };
 
 const InterviewContext = createContext<InterviewContextState | undefined>(undefined);
@@ -65,7 +72,7 @@ export interface InterviewProviderProps extends PropsWithChildren, InterviewConf
  * It provides methods to navigate through the interview steps, manage form values, and handle interactions.
  */
 export const InterviewProvider = ({ manager, children, ...config }: InterviewProviderProps) => {
-  const { form, theme, icons, slots, readOnly } = config;
+  const { form, theme, icons, slots, readOnly, callbacks } = config;
   const methods = useForm(form);
   const snapshot = useSyncExternalStore(manager.subscribe, manager.getSnapshot);
 
@@ -83,6 +90,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
     const finished = manager.isLastStep && manager.isComplete;
     return {
       manager,
+      callbacks: callbacks ?? {},
       session: session!,
       state,
       error,
@@ -98,7 +106,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
         (!manager.isSubInterview && finished) ||
         loading,
     };
-  }, [snapshot, readOnly, manager]);
+  }, [snapshot, readOnly, manager, callbacks]);
 
   return (
     <OptionsProvider value={manager.options}>

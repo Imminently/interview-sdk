@@ -1,6 +1,6 @@
 {
 	"name": "@imminently/interview-sdk",
-	"version": "0.2.98",
+	"version": "0.2.99-alpha.4",
 	"repository": {
 		"type": "git",
 		"url": "git://github.com/imminently/interview-sdk.git"
@@ -23,6 +23,7 @@
 		"dist/**"
 	],
 	"scripts": {
+      "prepublishOnly": "npm run build",
 		"check:fix": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check --write .",
 		"check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check .",
 		"build": "tsup",

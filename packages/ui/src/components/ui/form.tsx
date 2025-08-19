@@ -13,7 +13,8 @@ import {
 import { Control } from "@imminently/interview-sdk"
 import { cn } from "@/util"
 import { Label } from "./label"
-import { useOptions, useTheme } from "@/providers"
+import {useDebugSettings, useOptions, useTheme} from "@/providers"
+import {useInterview} from "@/interview";
 
 const Form = FormProvider
 
@@ -131,10 +132,22 @@ function FormLabel({
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
+  const {debugEnabled} = useDebugSettings();
+  const interview = useInterview();
+  const control = useFormField().control;
+
   return (
     <Slot
       data-slot="form-control"
       id={formItemId}
+      onClick={(e) => {
+        if (debugEnabled && (e.shiftKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("DEBUG!");
+          interview.callbacks.onDebugControlClick?.(control, interview);
+        }
+      }}
       aria-describedby={
         !error
           ? `${formDescriptionId}`

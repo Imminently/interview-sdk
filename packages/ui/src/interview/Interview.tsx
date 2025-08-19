@@ -1,8 +1,8 @@
-import type { ManagerOptions } from "@imminently/interview-sdk";
+import type {Control, ManagerOptions} from "@imminently/interview-sdk";
 import { SessionManager } from "@imminently/interview-sdk";
 import { type PropsWithChildren, useState } from "react";
 import {
-  type InterviewConfig,
+  type InterviewConfig, InterviewContextState,
   InterviewProvider
 } from "./InterviewContext";
 import { InterviewLayout } from "./InterviewLayout";

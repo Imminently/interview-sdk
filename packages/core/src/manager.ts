@@ -676,7 +676,7 @@ export class SessionManager {
 		this.notifyListeners();
 	};
 
-	private clientSideDynamic = async () => {
+	clientSideDynamic = async (debug?: boolean) => {
 		if (!this.activeSession) {
 			console.warn(LogGroup, "No active session to process dynamic values");
 			return;
@@ -692,8 +692,10 @@ export class SessionManager {
 			);
 
 			if (
+        debug || (
 				!isEqual(this.internals.prevUserValues, this.internals.userValues) &&
 				Object.keys(this.internals.userValues).length > 0
+        )
 			) {
 				const replacementQueries = buildDynamicReplacementQueries(
 					this.activeSession,
@@ -722,7 +724,7 @@ export class SessionManager {
 				this.log("Calculated replacement queries:", replacementQueries);
 
 				const newScreen = this.makeScreenCopy();
-				if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
+				if (debug || Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
 					// Get all goals that need to be solved
 					const goalsToSolveSet = new Set(
 						Object.keys(this.internals.unknownsRequiringSimulate),
@@ -771,7 +773,11 @@ export class SessionManager {
 											type: "attributes",
 											ids: roots.map((path) => path.split("/").pop()),
 										},
-									],
+                    debug ? {
+                      type: "graph",
+                      debug: true,
+                    } : undefined
+									].filter(Boolean) as any,
 								},
 								screen.id,
 								{
@@ -781,6 +787,8 @@ export class SessionManager {
 								},
 								{},
 							);
+
+              (this as any)._debugGraph = result.graph;
 
 							this.log(
 								`[${LogGroup}] Payload:`,

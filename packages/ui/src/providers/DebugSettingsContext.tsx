@@ -58,17 +58,11 @@ export function DebugSettingsProvider({ children, initialDebug }: { children: Re
 }
 
 export function useDebugSettings(fallback?: Partial<DebugSettings>): DebugSettings {
-  const ctx = useContext(DebugSettingsContext);
-  if (!ctx) {
-    // Provide a safe fallback (no-ops) if provider is not mounted
-    return {
-      debugEnabled: fallback?.debugEnabled ?? false,
-      debugUIEnabled: fallback?.debugUIEnabled ?? false,
-      setDebugEnabled: fallback?.setDebugEnabled ?? (() => {}),
-      setDebugUIEnabled: fallback?.setDebugUIEnabled ?? (() => {}),
-    };
+  const context = useContext(DebugSettingsContext);
+  if (!context) {
+    throw new Error('useDebugSettings must be used within a DebugSettingsProvider');
   }
-  return ctx;
+  return context;
 }
 
 
