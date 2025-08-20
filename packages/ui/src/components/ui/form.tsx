@@ -136,10 +136,9 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
       data-slot="form-control"
       id={formItemId}
       onClick={(e) => {
-        if (debugEnabled && e.shiftKey) {
+        if (debugEnabled && e.ctrlKey) {
           e.preventDefault();
           e.stopPropagation();
-          console.log("DEBUG!");
           interview.callbacks.onDebugControlClick?.(control, interview);
         }
       }}

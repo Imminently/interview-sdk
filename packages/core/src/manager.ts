@@ -15,7 +15,6 @@ import type {
   Control,
   InterviewContainerControl,
   Overrides,
-  PreProcessedState,
   RulesEngine,
   Screen,
   Session,
@@ -659,7 +658,84 @@ export class SessionManager {
     this.notifyListeners();
   };
 
-  clientSideDynamic = async (debug?: boolean) => {
+  async runRulesEngine(debug?: boolean) {
+    if (!this.activeSession || !this.clientGraph) {
+      return;
+    }
+    const { data, screen } = this.activeSession;
+    if (!this.rulesEnginePromise) {
+      this.rulesEnginePromise = this.loadRulesEngine();
+    }
+
+    // reconstruct the entity structure from the preprocessed state
+    const input = constructInputFromPreProcessed(
+      this.activeSession?.preProcessedState,
+      data,
+      this.internals.userValues,
+      // @ts-ignore
+      this.activeSession?.__deprecatedSessionData,
+    );
+
+    const rulesEngine = await this.rulesEnginePromise;
+    const release = {
+      id: screen.id,
+      relationships: this.activeSession!.relationships || [],
+      rule_graph: this.clientGraph,
+      inferredOrder: this.activeSession!.inferredOrder,
+    };
+
+    const goalsToSolveSet = new Set<string>();
+
+    if (this.activeSession.state) {
+      for (const stateItem of this.activeSession.state) {
+        goalsToSolveSet.add(stateItem.id);
+      }
+    }
+    const roots = Array.from(goalsToSolveSet);
+    if (!roots.length) {
+      return undefined;
+    }
+
+    this.log(`[${LogGroup}] Release':`, release);
+
+    const result = await rulesEngine.solve(
+      {
+        input: input,
+        roots: roots,
+        goal: roots[0],
+        response_elements: [
+          {
+            type: "attributes",
+            ids: roots.map((path) => path.split("/").pop()),
+          },
+          debug
+            ? {
+                type: "graph",
+                debug: true,
+              }
+            : undefined,
+        ].filter(Boolean) as any,
+      },
+      screen.id,
+      {
+        getRelease: () => {
+          return release;
+        },
+      },
+      {},
+    );
+
+    this.log(`[${LogGroup}] Payload:`, {
+      "@goal": result.goal,
+      "@root": roots,
+      ...input,
+    });
+    this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
+
+    return result;
+  }
+
+  private clientSideDynamic = async () => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to process dynamic values");
       return;
@@ -671,9 +747,8 @@ export class SessionManager {
       this.log("Checking for changes", this.internals.prevUserValues, this.internals.userValues);
 
       if (
-        debug ||
-        (!isEqual(this.internals.prevUserValues, this.internals.userValues) &&
-          Object.keys(this.internals.userValues).length > 0)
+        !isEqual(this.internals.prevUserValues, this.internals.userValues) &&
+        Object.keys(this.internals.userValues).length > 0
       ) {
         const replacementQueries = buildDynamicReplacementQueries(this.activeSession, this.internals.userValues);
         Object.assign(this.internals.replacements, replacementQueries?.knownValues);
@@ -693,78 +768,17 @@ export class SessionManager {
         this.log("Calculated replacement queries:", replacementQueries);
 
         const newScreen = this.makeScreenCopy();
-        if (debug || Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
+        if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
           // Get all goals that need to be solved
           const goalsToSolveSet = new Set(Object.keys(this.internals.unknownsRequiringSimulate));
-          if (this.activeSession.state) {
-            for (const stateItem of this.activeSession.state) {
-              goalsToSolveSet.add(stateItem.id);
-            }
-          }
+
           const goalsToSolve = Array.from(goalsToSolveSet);
 
           // Handle client-side calculations first
           if (goalsToSolve.length > 0 && this.clientGraph) {
-            if (!this.rulesEnginePromise) {
-              this.rulesEnginePromise = this.loadRulesEngine();
-            }
-
-            // reconstruct the entity structure from the preprocessed state
-            const input = constructInputFromPreProcessed(
-              this.activeSession?.preProcessedState,
-              data,
-              this.internals.userValues,
-              // @ts-ignore
-              this.activeSession?.__deprecatedSessionData,
-            );
-
-            const rulesEngine = await this.rulesEnginePromise;
-            const release = {
-              id: screen.id,
-              relationships: this.activeSession!.relationships || [],
-              rule_graph: this.clientGraph,
-              inferredOrder: this.activeSession!.inferredOrder,
-            };
-
-            this.log(`[${LogGroup}] Release':`, release);
-
             try {
-              const roots = goalsToSolve;
-              const result = await rulesEngine.solve(
-                {
-                  input: input,
-                  roots: roots,
-                  goal: roots[0],
-                  response_elements: [
-                    {
-                      type: "attributes",
-                      ids: roots.map((path) => path.split("/").pop()),
-                    },
-                    debug
-                      ? {
-                          type: "graph",
-                          debug: true,
-                        }
-                      : undefined,
-                  ].filter(Boolean) as any,
-                },
-                screen.id,
-                {
-                  getRelease: () => {
-                    return release;
-                  },
-                },
-                {},
-              );
+              const result = await this.runRulesEngine();
 
-              (this as any)._debugGraph = result.graph;
-
-              this.log(`[${LogGroup}] Payload:`, {
-                "@goal": result.goal,
-                "@root": roots,
-                ...input,
-              });
-              this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
               const replacements = createEntityPathedData({
                 ...result.reporting.global,
                 ...result.reporting,

@@ -2,9 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type DebugSettings = {
   debugEnabled: boolean;
-  debugUIEnabled: boolean;
+  advancedDebugEnabled: boolean;
   setDebugEnabled: (enabled: boolean) => void;
-  setDebugUIEnabled: (enabled: boolean) => void;
+  setadvancedDebugEnabled: (enabled: boolean) => void;
 };
 
 const DebugSettingsContext = createContext<DebugSettings | undefined>(undefined);
@@ -17,14 +17,14 @@ export function DebugSettingsProvider({
   initialDebug?: boolean;
 }) {
   const [debugEnabled, setDebugEnabled] = useState<boolean>(Boolean(initialDebug));
-  const [debugUIEnabled, setDebugUIEnabled] = useState<boolean>(false);
+  const [advancedDebugEnabled, setadvancedDebugEnabled] = useState<boolean>(false);
 
   // When debug is turned off, also turn off the debug UI
   useEffect(() => {
-    if (!debugEnabled && debugUIEnabled) {
-      setDebugUIEnabled(false);
+    if (!debugEnabled && advancedDebugEnabled) {
+      setadvancedDebugEnabled(false);
     }
-  }, [debugEnabled, debugUIEnabled]);
+  }, [debugEnabled, advancedDebugEnabled]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -38,7 +38,7 @@ export function DebugSettingsProvider({
       // ` or ~ toggles debug UI if debug is enabled
       if (event.key === "`" || event.code === "Backquote" || event.key === "~") {
         if (debugEnabled) {
-          setDebugUIEnabled((v) => !v);
+          setadvancedDebugEnabled((v) => !v);
           event.preventDefault();
         }
         return;
@@ -52,11 +52,11 @@ export function DebugSettingsProvider({
   const value = useMemo<DebugSettings>(
     () => ({
       debugEnabled,
-      debugUIEnabled,
+      advancedDebugEnabled,
       setDebugEnabled,
-      setDebugUIEnabled,
+      setadvancedDebugEnabled,
     }),
-    [debugEnabled, debugUIEnabled],
+    [debugEnabled, advancedDebugEnabled],
   );
 
   return <DebugSettingsContext.Provider value={value}>{children}</DebugSettingsContext.Provider>;

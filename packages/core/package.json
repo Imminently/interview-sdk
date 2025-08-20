@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-sdk",
-  "version": "0.2.99-alpha.4",
+  "version": "0.2.100",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -26,7 +26,6 @@
     "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check .",
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "eslint src/",
     "test": "jest",
     "test:watch": "jest --watch",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",

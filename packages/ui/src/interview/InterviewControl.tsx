@@ -150,8 +150,6 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   //   resolvedControl.disabled = true;
   // }
 
-  const { debugUIEnabled } = useDebugSettings();
-
   return (
     <FormField
       name={name}
@@ -163,7 +161,6 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
       shouldUnregister={true}
       render={(props) => (
         <>
-          {debugUIEnabled && resolvedControl ? <InterviewControlDebug control={resolvedControl as Control} /> : null}
           <FormItem>
             {
               // children({
