@@ -1,7 +1,7 @@
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/util";
+import { Slot } from "@radix-ui/react-slot";
+import { type VariantProps, cva } from "class-variance-authority";
+import * as React from "react";
 
 const textVariants = cva("", {
   variants: {
@@ -35,7 +35,7 @@ export const Text = React.forwardRef<HTMLSpanElement, TextProps>(
         {...props}
       />
     );
-  }
+  },
 );
 Text.displayName = "Text";
 

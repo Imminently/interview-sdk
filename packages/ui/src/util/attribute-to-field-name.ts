@@ -1,7 +1,7 @@
-import { useFormContext, useWatch } from "react-hook-form";
-import { attributeToPath } from "@imminently/interview-sdk";
 import { useInterview } from "@/interview/InterviewContext";
 import { useAttributeNestingContext } from "@/providers";
+import { attributeToPath } from "@imminently/interview-sdk";
+import { useFormContext, useWatch } from "react-hook-form";
 
 export const useAttributeToFieldName = (attribute: string | undefined): string | undefined => {
   const formContext = useFormContext();

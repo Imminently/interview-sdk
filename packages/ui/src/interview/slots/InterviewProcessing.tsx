@@ -1,8 +1,8 @@
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cn } from "@/util";
-import { useInterview } from "../InterviewContext";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/util";
+import { Slot } from "@radix-ui/react-slot";
+import type * as React from "react";
+import { useInterview } from "../InterviewContext";
 
 export interface InterviewProcessingProps extends React.HTMLAttributes<HTMLDivElement> {
   asChild?: boolean;

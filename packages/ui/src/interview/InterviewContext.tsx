@@ -1,24 +1,8 @@
-import type {
-  Control,
-  ManagerState,
-  Session,
-  SessionManager,
-} from "@imminently/interview-sdk";
-import {
-  createContext,
-  type PropsWithChildren,
-  useContext,
-  useMemo,
-  useSyncExternalStore,
-} from "react";
-import { FormProvider, type UseFormProps, useForm } from "react-hook-form";
 import { AttributeNestingProvider, OptionsProvider } from "@/providers";
-import {
-  type IconMap,
-  type InterviewControls,
-  type Theme,
-  ThemeProvider,
-} from "../providers/ThemeProvider";
+import type { Control, ManagerState, Session, SessionManager } from "@imminently/interview-sdk";
+import { type PropsWithChildren, createContext, useContext, useMemo, useSyncExternalStore } from "react";
+import { FormProvider, type UseFormProps, useForm } from "react-hook-form";
+import { type IconMap, type InterviewControls, type Theme, ThemeProvider } from "../providers/ThemeProvider";
 
 export type InterviewContextState = {
   manager: SessionManager;
@@ -56,7 +40,7 @@ export const useInterview = () => {
   return ctx;
 };
 
-export type ExposedFormControls = Pick<UseFormProps, 'mode' | 'reValidateMode' | 'shouldFocusError'>;
+export type ExposedFormControls = Pick<UseFormProps, "mode" | "reValidateMode" | "shouldFocusError">;
 
 export interface InterviewProviderProps extends PropsWithChildren, InterviewConfig {
   /**
@@ -65,7 +49,7 @@ export interface InterviewProviderProps extends PropsWithChildren, InterviewConf
    * **IMPORTANT** ensure the instance is not re-created each render
    */
   manager: SessionManager;
-};
+}
 
 /**
  * InterviewProvider is a React context provider that manages the state and behavior of an interview session.
@@ -96,9 +80,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
       error,
       isLoading: loading,
       readOnly,
-      backDisabled: manager.isSubInterview
-        ? false
-        : buttons?.back === false || loading,
+      backDisabled: manager.isSubInterview ? false : buttons?.back === false || loading,
       nextDisabled:
         validationsFail ||
         (manager.isSubInterview ? false : buttons?.next === false) ||
@@ -110,7 +92,11 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
 
   return (
     <OptionsProvider value={manager.options}>
-      <ThemeProvider theme={theme} icons={icons} controls={slots}>
+      <ThemeProvider
+        theme={theme}
+        icons={icons}
+        controls={slots}
+      >
         <InterviewContext.Provider value={value}>
           <AttributeNestingProvider value={false}>
             <FormProvider {...methods}>{children}</FormProvider>

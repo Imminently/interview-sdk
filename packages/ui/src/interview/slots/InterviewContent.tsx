@@ -1,11 +1,11 @@
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/util";
-import { InterviewForm } from "./InterviewForm";
-import { InterviewBack } from "./InterviewBack";
-import { InterviewNext } from "./InterviewNext";
+import { Slot } from "@radix-ui/react-slot";
+import type * as React from "react";
 import { useInterview } from "../InterviewContext";
-import {InterviewValidations} from "./InterviewValidations";
+import { InterviewBack } from "./InterviewBack";
+import { InterviewForm } from "./InterviewForm";
+import { InterviewNext } from "./InterviewNext";
+import { InterviewValidations } from "./InterviewValidations";
 
 export interface InterviewContentProps extends React.HTMLAttributes<HTMLDivElement> {
   asChild?: boolean;
@@ -27,7 +27,7 @@ const InterviewContent = ({ asChild, children, className, ...props }: InterviewC
       {...props}
     >
       <InterviewForm className="flex-1 overflow p-4 w-2xl mx-auto" />
-      <InterviewValidations/>
+      <InterviewValidations />
       <div className="flex gap-2 items-center justify-between mt-8 border-t p-4">
         <InterviewBack />
         <InterviewNext />

@@ -1,4 +1,4 @@
-import z, { ZodTypeAny } from "zod";
+import z, { type ZodTypeAny } from "zod";
 import { useFieldRegistration, useInterview } from "../providers/InterviewProvider";
 import { themeMerge } from "../providers/ThemeProvider";
 import { t } from "../utils/translateFn";
@@ -9,9 +9,9 @@ function parseTimeString(str: string): { h: number; m: number; s: number } | nul
   if (!str) return null;
   const match = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (!match) return null;
-  let h = Number(match[1]);
-  let m = Number(match[2]);
-  let s = match[3] ? Number(match[3]) : 0;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  const s = match[3] ? Number(match[3]) : 0;
   if (h > 23 || m > 59 || s > 59) return null;
   return { h, m, s };
 }
@@ -35,7 +35,7 @@ function formatTime({ h, m, s }: { h: number; m: number; s: number }, format: 12
 
 // Helper to coerce between 12/24 hour
 function coerceTimeFormat(str: string, format: 12 | 24) {
-  let t = parseTimeString(str);
+  const t = parseTimeString(str);
   if (!t) return null;
   if (format === 12) {
     // If hour > 12, convert to 12-hour
@@ -56,116 +56,128 @@ function coerceTimeFormat(str: string, format: 12 | 24) {
 // Helper to format raw digits into time string
 function formatRawDigits(digits: string): string | null {
   // Remove any non-digit characters
-  const cleanDigits = digits.replace(/\D/g, '');
-  
+  const cleanDigits = digits.replace(/\D/g, "");
+
   if (cleanDigits.length < 3) return null;
-  
+
   // Parse hours and minutes
-  let hours = parseInt(cleanDigits.slice(0, -2));
-  let minutes = parseInt(cleanDigits.slice(-2));
-  
+  let hours = Number.parseInt(cleanDigits.slice(0, -2));
+  let minutes = Number.parseInt(cleanDigits.slice(-2));
+
   // Handle single digit hours (e.g., "100" -> "1:00")
   if (cleanDigits.length === 3) {
-    hours = parseInt(cleanDigits[0]);
-    minutes = parseInt(cleanDigits.slice(1));
+    hours = Number.parseInt(cleanDigits[0]);
+    minutes = Number.parseInt(cleanDigits.slice(1));
   }
-  
+
   // Validate hours and minutes
   if (hours > 23 || minutes > 59) return null;
-  
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
 }
 
 export const TimeControl = (props: any) => {
   const { control, classNames } = props;
-  const mergedClassNames = themeMerge('TimeControl', classNames);
+  const mergedClassNames = themeMerge("TimeControl", classNames);
   const { values, setValue, setErrors } = useInterview();
   useFieldRegistration({
     name: control?.attribute,
     defaultValue: control?.default,
     validate: (): ZodTypeAny => {
-      let schema: ZodTypeAny = z.string().refine((val) => {
-        if (!val) return !control?.required;
-        const t = parseTimeString(val);
-        if (!t) return false;
-        // Min time
-        if (control?.min) {
-          const minT = parseTimeString(control.min);
-          if (minT && timeToMinutes(t) < timeToMinutes(minT)) return false;
-        }
-        // Max time
-        if (control?.max) {
-          const maxT = parseTimeString(control.max);
-          if (maxT && timeToMinutes(t) > timeToMinutes(maxT)) return false;
-        }
-        return true;
-      }, {
-        message: t("validations.invalid_time"),
-      });
+      let schema: ZodTypeAny = z.string().refine(
+        (val) => {
+          if (!val) return !control?.required;
+          const t = parseTimeString(val);
+          if (!t) return false;
+          // Min time
+          if (control?.min) {
+            const minT = parseTimeString(control.min);
+            if (minT && timeToMinutes(t) < timeToMinutes(minT)) return false;
+          }
+          // Max time
+          if (control?.max) {
+            const maxT = parseTimeString(control.max);
+            if (maxT && timeToMinutes(t) > timeToMinutes(maxT)) return false;
+          }
+          return true;
+        },
+        {
+          message: t("validations.invalid_time"),
+        },
+      );
       if (control?.required) {
         schema = schema.refine((val) => !!val, {
           message: t("validations.required"),
         });
       }
       return schema;
-    }
-  })
-  
+    },
+  });
+
   if (!control) return null;
   const { attribute, hidden } = control;
   if (hidden) return null;
-  let value = (values && values[attribute]) || control.value || '';
+  const value = (values && values[attribute]) || control.value || "";
 
-  return <InputControl
-    {...control}
-    value={value}
-    setValue={(attr: string, val: any) => {
-      let str = String(val || '').trim();
-      
-      // If input contains a colon, use existing parsing
-      if (str.includes(':')) {
-        const enough = /\d{2}:\d{2}/.test(str);
-        if (!enough) {
-          setValue(attr, str);
-          return;
-        }
-        let tParsed = parseTimeString(str);
-        if (!tParsed) {
-          setErrors && setErrors((prev: any) => ({ ...prev, [attr]: [{ message: t("validations.invalid_time") }] }));
-          setValue(attr, str);
-          return;
-        }
-        // Coerce format if needed
-        if (control.format === 12 || control.format === 24) {
-          const coerced = coerceTimeFormat(str, control.format);
-          if (!coerced) {
-            setErrors && setErrors((prev: any) => ({ ...prev, [attr]: [{ message: t("validations.invalid_time") }] }));
-            setValue(attr, val);
+  return (
+    <InputControl
+      {...control}
+      value={value}
+      setValue={(attr: string, val: any) => {
+        let str = String(val || "").trim();
+
+        // If input contains a colon, use existing parsing
+        if (str.includes(":")) {
+          const enough = /\d{2}:\d{2}/.test(str);
+          if (!enough) {
+            setValue(attr, str);
             return;
           }
-          str = coerced;
-        }
-      } else {
-        // Handle raw digits input
-        const formatted = formatRawDigits(str);
-        if (formatted) {
-          str = formatted;
+          const tParsed = parseTimeString(str);
+          if (!tParsed) {
+            setErrors &&
+              setErrors((prev: any) => ({
+                ...prev,
+                [attr]: [{ message: t("validations.invalid_time") }],
+              }));
+            setValue(attr, str);
+            return;
+          }
           // Coerce format if needed
           if (control.format === 12 || control.format === 24) {
             const coerced = coerceTimeFormat(str, control.format);
-            if (coerced) {
-              str = coerced;
+            if (!coerced) {
+              setErrors &&
+                setErrors((prev: any) => ({
+                  ...prev,
+                  [attr]: [{ message: t("validations.invalid_time") }],
+                }));
+              setValue(attr, val);
+              return;
+            }
+            str = coerced;
+          }
+        } else {
+          // Handle raw digits input
+          const formatted = formatRawDigits(str);
+          if (formatted) {
+            str = formatted;
+            // Coerce format if needed
+            if (control.format === 12 || control.format === 24) {
+              const coerced = coerceTimeFormat(str, control.format);
+              if (coerced) {
+                str = coerced;
+              }
             }
           }
         }
-      }
-      
-      setValue(attr, str);
-    }}
-    onBlur={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      e.target.value = value || '';
-    }}
-    classNames={mergedClassNames}
-  />
-};
 
+        setValue(attr, str);
+      }}
+      onBlur={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        e.target.value = value || "";
+      }}
+      classNames={mergedClassNames}
+    />
+  );
+};

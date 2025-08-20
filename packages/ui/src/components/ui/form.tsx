@@ -1,22 +1,22 @@
-import * as React from "react"
-import * as LabelPrimitive from "@radix-ui/react-label"
-import { Slot as ReactSlot, SlotProps } from "@radix-ui/react-slot"
+import { useInterview } from "@/interview";
+import { useDebugSettings, useOptions, useTheme } from "@/providers";
+import { cn } from "@/util";
+import type { Control } from "@imminently/interview-sdk";
+import type * as LabelPrimitive from "@radix-ui/react-label";
+import { Slot as ReactSlot, type SlotProps } from "@radix-ui/react-slot";
+import * as React from "react";
 import {
   Controller,
-  FormProvider, useFormContext,
-  useFormState,
   type ControllerProps,
   type FieldPath,
-  type FieldValues
-} from "react-hook-form"
+  type FieldValues,
+  FormProvider,
+  useFormContext,
+  useFormState,
+} from "react-hook-form";
+import { Label } from "./label";
 
-import { Control } from "@imminently/interview-sdk"
-import { cn } from "@/util"
-import { Label } from "./label"
-import {useDebugSettings, useOptions, useTheme} from "@/providers"
-import {useInterview} from "@/interview";
-
-const Form = FormProvider
+const Form = FormProvider;
 
 function Slot<P = React.HTMLAttributes<HTMLElement>>(props: SlotProps & P) {
   return <ReactSlot {...props} />;
@@ -26,13 +26,11 @@ type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 > = {
-  name: TName
-  control: Control
-}
+  name: TName;
+  control: Control;
+};
 
-const FormFieldContext = React.createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue
-)
+const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
@@ -45,22 +43,22 @@ const FormField = <
     <FormFieldContext.Provider value={{ name: props.name, control: data }}>
       <Controller {...props} />
     </FormFieldContext.Provider>
-  )
-}
+  );
+};
 
 const useFormField = <C extends Control>() => {
   // TODO probably insert control into here somewhere
-  const fieldContext = React.useContext(FormFieldContext)
-  const itemContext = React.useContext(FormItemContext)
-  const { getFieldState } = useFormContext()
-  const formState = useFormState({ name: fieldContext.name })
-  const fieldState = getFieldState(fieldContext.name, formState)
+  const fieldContext = React.useContext(FormFieldContext);
+  const itemContext = React.useContext(FormItemContext);
+  const { getFieldState } = useFormContext();
+  const formState = useFormState({ name: fieldContext.name });
+  const fieldState = getFieldState(fieldContext.name, formState);
 
   if (!fieldContext) {
-    throw new Error("useFormField should be used within <FormField>")
+    throw new Error("useFormField should be used within <FormField>");
   }
 
-  const { id } = itemContext
+  const { id } = itemContext;
 
   return {
     id,
@@ -70,16 +68,14 @@ const useFormField = <C extends Control>() => {
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
     ...fieldState,
-  }
-}
+  };
+};
 
 type FormItemContextValue = {
-  id: string
-}
+  id: string;
+};
 
-const FormItemContext = React.createContext<FormItemContextValue>(
-  {} as FormItemContextValue
-)
+const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 
 function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   const id = React.useId();
@@ -98,24 +94,23 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
         {...props}
       />
     </FormItemContext.Provider>
-  )
+  );
 }
 
-function FormLabel({
-  className,
-  ...props
-}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
   // pull the debug option, falling back to true if not set (ie likely in a mocked context)
   const { debug } = useOptions({ debug: true });
-  const { error, formItemId, name, control } = useFormField()
+  const { error, formItemId, name, control } = useFormField();
 
-  const debugControl = debug ? () => {
-    console.log("FormLabel", {
-      name,
-      formItemId,
-      control
-    });
-  } : undefined;
+  const debugControl = debug
+    ? () => {
+        console.log("FormLabel", {
+          name,
+          formItemId,
+          control,
+        });
+      }
+    : undefined;
 
   return (
     <Label
@@ -126,13 +121,13 @@ function FormLabel({
       onClick={debugControl}
       {...props}
     />
-  )
+  );
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
 
-  const {debugEnabled} = useDebugSettings();
+  const { debugEnabled } = useDebugSettings();
   const interview = useInterview();
   const control = useFormField().control;
 
@@ -141,32 +136,29 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
       data-slot="form-control"
       id={formItemId}
       onClick={(e) => {
-        if (debugEnabled && (e.shiftKey)) {
+        if (debugEnabled && e.shiftKey) {
           e.preventDefault();
           e.stopPropagation();
           console.log("DEBUG!");
           interview.callbacks.onDebugControlClick?.(control, interview);
         }
       }}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
+      aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
       aria-invalid={!!error}
       {...props}
     />
-  )
+  );
 }
 
 function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
   const { t } = useTheme();
-  const { control, formDescriptionId } = useFormField()
+  const { control, formDescriptionId } = useFormField();
 
-  const hasLongDescription = "longDescription" in control && control.longDescription && control.longDescription.length > 0;
+  const hasLongDescription =
+    "longDescription" in control && control.longDescription && control.longDescription.length > 0;
 
   if (!hasLongDescription) {
-    return null
+    return null;
   }
 
   return (
@@ -178,16 +170,16 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
     >
       {t(control.longDescription)}
     </p>
-  )
+  );
 }
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { t } = useTheme();
-  const { error, formMessageId } = useFormField()
-  const body = error ? t(String(error?.message ?? "")) : props.children
+  const { error, formMessageId } = useFormField();
+  const body = error ? t(String(error?.message ?? "")) : props.children;
 
   if (!body) {
-    return null
+    return null;
   }
 
   return (
@@ -199,16 +191,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
     >
       {body}
     </p>
-  )
+  );
 }
 
-export {
-  useFormField,
-  Form,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-  FormField,
-}
+export { useFormField, Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField };

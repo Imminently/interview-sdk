@@ -1,9 +1,9 @@
-import { UseControllerReturn } from "react-hook-form";
-import { CurrencyControl } from "@imminently/interview-sdk";
+import { useTheme } from "@/providers";
+import type { CurrencyControl } from "@imminently/interview-sdk";
+import type { UseControllerReturn } from "react-hook-form";
 import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Input } from "../ui/input";
 import { Explanation } from "./Explanation";
-import { useTheme } from "@/providers";
 
 export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
@@ -29,4 +29,4 @@ export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
       <FormMessage />
     </>
   );
-}
+};

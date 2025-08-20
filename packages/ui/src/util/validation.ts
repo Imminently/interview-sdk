@@ -1,3 +1,4 @@
+import { useInterview } from "@/interview/InterviewContext";
 import {
   DATE_FORMAT,
   type RenderableControl,
@@ -19,7 +20,6 @@ import {
 } from "react-hook-form";
 import * as yup from "yup";
 import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate } from "./index";
-import { useInterview } from "@/interview/InterviewContext";
 
 const setCustomValidity = (ref: Ref, fieldPath: string, errors: FieldErrors) => {
   if (ref && "reportValidity" in ref) {
@@ -105,26 +105,26 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
         max === undefined
           ? withRequired
           : withRequired.test(
-            "withMax",
-            `Should be lower or equal to ${max}`,
-            (v) => v !== undefined && v !== null && v <= max,
-          );
+              "withMax",
+              `Should be lower or equal to ${max}`,
+              (v) => v !== undefined && v !== null && v <= max,
+            );
 
       const afterMin: typeof afterMax =
         min === undefined
           ? afterMax
           : afterMax.test(
-            "withMin",
-            `Should be bigger or equal to ${min}`,
-            (v) => v !== undefined && v !== null && v >= min,
-          );
+              "withMin",
+              `Should be bigger or equal to ${min}`,
+              (v) => v !== undefined && v !== null && v >= min,
+            );
 
       return afterMin;
     }
     case "date": {
       const { max, min, required } = c;
       /** a.k.a YYYY-MM-DD */
-      const DATE_FORMAT_REGEX = /^\d\d\d\d\-\d\d\-\d\d$/;
+      const DATE_FORMAT_REGEX = /^\d\d\d\d-\d\d-\d\d$/;
 
       const nowLessMax = resolveNowInDate(max);
       const nowLessMin = resolveNowInDate(min);
@@ -147,19 +147,19 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
           nowLessMax === undefined
             ? it
             : it.test(
-              "withMax",
-              `Should be before or equal to ${nowLessMax}`,
-              (v) => v !== undefined && v !== null && v <= nowLessMax,
-            ),
+                "withMax",
+                `Should be before or equal to ${nowLessMax}`,
+                (v) => v !== undefined && v !== null && v <= nowLessMax,
+              ),
         )
         .map((it) =>
           nowLessMin === undefined
             ? it
             : it.test(
-              "withMin",
-              `Should be after or equal to ${nowLessMin}`,
-              (v) => v !== undefined && v !== null && v >= nowLessMin,
-            ),
+                "withMin",
+                `Should be after or equal to ${nowLessMin}`,
+                (v) => v !== undefined && v !== null && v >= nowLessMin,
+              ),
         )[0];
 
       return finalSchema;
@@ -183,19 +183,19 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
         max === undefined
           ? withRequired
           : withRequired.test(
-            "withMax",
-            `Should be before or equal to ${maxForUi}`,
-            (v) => v !== undefined && v !== null && v <= max,
-          );
+              "withMax",
+              `Should be before or equal to ${maxForUi}`,
+              (v) => v !== undefined && v !== null && v <= max,
+            );
 
       const afterMin: typeof afterMax =
         min === undefined
           ? afterMax
           : afterMax.test(
-            "withMin",
-            `Should be after or equal to ${minForUi}`,
-            (v) => v !== undefined && v !== null && v >= min,
-          );
+              "withMin",
+              `Should be after or equal to ${minForUi}`,
+              (v) => v !== undefined && v !== null && v >= min,
+            );
 
       return afterMin;
     }
@@ -221,37 +221,37 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
         nowLessDateMax === undefined
           ? withRequired
           : withRequired.test(
-            "withDateMax",
-            `Date should be before or equal to ${nowLessDateMax}`,
-            (v) => v !== undefined && v !== null && formatDate(new Date(v), DATE_FORMAT) <= nowLessDateMax,
-          );
+              "withDateMax",
+              `Date should be before or equal to ${nowLessDateMax}`,
+              (v) => v !== undefined && v !== null && formatDate(new Date(v), DATE_FORMAT) <= nowLessDateMax,
+            );
 
       const withDateMin: typeof withDateMax =
         nowLessDateMin === undefined
           ? withDateMax
           : withDateMax.test(
-            "withDateMin",
-            `Date should be after or equal to ${nowLessDateMin}`,
-            (v) => v !== undefined && v !== null && formatDate(new Date(v), DATE_FORMAT) >= nowLessDateMin,
-          );
+              "withDateMin",
+              `Date should be after or equal to ${nowLessDateMin}`,
+              (v) => v !== undefined && v !== null && formatDate(new Date(v), DATE_FORMAT) >= nowLessDateMin,
+            );
 
       const withTimeMax: typeof withDateMin =
         time_max === undefined
           ? withDateMin
           : withDateMin.test(
-            "withTimeMax",
-            `Time should be before or equal to ${maxTimeForUi}`,
-            (v) => v !== undefined && v !== null && formatDate(new Date(v), TIME_FORMAT_24) <= time_max,
-          );
+              "withTimeMax",
+              `Time should be before or equal to ${maxTimeForUi}`,
+              (v) => v !== undefined && v !== null && formatDate(new Date(v), TIME_FORMAT_24) <= time_max,
+            );
 
       const withTimeMin: typeof withTimeMax =
         time_min === undefined
           ? withTimeMax
           : withTimeMax.test(
-            "withTimeMin",
-            `Time should be after or equal to ${minTimeForUi}`,
-            (v) => v !== undefined && v !== null && formatDate(new Date(v), TIME_FORMAT_24) >= time_min,
-          );
+              "withTimeMin",
+              `Time should be after or equal to ${minTimeForUi}`,
+              (v) => v !== undefined && v !== null && formatDate(new Date(v), TIME_FORMAT_24) >= time_min,
+            );
 
       return withTimeMin;
     }
@@ -354,7 +354,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
  * A utility hook to retrieve validation errors for a specific attribute.
  * This hook filters the session's validations to find those that are shown
  * and include the specified attribute, returning them sorted by the number of attributes.
- * 
+ *
  * @param attribute The attribute to check for validation errors.
  * @returns An array of validation errors for the given attribute.
  */

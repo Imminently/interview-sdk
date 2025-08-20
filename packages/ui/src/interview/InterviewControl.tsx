@@ -1,22 +1,17 @@
+import { isReadOnly } from "@/components/controls/ReadOnlyControl";
+import { useDebugSettings } from "@/providers";
 import type { Control, RenderableControl } from "@imminently/interview-sdk";
 import type React from "react";
 import { useEffect, useMemo } from "react";
-import {
-  type RegisterOptions,
-  type UseControllerReturn,
-  useFormContext,
-} from "react-hook-form";
-import { isReadOnly } from "@/components/controls/ReadOnlyControl";
+import { type RegisterOptions, type UseControllerReturn, useFormContext } from "react-hook-form";
 import { FormField, FormItem } from "../components/ui/form";
 import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { generateValidatorForControl } from "../util/validation";
 import { useInterview } from "./InterviewContext";
-import { useDebugSettings } from "@/providers";
 import InterviewControlDebug from "./InterviewControlDebug";
 
-export interface InterviewControlProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
+export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   control: Control;
   children: (props: UseControllerReturn) => React.ReactElement;
 }
@@ -64,13 +59,13 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   const { unregister, ...form } = useFormContext();
   // take a local copy
   // TODO why do some of the controls have booleans listed as type 'true'?
-  const resolvedControl: Omit<Control, 'disabled'> & { disabled: boolean, readOnly: boolean } = useMemo(
-    () => {
-      const readOnly = forceReadOnly || isReadOnly(control);
-      return { ...control, readOnly, disabled: readOnly }
-    },
-    [control, forceReadOnly],
-  );
+  const resolvedControl: Omit<Control, "disabled"> & {
+    disabled: boolean;
+    readOnly: boolean;
+  } = useMemo(() => {
+    const readOnly = forceReadOnly || isReadOnly(control);
+    return { ...control, readOnly, disabled: readOnly };
+  }, [control, forceReadOnly]);
   // @ts-ignore
   const name: string = useAttributeToFieldName(attribute) ?? control.entity;
 
@@ -155,8 +150,8 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   //   resolvedControl.disabled = true;
   // }
 
-  const {debugUIEnabled} = useDebugSettings();
-  
+  const { debugUIEnabled } = useDebugSettings();
+
   return (
     <FormField
       name={name}
@@ -166,25 +161,26 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
       disabled={resolvedControl.disabled ?? false}
       rules={rules}
       shouldUnregister={true}
-      render={(props) => <>
-        {debugUIEnabled && resolvedControl ? <InterviewControlDebug control={resolvedControl as Control} /> : null}
-        <FormItem>
-          {
-            // children({
-            //   fieldState,
-            //   formState,
-            //   field: {
-            //     ...field,
-            //     // we want to use the control value if we are readOnly, as it might get dynamically updated, which is outisde of the form
-            //     // @ts-ignore if value doesn't exist, it'll just use the field value
-            //     value: resolvedControl.readOnly && resolvedControl.value ? resolvedControl.value : field.value
-            //   }
-            // })
-            children(props)
-          }
-        </FormItem>
+      render={(props) => (
+        <>
+          {debugUIEnabled && resolvedControl ? <InterviewControlDebug control={resolvedControl as Control} /> : null}
+          <FormItem>
+            {
+              // children({
+              //   fieldState,
+              //   formState,
+              //   field: {
+              //     ...field,
+              //     // we want to use the control value if we are readOnly, as it might get dynamically updated, which is outisde of the form
+              //     // @ts-ignore if value doesn't exist, it'll just use the field value
+              //     value: resolvedControl.readOnly && resolvedControl.value ? resolvedControl.value : field.value
+              //   }
+              // })
+              children(props)
+            }
+          </FormItem>
         </>
-      }
+      )}
     />
   );
 };

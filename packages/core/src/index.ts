@@ -11,12 +11,12 @@ export * from "./placeholders";
 export * from "./sidebars/sidebar";
 export * from "./types";
 export {
-	applyInstancesToEntityControl,
-	attributeToPath,
-	createEntityPathedData,
-	formatDate,
-	instanceControl,
-	iterateControls,
-	uuid,
-	buildUrl
+  applyInstancesToEntityControl,
+  attributeToPath,
+  createEntityPathedData,
+  formatDate,
+  instanceControl,
+  iterateControls,
+  uuid,
+  buildUrl,
 } from "./util";

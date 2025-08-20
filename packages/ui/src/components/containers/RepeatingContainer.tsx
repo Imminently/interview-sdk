@@ -1,6 +1,10 @@
+import {
+  type RenderableSwitchContainerControl,
+  type RepeatingContainerControl,
+  SwitchContainerControl,
+} from "@imminently/interview-sdk";
 import clsx from "clsx";
 import { RenderControl } from "../RenderControl";
-import { RenderableSwitchContainerControl, RepeatingContainerControl, SwitchContainerControl } from "@imminently/interview-sdk";
 
 const repeatingContainerStyles = {
   table: [
@@ -23,13 +27,7 @@ const repeatingContainerStyles = {
     "[&>.header]:border-r-0",
     "[&>.header.last]:border-r",
   ].join(" "),
-  header: [
-    "font-semibold",
-    "border",
-    "border-t",
-    "border-r-0",
-    "[&.last]:border-r",
-  ].join(" "),
+  header: ["font-semibold", "border", "border-t", "border-r-0", "[&.last]:border-r"].join(" "),
   borderless: [
     "[&>*]:border-0",
     "[&>*:last-child]:border-r-0",
@@ -40,7 +38,10 @@ const repeatingContainerStyles = {
   last_row: "mb-4",
 };
 
-export const RepeatingContainer = (props: { control: RepeatingContainerControl, className?: string }) => {
+export const RepeatingContainer = (props: {
+  control: RepeatingContainerControl;
+  className?: string;
+}) => {
   const { control, className } = props;
   const { controls } = control;
   const isTable = control?.display === "table";
@@ -114,19 +115,20 @@ export const RepeatingContainer = (props: { control: RepeatingContainerControl, 
     });
   };
 
-  const filteredControls = controls?.filter((c) => {
-    if ('children' in c && (c.children as any[]).length === 0) {
-      return false; // Skip controls with no children
-    }
-    // TODO this is super hacky, need to find a better way to filter out empty switch containers
-    if (c.type === "switch_container") {
-      c.outcome_true?.length > 0 || c.outcome_false?.length > 0
-      const switchc = c as RenderableSwitchContainerControl;
-      const ctrls = (switchc.branch === "true" ? switchc.outcome_true : switchc.outcome_false) ?? [];
-      return ctrls.length > 0; // Only include switch containers with outcomes
-    }
-    return true; // Include all other controlsc.outcome_true?.length > 0 || c.outcome_false?.length > 0
-  }) || [];
+  const filteredControls =
+    controls?.filter((c) => {
+      if ("children" in c && (c.children as any[]).length === 0) {
+        return false; // Skip controls with no children
+      }
+      // TODO this is super hacky, need to find a better way to filter out empty switch containers
+      if (c.type === "switch_container") {
+        c.outcome_true?.length > 0 || c.outcome_false?.length > 0;
+        const switchc = c as RenderableSwitchContainerControl;
+        const ctrls = (switchc.branch === "true" ? switchc.outcome_true : switchc.outcome_false) ?? [];
+        return ctrls.length > 0; // Only include switch containers with outcomes
+      }
+      return true; // Include all other controlsc.outcome_true?.length > 0 || c.outcome_false?.length > 0
+    }) || [];
 
   if (filteredControls.length === 0) return null;
 
@@ -150,7 +152,12 @@ export const RepeatingContainer = (props: { control: RepeatingContainerControl, 
       data-loading={(control as any).loading ? "true" : undefined}
     >
       {renderHeaderRow()}
-      {filteredControls?.map((value) => <RenderControl key={value.id} control={value} />)}
+      {filteredControls?.map((value) => (
+        <RenderControl
+          key={value.id}
+          control={value}
+        />
+      ))}
     </div>
   );
 };

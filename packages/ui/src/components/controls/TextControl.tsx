@@ -1,13 +1,13 @@
-import { UseControllerReturn } from "react-hook-form";
-import { TextControl } from "@imminently/interview-sdk";
+import { useTheme } from "@/providers";
+import type { TextControl } from "@imminently/interview-sdk";
+import type { UseControllerReturn } from "react-hook-form";
 import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
-import { useTheme } from "@/providers";
 
 type NewTextControl = Omit<TextControl, "multi"> & {
   rows?: number;
-}
+};
 
 export const TextFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
@@ -18,27 +18,25 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
     <>
       <FormLabel>{t(control.label)}</FormLabel>
       <FormControl>
-        {
-          control.rows && control.rows > 1 ? (
-            <Textarea
-              rows={control.rows}
-              value={field.value}
-              onChange={(e) => field.onChange(e.target.value)}
-              disabled={field.disabled}
-              placeholder={t('form.text_placeholder')}
-            />
-          ) : (
-            <Input
-              type={type}
-              value={field.value}
-              onChange={(e) => field.onChange(e.target.value)}
-              disabled={field.disabled}
-              placeholder={t('form.text_placeholder')}
-            />
-          )
-        }
+        {control.rows && control.rows > 1 ? (
+          <Textarea
+            rows={control.rows}
+            value={field.value}
+            onChange={(e) => field.onChange(e.target.value)}
+            disabled={field.disabled}
+            placeholder={t("form.text_placeholder")}
+          />
+        ) : (
+          <Input
+            type={type}
+            value={field.value}
+            onChange={(e) => field.onChange(e.target.value)}
+            disabled={field.disabled}
+            placeholder={t("form.text_placeholder")}
+          />
+        )}
       </FormControl>
       <FormMessage />
     </>
   );
-}
+};

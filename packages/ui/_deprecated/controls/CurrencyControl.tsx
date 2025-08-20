@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useState } from "react";
 import clsx from "clsx";
-import { themeMerge } from "../providers/ThemeProvider";
-import { useFieldRegistration, useInterview } from "../providers/InterviewProvider";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
+import { type ZodTypeAny, z } from "zod";
 import { Error } from "../controls/Error";
-import { z, ZodTypeAny } from "zod";
+import { useFieldRegistration, useInterview } from "../providers/InterviewProvider";
+import { themeMerge } from "../providers/ThemeProvider";
 import { t } from "../utils/translateFn";
 import { Explanation } from "./Explanation";
 
@@ -14,20 +15,17 @@ const TextInputControl = (props: any) => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (
-          !/[0-9.-]/.test(e.key) &&
-          !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)
-        ) {
-          e.preventDefault();
-        }
-      }
+    if (!/[0-9.-]/.test(e.key) && !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Enter"].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
 
   const commonProps = {
     name: attribute,
     id,
     disabled: readOnly,
     placeholder: " ",
-    defaultValue: value || '',
+    defaultValue: value || "",
     autoComplete: "off",
     onChange: handleChange,
     onKeyDown: handleKeyDown,
@@ -43,29 +41,27 @@ const TextInputControl = (props: any) => {
       />
     </div>
   );
-};  
+};
 
 export const CurrencyControl = (props: any) => {
   const { control, classNames } = props;
-  const mergedClassNames = themeMerge('CurrencyControl', classNames);
+  const mergedClassNames = themeMerge("CurrencyControl", classNames);
   const { values, setValue } = useInterview();
- // For legend width animation
-
+  // For legend width animation
 
   useFieldRegistration({
     name: control?.attribute,
     defaultValue: control?.default,
-    validate:  (): ZodTypeAny => {
+    validate: (): ZodTypeAny => {
       let schema: ZodTypeAny;
       // 1. Base type
       schema = z.number();
-      
+
       // 2. Max length/Max value
       if (typeof control.max === "number") {
         schema = (schema as z.ZodNumber).max(control.max, t("validations.max", { max: control.max }));
       }
 
-    
       // 3. Min value (for numbers)
       if (typeof control.min === "number") {
         schema = (schema as z.ZodNumber).min(control.min, t("validations.min", { min: control.min }));
@@ -77,30 +73,27 @@ export const CurrencyControl = (props: any) => {
       } else {
         schema = schema.optional();
       }
-      schema = z.preprocess(
-        (val) => (val === "" ? undefined : Number(val)),
-        schema
-      );
-    
+      schema = z.preprocess((val) => (val === "" ? undefined : Number(val)), schema);
+
       return schema;
     },
-    visible: !control?.hidden
+    visible: !control?.hidden,
   });
   if (!control) return null;
   const { id, attribute, labelDisplay, readOnly, hidden, symbol } = control;
   if (hidden) return null;
-  let value = (values && values[attribute]) || control.value;
+  const value = (values && values[attribute]) || control.value;
 
   let inputClassNames;
-  if (!labelDisplay || labelDisplay === 'inline') {
-    inputClassNames = clsx('dcsvly-ctrl-currency-input', mergedClassNames.input);
+  if (!labelDisplay || labelDisplay === "inline") {
+    inputClassNames = clsx("dcsvly-ctrl-currency-input", mergedClassNames.input);
   } else {
-    inputClassNames = clsx('dcsvly-ctrl-currency-input-seperate', mergedClassNames.inputSeperate);
+    inputClassNames = clsx("dcsvly-ctrl-currency-input-seperate", mergedClassNames.inputSeperate);
   }
-  if (!labelDisplay || labelDisplay === 'inline') {
+  if (!labelDisplay || labelDisplay === "inline") {
     return (
       <>
-        <fieldset className={clsx('dcsvly-ctrl-currency-fieldset', mergedClassNames.fieldset)}>
+        <fieldset className={clsx("dcsvly-ctrl-currency-fieldset", mergedClassNames.fieldset)}>
           <TextInputControl
             id={id}
             attribute={attribute}
@@ -108,21 +101,14 @@ export const CurrencyControl = (props: any) => {
             setValue={setValue}
             readOnly={readOnly}
             inputClassNames={inputClassNames}
-            symbol={symbol || '$'}
+            symbol={symbol || "$"}
             symbolClass={mergedClassNames.symbol}
           />
-         
-          <legend
-            className={clsx(
-              'dcsvly-ctrl-currency-legend',
-              mergedClassNames.legend
-            )}
-            
-          >
+
+          <legend className={clsx("dcsvly-ctrl-currency-legend", mergedClassNames.legend)}>
             <span>{control.label}</span>
           </legend>
           <Explanation control={control} />
-          
         </fieldset>
         <Error id={attribute} />
       </>
@@ -130,10 +116,8 @@ export const CurrencyControl = (props: any) => {
   } else {
     return (
       <>
-        <div className={clsx('dcsvly-ctrl-currency-container', mergedClassNames.container)}>
-          <label
-            className={clsx('dcsvly-ctrl-currency-label-seperate', mergedClassNames.labelSeperate)}
-          >
+        <div className={clsx("dcsvly-ctrl-currency-container", mergedClassNames.container)}>
+          <label className={clsx("dcsvly-ctrl-currency-label-seperate", mergedClassNames.labelSeperate)}>
             {control.label}
           </label>
           <TextInputControl
@@ -143,13 +127,13 @@ export const CurrencyControl = (props: any) => {
             setValue={setValue}
             readOnly={readOnly}
             inputClassNames={inputClassNames}
-            symbol={symbol || '$'}
+            symbol={symbol || "$"}
             symbolClass={mergedClassNames.symbol}
           />
           <Explanation control={control} />
         </div>
         <Error id={attribute} />
       </>
-    )
+    );
   }
 };

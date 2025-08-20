@@ -1,8 +1,8 @@
-import { UseControllerReturn } from "react-hook-form";
-import { OptionsControl } from "@imminently/interview-sdk";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { useTheme } from "@/providers";
+import type { OptionsControl } from "@imminently/interview-sdk";
+import type { UseControllerReturn } from "react-hook-form";
+import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
 
 export const SelectFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
@@ -11,9 +11,7 @@ export const SelectFormControl = ({ field }: UseControllerReturn) => {
 
   return (
     <>
-      <FormLabel>
-        {t(control.label)}
-      </FormLabel>
+      <FormLabel>{t(control.label)}</FormLabel>
       <Select
         name={field.name}
         value={field.value}
@@ -22,16 +20,17 @@ export const SelectFormControl = ({ field }: UseControllerReturn) => {
       >
         <FormControl>
           <SelectTrigger className="w-full">
-            {
-              t(field.value
-                ? options?.find((option) => option.value === field.value)?.label
-                : "form.select_placeholder")
-            }
+            {t(
+              field.value ? options?.find((option) => option.value === field.value)?.label : "form.select_placeholder",
+            )}
           </SelectTrigger>
         </FormControl>
         <SelectContent>
           {options?.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem
+              key={option.value}
+              value={option.value}
+            >
               {t(option.label)}
             </SelectItem>
           ))}
@@ -40,4 +39,4 @@ export const SelectFormControl = ({ field }: UseControllerReturn) => {
       <FormMessage />
     </>
   );
-}
+};

@@ -1,48 +1,35 @@
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Validation } from "@imminently/interview-sdk";
 import clsx from "clsx";
 import type * as React from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useInterview } from "../InterviewContext";
 
-export interface InterviewValidationsProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface InterviewValidationsProps extends React.HTMLAttributes<HTMLDivElement> {
   asChild?: boolean;
   className?: string;
 }
 
-const InterviewValidations = ({
-  asChild,
-  className,
-  ...props
-}: InterviewValidationsProps) => {
+const InterviewValidations = ({ asChild, className, ...props }: InterviewValidationsProps) => {
   const { session } = useInterview();
-  const visibleValidations = session.validations?.reduce(
-    (visibleValidations, validation) => {
-      if (
-        validation.shown &&
-        !visibleValidations.some(
-          (other) => other.message === validation.message,
-        )
-      ) {
-        visibleValidations.push(validation);
-      }
-      return visibleValidations;
-    },
-    [] as Validation[],
-  );
+  const visibleValidations = session.validations?.reduce((visibleValidations, validation) => {
+    if (validation.shown && !visibleValidations.some((other) => other.message === validation.message)) {
+      visibleValidations.push(validation);
+    }
+    return visibleValidations;
+  }, [] as Validation[]);
 
   return visibleValidations?.length ? (
     <div
-      className={clsx(
-        "flex flex-col gap-2 p-2 w-full overflow-y-auto max-h-[200px]",
-        className,
-      )}
+      className={clsx("flex flex-col gap-2 p-2 w-full overflow-y-auto max-h-[200px]", className)}
       {...props}
     >
       {visibleValidations?.map((validation) => {
         if (validation.shown) {
           return (
-            <Alert key={`${validation.parent}/${validation.id}`} variant={validation.severity === "error" ? "red" : "yellow"}>
+            <Alert
+              key={`${validation.parent}/${validation.id}`}
+              variant={validation.severity === "error" ? "red" : "yellow"}
+            >
               <AlertDescription>{validation.message}</AlertDescription>
             </Alert>
           );

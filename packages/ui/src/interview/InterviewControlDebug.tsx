@@ -18,17 +18,20 @@ const InterviewControlDebug = (props: InterviewControlDebugProps) => {
   if (interview.manager.clientGraph && attribute) {
     const attributeId = attribute.split("/").pop();
     if (attributeId) {
-      attributeDescription = interview.manager.clientGraph.nodes.find((node: any) => node.v === attributeId)?.value.description;
+      attributeDescription = interview.manager.clientGraph.nodes.find((node: any) => node.v === attributeId)?.value
+        .description;
     }
   }
 
   return (
     <div className="mb-1">
       <div className="text-[10px] leading-tight text-muted-foreground font-mono">
-        {control.type}{attributeDescription ? ` [${attributeDescription}]` : ""}{control.id ? ` #${control.id}` : ""}
+        {control.type}
+        {attributeDescription ? ` [${attributeDescription}]` : ""}
+        {control.id ? ` #${control.id}` : ""}
       </div>
     </div>
   );
-}
+};
 
 export default InterviewControlDebug;

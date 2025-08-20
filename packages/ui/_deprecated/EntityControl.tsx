@@ -1,13 +1,13 @@
+import { AttributeNestingProvider } from "@/providers";
+import { cn } from "@/util";
 import { type Control, instanceControl, uuid } from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { Controller, get, set, useFieldArray, useFormContext } from "react-hook-form";
-import { Button } from "../ui/button";
-import { Text } from "../ui/text";
-import { cn } from "@/util";
 import { useAttributeToFieldName } from "../../util/attribute-to-field-name";
 import { RenderControl } from "../RenderControl";
-import { AttributeNestingProvider } from "@/providers";
+import { Button } from "../ui/button";
+import { Text } from "../ui/text";
 
 /** @deprecated use `EntityFormControl` */
 export const EntityControl = (props: any) => {
@@ -57,24 +57,16 @@ export const EntityControl = (props: any) => {
       data-deci-name={name}
     >
       <div className="flex items-center justify-between">
-        {
-          control.label ? (
-            <Text variant="h6">
-              {control.label}
-            </Text>
-          ) : null
-        }
-        {
-          canAddMore ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleAdd}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          ) : null
-        }
+        {control.label ? <Text variant="h6">{control.label}</Text> : null}
+        {canAddMore ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleAdd}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        ) : null}
       </div>
 
       <div className="gap-2">
@@ -87,7 +79,7 @@ export const EntityControl = (props: any) => {
                 key={(instance as any)["@id"] ?? instance.id}
                 className={cn(
                   "flex items-start justify-between gap-4",
-                  index !== arr.length - 1 && "mb-4 pb-4 border-b border-border"
+                  index !== arr.length - 1 && "mb-4 pb-4 border-b border-border",
                 )}
               >
                 <Controller
@@ -98,7 +90,12 @@ export const EntityControl = (props: any) => {
                 <div className="flex-1 space-y-4">
                   {instance.controls.map((subControl: any, controlIndex: number) => {
                     if (subControl.type === "typography") {
-                      return <RenderControl key={controlIndex} control={subControl} />
+                      return (
+                        <RenderControl
+                          key={controlIndex}
+                          control={subControl}
+                        />
+                      );
                     }
 
                     if ("attribute" in subControl || subControl.type === "entity") {
@@ -111,7 +108,12 @@ export const EntityControl = (props: any) => {
                         attribute: path,
                       } as Control;
 
-                      const content = <RenderControl key={controlIndex} control={childControl} />;
+                      const content = (
+                        <RenderControl
+                          key={controlIndex}
+                          control={childControl}
+                        />
+                      );
 
                       if (subControl.type === "entity") {
                         return (
@@ -146,8 +148,6 @@ export const EntityControl = (props: any) => {
           })}
         </AttributeNestingProvider>
       </div>
-
-
     </div>
   );
 };
