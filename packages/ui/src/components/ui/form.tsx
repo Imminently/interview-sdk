@@ -131,17 +131,21 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
   const interview = useInterview();
   const control = useFormField().control;
 
+  const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (debugEnabled && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      interview.callbacks.onDebugControlClick?.(control, interview);
+    }
+  };
+
   return (
     <Slot
       data-slot="form-control"
       id={formItemId}
-      onMouseDown={(e) => {
-        if (debugEnabled && e.shiftKey) {
-          e.preventDefault();
-          e.stopPropagation();
-          interview.callbacks.onDebugControlClick?.(control, interview);
-        }
-      }}
+      onMouseDown={handleDebugClick}
+      onMouseUp={handleDebugClick}
+      onClick={handleDebugClick}
       aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
       aria-invalid={!!error}
       {...props}
