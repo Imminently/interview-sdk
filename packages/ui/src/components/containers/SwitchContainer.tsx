@@ -74,8 +74,8 @@ export const SwitchContainer = ({
 
     return (
       <div
-        onClick={(e) => {
-          if (debugEnabled && e.ctrlKey) {
+        onMouseDown={(e) => {
+          if (debugEnabled && e.shiftKey) {
             e.preventDefault();
             e.stopPropagation();
             interview.callbacks.onDebugControlClick?.(control, interview);

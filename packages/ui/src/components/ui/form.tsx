@@ -135,8 +135,8 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
     <Slot
       data-slot="form-control"
       id={formItemId}
-      onClick={(e) => {
-        if (debugEnabled && e.ctrlKey) {
+      onMouseDown={(e) => {
+        if (debugEnabled && e.shiftKey) {
           e.preventDefault();
           e.stopPropagation();
           interview.callbacks.onDebugControlClick?.(control, interview);
