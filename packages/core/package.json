@@ -1,58 +1,56 @@
 {
-	"name": "@imminently/interview-sdk",
-	"version": "0.2.98",
-	"repository": {
-		"type": "git",
-		"url": "git://github.com/imminently/interview-sdk.git"
-	},
-	"publishConfig": {
-		"registry": "https://npm.pkg.github.com/"
-	},
-	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
-	"types": "./dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.mjs",
-			"require": "./dist/index.js"
-		}
-	},
-	"sideEffects": false,
-	"files": [
-		"dist/**"
-	],
-	"scripts": {
-		"check:fix": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check --write .",
-		"check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check .",
-		"build": "tsup",
-		"dev": "tsup --watch",
-		"lint": "eslint src/",
-		"test": "jest",
-		"test:watch": "jest --watch",
-		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-		"bump:patch": "npm run build && npm version patch --no-git-tag-version",
-		"deploy": "bun run bump:patch && npm publish"
-	},
-	"dependencies": {
-		"@date-fns/utc": "^2.1.0",
-		"axios": "^1.10.0",
-		"date-fns": "^4.1.0",
-		"lodash-es": "^4.17.21",
-		"pako": "^2.1.0",
-		"uuid": "^11.1.0"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.1.2",
-		"@imminently/standard": "^0.2.5",
-		"@swc/core": "^1.13.0",
-		"@swc/jest": "^0.2.36",
-		"@types/jest": "^29.5.12",
-		"@types/lodash-es": "^4.17.12",
-		"@types/node": "^22.15.3",
-		"@types/pako": "^2.0.3",
-		"jest": "^29.7.0",
-		"tsup": "^8.5.0",
-		"typescript": "^5.8.3"
-	}
+  "name": "@imminently/interview-sdk",
+  "version": "0.2.100",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/imminently/interview-sdk.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": ["dist/**"],
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "check:fix": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check --write .",
+    "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check .",
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "bump:patch": "npm run build && npm version patch --no-git-tag-version",
+    "deploy": "bun run bump:patch && npm publish"
+  },
+  "dependencies": {
+    "@date-fns/utc": "^2.1.0",
+    "axios": "^1.10.0",
+    "date-fns": "^4.1.0",
+    "lodash-es": "^4.17.21",
+    "pako": "^2.1.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
+    "@imminently/standard": "^0.2.5",
+    "@swc/core": "^1.13.0",
+    "@swc/jest": "^0.2.36",
+    "@types/jest": "^29.5.12",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^22.15.3",
+    "@types/pako": "^2.0.3",
+    "jest": "^29.7.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  }
 }

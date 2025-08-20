@@ -1,11 +1,11 @@
-import * as React from "react";
-import { addSeconds, formatDistanceToNow } from "date-fns";
-import { Slot } from "@radix-ui/react-slot";
-import { cn } from "@/util";
-import { useInterview } from "../InterviewContext";
-import { Progress as ProgressData } from "@imminently/interview-sdk";
 import { Progress } from "@/components/ui/progress";
 import { useTheme } from "@/providers";
+import { cn } from "@/util";
+import type { Progress as ProgressData } from "@imminently/interview-sdk";
+import { Slot } from "@radix-ui/react-slot";
+import { addSeconds, formatDistanceToNow } from "date-fns";
+import type * as React from "react";
+import { useInterview } from "../InterviewContext";
 
 export interface InterviewProgressProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
@@ -18,10 +18,15 @@ const DefaultProgress = ({ progress }: { progress: ProgressData }) => {
   // TODO the format distance will need its own translation layer, or they just override
   return (
     <div>
-      <Progress data-slot={"progress-bar"} value={progress.percentage} />
+      <Progress
+        data-slot={"progress-bar"}
+        value={progress.percentage}
+      />
       <div data-slot={"progress-info"}>
         <span data-slot={"progress-summary"}>
-          {progress.percentage === 100 ? t("form.complete") : `${t('form.progress')} ${progress.percentage.toFixed(0)}%`}
+          {progress.percentage === 100
+            ? t("form.complete")
+            : `${t("form.progress")} ${progress.percentage.toFixed(0)}%`}
         </span>
         {progress.time > 0 && (
           <span data-slot={"progress-summary"}>
@@ -31,8 +36,8 @@ const DefaultProgress = ({ progress }: { progress: ProgressData }) => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 const InterviewProgress = ({ asChild, children, className, ...props }: InterviewProgressProps) => {
   const { state, session } = useInterview();

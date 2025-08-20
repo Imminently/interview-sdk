@@ -1,8 +1,5 @@
-import {
-  type Control, DATE_FORMAT,
-  type EntityControl, formatDate
-} from "@imminently/interview-sdk";
-import clsx, { ClassValue } from "clsx";
+import { type Control, DATE_FORMAT, type EntityControl, formatDate } from "@imminently/interview-sdk";
+import clsx, { type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export const VALUE_ROWS_CONST = "valueRows";

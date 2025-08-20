@@ -1,9 +1,9 @@
-import { UseControllerReturn } from "react-hook-form";
-import { Checkbox } from "../ui/checkbox";
-import { Explanation } from "./Explanation";
-import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
-import { BooleanControl } from "@imminently/interview-sdk";
 import { useTheme } from "@/providers";
+import type { BooleanControl } from "@imminently/interview-sdk";
+import type { UseControllerReturn } from "react-hook-form";
+import { Checkbox } from "../ui/checkbox";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { Explanation } from "./Explanation";
 
 export const BooleanFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
@@ -14,7 +14,7 @@ export const BooleanFormControl = ({ field }: UseControllerReturn) => {
       <FormLabel>
         <FormControl>
           <Checkbox
-            checked={field.value === undefined ? 'indeterminate' : field.value}
+            checked={field.value === undefined ? "indeterminate" : field.value}
             onCheckedChange={(val: boolean) => field.onChange(val)}
             disabled={control.readOnly ?? control.disabled}
             aria-label={control.label}

@@ -8,11 +8,11 @@ export * from "./placeholders";
 export * from "./sidebars/sidebar";
 
 export {
-	applyInstancesToEntityControl,
-	attributeToPath,
-	createEntityPathedData,
-	formatDate,
-	instanceControl,
-	iterateControls,
-	uuid,
+  applyInstancesToEntityControl,
+  attributeToPath,
+  createEntityPathedData,
+  formatDate,
+  instanceControl,
+  iterateControls,
+  uuid,
 } from "./util";

@@ -1,18 +1,18 @@
-import { UseControllerReturn } from "react-hook-form";
-import { TimeControl } from "@imminently/interview-sdk";
-import { Time } from "../ui/time";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
-import { Explanation } from "./Explanation";
 import { useTheme } from "@/providers";
+import type { TimeControl } from "@imminently/interview-sdk";
+import type { UseControllerReturn } from "react-hook-form";
+import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { Time } from "../ui/time";
+import { Explanation } from "./Explanation";
 
 // Helper to parse time string to {h, m, s}
 function parseTimeString(str: string): { h: number; m: number; s: number } | null {
   if (!str) return null;
   const match = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (!match) return null;
-  let h = Number(match[1]);
-  let m = Number(match[2]);
-  let s = match[3] ? Number(match[3]) : 0;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  const s = match[3] ? Number(match[3]) : 0;
   if (h > 23 || m > 59 || s > 59) return null;
   return { h, m, s };
 }
@@ -36,7 +36,7 @@ function formatTime({ h, m, s }: { h: number; m: number; s: number }, format: 12
 
 // Helper to coerce between 12/24 hour
 function coerceTimeFormat(str: string, format: 12 | 24) {
-  let t = parseTimeString(str);
+  const t = parseTimeString(str);
   if (!t) return null;
   if (format === 12) {
     // If hour > 12, convert to 12-hour
@@ -57,24 +57,24 @@ function coerceTimeFormat(str: string, format: 12 | 24) {
 // Helper to format raw digits into time string
 function formatRawDigits(digits: string): string | null {
   // Remove any non-digit characters
-  const cleanDigits = digits.replace(/\D/g, '');
+  const cleanDigits = digits.replace(/\D/g, "");
 
   if (cleanDigits.length < 3) return null;
 
   // Parse hours and minutes
-  let hours = parseInt(cleanDigits.slice(0, -2));
-  let minutes = parseInt(cleanDigits.slice(-2));
+  let hours = Number.parseInt(cleanDigits.slice(0, -2));
+  let minutes = Number.parseInt(cleanDigits.slice(-2));
 
   // Handle single digit hours (e.g., "100" -> "1:00")
   if (cleanDigits.length === 3) {
-    hours = parseInt(cleanDigits[0]);
-    minutes = parseInt(cleanDigits.slice(1));
+    hours = Number.parseInt(cleanDigits[0]);
+    minutes = Number.parseInt(cleanDigits.slice(1));
   }
 
   // Validate hours and minutes
   if (hours > 23 || minutes > 59) return null;
 
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
 }
 
 // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,4 +120,3 @@ export const TimeFormControl = ({ field }: UseControllerReturn) => {
     </>
   );
 };
-

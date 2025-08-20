@@ -1,27 +1,13 @@
-import type {
-  ManagerState,
-  Session,
-  SessionManager,
-} from "@imminently/interview-sdk";
-import {
-  createContext,
-  type PropsWithChildren,
-  useContext,
-  useMemo,
-  useSyncExternalStore,
-} from "react";
-import { FormProvider, type UseFormProps, useForm } from "react-hook-form";
 import { AttributeNestingProvider, OptionsProvider } from "@/providers";
-import {
-  type IconMap,
-  type InterviewControls,
-  type Theme,
-  ThemeProvider,
-} from "../providers/ThemeProvider";
+import type { Control, ManagerState, Session, SessionManager } from "@imminently/interview-sdk";
+import { type PropsWithChildren, createContext, useContext, useMemo, useSyncExternalStore } from "react";
+import { FormProvider, type UseFormProps, useForm } from "react-hook-form";
+import { type IconMap, type InterviewControls, type Theme, ThemeProvider } from "../providers/ThemeProvider";
 
 export type InterviewContextState = {
   manager: SessionManager;
   session: Session;
+  callbacks: InterviewCallbacks;
   state: ManagerState;
   error?: Error;
   readOnly?: boolean;
@@ -29,6 +15,10 @@ export type InterviewContextState = {
   backDisabled: boolean;
   nextDisabled: boolean;
 };
+
+export interface InterviewCallbacks {
+  onDebugControlClick?: (control: Control, interview: InterviewContextState) => void;
+}
 
 /** Base user configurable controls for the interview. */
 export type InterviewConfig = {
@@ -39,6 +29,7 @@ export type InterviewConfig = {
   slots?: Partial<InterviewControls>;
   /** Force all controls into readOnly */
   readOnly?: boolean;
+  callbacks?: InterviewCallbacks;
 };
 
 const InterviewContext = createContext<InterviewContextState | undefined>(undefined);
@@ -49,7 +40,7 @@ export const useInterview = () => {
   return ctx;
 };
 
-export type ExposedFormControls = Pick<UseFormProps, 'mode' | 'reValidateMode' | 'shouldFocusError'>;
+export type ExposedFormControls = Pick<UseFormProps, "mode" | "reValidateMode" | "shouldFocusError">;
 
 export interface InterviewProviderProps extends PropsWithChildren, InterviewConfig {
   /**
@@ -58,14 +49,14 @@ export interface InterviewProviderProps extends PropsWithChildren, InterviewConf
    * **IMPORTANT** ensure the instance is not re-created each render
    */
   manager: SessionManager;
-};
+}
 
 /**
  * InterviewProvider is a React context provider that manages the state and behavior of an interview session.
  * It provides methods to navigate through the interview steps, manage form values, and handle interactions.
  */
 export const InterviewProvider = ({ manager, children, ...config }: InterviewProviderProps) => {
-  const { form, theme, icons, slots, readOnly } = config;
+  const { form, theme, icons, slots, readOnly, callbacks } = config;
   const methods = useForm(form);
   const snapshot = useSyncExternalStore(manager.subscribe, manager.getSnapshot);
 
@@ -83,14 +74,13 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
     const finished = manager.isLastStep && manager.isComplete;
     return {
       manager,
+      callbacks: callbacks ?? {},
       session: session!,
       state,
       error,
       isLoading: loading,
       readOnly,
-      backDisabled: manager.isSubInterview
-        ? false
-        : buttons?.back === false || loading,
+      backDisabled: manager.isSubInterview ? false : buttons?.back === false || loading,
       nextDisabled:
         validationsFail ||
         (manager.isSubInterview ? false : buttons?.next === false) ||
@@ -98,11 +88,15 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
         (!manager.isSubInterview && finished) ||
         loading,
     };
-  }, [snapshot, readOnly, manager]);
+  }, [snapshot, readOnly, manager, callbacks]);
 
   return (
     <OptionsProvider value={manager.options}>
-      <ThemeProvider theme={theme} icons={icons} controls={slots}>
+      <ThemeProvider
+        theme={theme}
+        icons={icons}
+        controls={slots}
+      >
         <InterviewContext.Provider value={value}>
           <AttributeNestingProvider value={false}>
             <FormProvider {...methods}>{children}</FormProvider>

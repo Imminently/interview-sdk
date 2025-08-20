@@ -1,14 +1,10 @@
-import {
-  type Control,
-  type RenderableEntityControl,
-  uuid,
-} from "@imminently/interview-sdk";
-import { Plus, Trash2 } from "lucide-react";
-import React, { useCallback, useEffect } from "react";
-import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 import { useInterview } from "@/interview";
 import { AttributeNestingProvider, useTheme } from "@/providers";
 import { cn } from "@/util";
+import { type Control, type RenderableEntityControl, uuid } from "@imminently/interview-sdk";
+import { Plus, Trash2 } from "lucide-react";
+import React, { useCallback, useEffect } from "react";
+import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 import { useAttributeToFieldName } from "../../util/attribute-to-field-name";
 import { RenderControl } from "../RenderControl";
 import { Button } from "../ui/button";
@@ -29,47 +25,57 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
   // First check if we have instances with controls for this specific field
   const instanceControls = control.instances?.[index]?.controls;
 
-  const renderInstance = useCallback((subControl: Control, controlIndex: number) => {
-    const key = `${controlIndex}-${subControl.id}`;
+  const renderInstance = useCallback(
+    (subControl: Control, controlIndex: number) => {
+      const key = `${controlIndex}-${subControl.id}`;
 
-    if (subControl.type === "typography") {
-      return <RenderControl key={key} control={subControl} />;
-    }
-
-    if ("attribute" in subControl || subControl.type === "entity") {
-      // @ts-ignore subControl.entity is not always defined
-      const key = (subControl.attribute || subControl.entity)
-        ?.split("/")
-        .pop();
-      if (!key) return null;
-
-      const path = parentPath
-        ? `${parentPath}.${index}.${key}`
-        : `${control.entity}.${index}.${key}`;
-
-      const childControl = {
-        ...subControl,
-        attribute: path,
-      } as Control;
-
-      const content = (
-        <RenderControl key={key} control={childControl} />
-      );
-
-      if (subControl.type === "entity") {
+      if (subControl.type === "typography") {
         return (
-          <div key={key} className="p-4 border border-border rounded-md">
-            {content}
-          </div>
+          <RenderControl
+            key={key}
+            control={subControl}
+          />
         );
       }
 
-      return content;
-    }
+      if ("attribute" in subControl || subControl.type === "entity") {
+        // @ts-ignore subControl.entity is not always defined
+        const key = (subControl.attribute || subControl.entity)?.split("/").pop();
+        if (!key) return null;
 
-    console.warn("Unsupported instance control", subControl);
-    return null;
-  }, [control, index, parentPath]);
+        const path = parentPath ? `${parentPath}.${index}.${key}` : `${control.entity}.${index}.${key}`;
+
+        const childControl = {
+          ...subControl,
+          attribute: path,
+        } as Control;
+
+        const content = (
+          <RenderControl
+            key={key}
+            control={childControl}
+          />
+        );
+
+        if (subControl.type === "entity") {
+          return (
+            <div
+              key={key}
+              className="p-4 border border-border rounded-md"
+            >
+              {content}
+            </div>
+          );
+        }
+
+        return content;
+      }
+
+      console.warn("Unsupported instance control", subControl);
+      return null;
+    },
+    [control, index, parentPath],
+  );
 
   if (instanceControls && instanceControls.length > 0) {
     return instanceControls.map(renderInstance);
@@ -81,10 +87,7 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
   return control.template.map(renderInstance);
 };
 
-export const EntityFormControl = ({
-  control,
-  className,
-}: EntityFormControlProps) => {
+export const EntityFormControl = ({ control, className }: EntityFormControlProps) => {
   const { t } = useTheme();
   const { control: formControl } = useFormContext();
   const { readOnly: forceReadOnly } = useInterview();
@@ -104,12 +107,7 @@ export const EntityFormControl = ({
   const [initialized, setInitialized] = React.useState(false);
 
   useEffect(() => {
-    if (
-      !initialized &&
-      fields.length === 0 &&
-      control.instances &&
-      control.instances.length > 0
-    ) {
+    if (!initialized && fields.length === 0 && control.instances && control.instances.length > 0) {
       const initialValues = control.instances.map((instance) => ({
         "@id": instance.id || uuid(),
       }));
@@ -122,10 +120,8 @@ export const EntityFormControl = ({
     }
   }, [control.instances, fields.length, append, initialized]);
 
-  const canAddMore =
-    !readOnly && (control.max === undefined || control.max > fields.length);
-  const canDelete =
-    !readOnly && (control.min === undefined || fields.length > control.min);
+  const canAddMore = !readOnly && (control.max === undefined || control.max > fields.length);
+  const canDelete = !readOnly && (control.min === undefined || fields.length > control.min);
 
   const handleAdd = React.useCallback(() => {
     if (!canAddMore) return;
@@ -187,16 +183,12 @@ export const EntityFormControl = ({
           <AttributeNestingProvider value={true}>
             {fields.map((field, index) => {
               const isLastItem = index === fields.length - 1;
-              const showDeleteButton =
-                canDelete && fields.length > (control.min ?? 0);
+              const showDeleteButton = canDelete && fields.length > (control.min ?? 0);
 
               return (
                 <div
                   key={field.id}
-                  className={cn(
-                    "flex items-start gap-4",
-                    !isLastItem && "pb-4 border-b border-border",
-                  )}
+                  className={cn("flex items-start gap-4", !isLastItem && "pb-4 border-b border-border")}
                 >
                   {/* Hidden controller for the @id field */}
                   <Controller

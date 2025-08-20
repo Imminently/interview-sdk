@@ -1,5 +1,5 @@
-import { createContext, useContext } from "react";
 import type { ManagerOptions } from "@imminently/interview-sdk";
+import { createContext, useContext } from "react";
 
 const OptionsContext = createContext<ManagerOptions | undefined>(undefined);
 

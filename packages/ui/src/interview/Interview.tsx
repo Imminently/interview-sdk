@@ -1,11 +1,13 @@
-import type { ManagerOptions } from "@imminently/interview-sdk";
+import type {Control, ManagerOptions} from "@imminently/interview-sdk";
 import { SessionManager } from "@imminently/interview-sdk";
 import { type PropsWithChildren, useState } from "react";
 import {
-  type InterviewConfig,
+  type InterviewConfig, InterviewContextState,
   InterviewProvider
 } from "./InterviewContext";
 import { InterviewLayout } from "./InterviewLayout";
+import { DebugSettingsProvider } from "@/providers";
+import InterviewDebugIndicator from "@/interview/InterviewDebugIndicator";
 
 export interface InterviewProps extends PropsWithChildren, InterviewConfig {
   options: ManagerOptions;
@@ -15,20 +17,18 @@ export interface InterviewProps extends PropsWithChildren, InterviewConfig {
  * A simple interview component that provides the interview context and layout.
  * It creates a new SessionManager instance and passes it to the InterviewProvider.
  */
-export const Interview = ({
-  options,
-  children,
-  ...props
-}: InterviewProps) => {
+export const Interview = ({ options, children, ...props }: InterviewProps) => {
   const [manager] = useState(() => new SessionManager(options));
 
   return (
-    <InterviewProvider manager={manager} {...props}>
-      {children ? (
-        children
-      ) : (
-        <InterviewLayout key={manager.session?.screen.id} />
-      )}
-    </InterviewProvider>
+    <DebugSettingsProvider initialDebug={options?.debug}>
+      <InterviewDebugIndicator />
+      <InterviewProvider
+        manager={manager}
+        {...props}
+      >
+        {children ? children : <InterviewLayout key={manager.session?.screen.id} />}
+      </InterviewProvider>
+    </DebugSettingsProvider>
   );
 };

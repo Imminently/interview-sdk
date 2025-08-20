@@ -1,22 +1,20 @@
-import { themeMerge } from "../providers/ThemeProvider";
+import { type ZodTypeAny, z } from "zod";
 import { useFieldRegistration, useInterview } from "../providers/InterviewProvider";
-import { z, ZodTypeAny } from "zod";
+import { themeMerge } from "../providers/ThemeProvider";
 import { t } from "../utils/translateFn";
 import { InputControl } from "./InputControl";
 
-
 export const TextControl = (props: any) => {
   const { control, classNames } = props;
-  const mergedClassNames = themeMerge('TextControl', classNames);
+  const mergedClassNames = themeMerge("TextControl", classNames);
   const { values, setValue } = useInterview();
-
 
   useFieldRegistration({
     name: control?.attribute,
     defaultValue: control?.default,
-    validate:  (): ZodTypeAny => {
+    validate: (): ZodTypeAny => {
       let schema: ZodTypeAny;
-    
+
       // 1. Base type
       if (control.variation === "number") {
         schema = z.number();
@@ -25,9 +23,7 @@ export const TextControl = (props: any) => {
       } else {
         schema = z.string();
       }
-    
-      
-    
+
       // 3. Max length/Max value
       if (typeof control.max === "number") {
         if (control.variation === "number") {
@@ -37,7 +33,6 @@ export const TextControl = (props: any) => {
         }
       }
 
-    
       // 4. Min value (for numbers)
       if (typeof control.min === "number" && control.variation === "number") {
         schema = (schema as z.ZodNumber).min(control.min, t("validations.min", { min: control.min }));
@@ -54,26 +49,24 @@ export const TextControl = (props: any) => {
         schema = schema.optional();
       }
       if (control.variation === "number") {
-        schema = z.preprocess(
-          (val) => (val === "" ? undefined : Number(val)),
-          schema
-        );
+        schema = z.preprocess((val) => (val === "" ? undefined : Number(val)), schema);
       }
-    
+
       return schema;
     },
-    visible: !control?.hidden
+    visible: !control?.hidden,
   });
   if (!control) return null;
   const { attribute, hidden } = control;
   if (hidden) return null;
-  let value = (values && values[attribute]) || control.value;
+  const value = (values && values[attribute]) || control.value;
 
-  return <InputControl
-    {...control}
-    value={value}
-    setValue={setValue}
-    classNames={mergedClassNames}
-  />
- 
+  return (
+    <InputControl
+      {...control}
+      value={value}
+      setValue={setValue}
+      classNames={mergedClassNames}
+    />
+  );
 };

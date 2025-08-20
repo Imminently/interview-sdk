@@ -1,37 +1,37 @@
-import React, { useState } from "react";
-import { useInterview } from "../providers/InterviewProvider";
-import { getIcon, themeMerge, useTheme } from "../providers/ThemeProvider";
 import clsx from "clsx";
-import z, { ZodTypeAny } from "zod";
+import React, { useState } from "react";
+import z, { type ZodTypeAny } from "zod";
+import { useFieldRegistration, useInterview } from "../providers/InterviewProvider";
+import { getIcon, themeMerge, useTheme } from "../providers/ThemeProvider";
 import { t } from "../utils/translateFn";
-import { useFieldRegistration } from "../providers/InterviewProvider";
 import { Error } from "./Error";
 import { Explanation } from "./Explanation";
 
 export const BooleanControl = (props: any) => {
   const { control, classNames, checkedIcon, indeterminateIcon } = props;
-  const mergedClassNames = themeMerge('BooleanControl', classNames);
-  const { values, setValue} = useInterview();
+  const mergedClassNames = themeMerge("BooleanControl", classNames);
+  const { values, setValue } = useInterview();
   const { icons } = useTheme();
 
   useFieldRegistration({
     name: control?.attribute,
     defaultValue: control?.default,
-    validate:  (): ZodTypeAny => {
+    validate: (): ZodTypeAny => {
       let schema: ZodTypeAny;
       schema = z.boolean();
       if (control?.required) {
         schema = schema.refine((val) => val !== undefined, {
-          message: t("validations.required")
+          message: t("validations.required"),
         });
       }
       return schema;
     },
-    visible: !control?.hidden
-  })
+    visible: !control?.hidden,
+  });
 
   if (!control) return null;
-  const { id, label, labelDisplay, required, attribute, hidden, show, showExplanation, readOnly, longDescription } = control;
+  const { id, label, labelDisplay, required, attribute, hidden, show, showExplanation, readOnly, longDescription } =
+    control;
 
   // Support true, false, and indeterminate (null/undefined)
   const value = values?.[attribute] ?? null;
@@ -58,24 +58,22 @@ export const BooleanControl = (props: any) => {
       disabled={readOnly}
       tabIndex={0}
       className={clsx(
-        'dcsvly-boolean-control-checkbox',
+        "dcsvly-boolean-control-checkbox",
         mergedClassNames.checkbox,
         isChecked ? mergedClassNames.checkboxChecked : mergedClassNames.checkboxUnchecked,
         isIndeterminate && mergedClassNames.checkboxIndeterminate,
-        readOnly && mergedClassNames.checkboxDisabled
+        readOnly && mergedClassNames.checkboxDisabled,
       )}
       onClick={handleClick}
-      onKeyDown={e => {
+      onKeyDown={(e) => {
         if (e.key === " " || e.key === "Enter") handleClick();
       }}
     >
       {/* Ripple */}
-      {ripple && (
-        <span className={mergedClassNames.ripple} />
-      )}
+      {ripple && <span className={mergedClassNames.ripple} />}
       {/* Checkmark or indeterminate */}
-      {isChecked && getIcon('checked', checkedIcon)}
-      {isIndeterminate && getIcon('indeterminateCheck', indeterminateIcon)}
+      {isChecked && getIcon("checked", checkedIcon)}
+      {isIndeterminate && getIcon("indeterminateCheck", indeterminateIcon)}
     </button>
   );
 
@@ -83,22 +81,26 @@ export const BooleanControl = (props: any) => {
   if (!labelDisplay || labelDisplay === "inline") {
     return (
       <div>
-        <div className={clsx('dcsvly-boolean-control-root', mergedClassNames.root)}>
+        <div className={clsx("dcsvly-boolean-control-root", mergedClassNames.root)}>
           {checkbox}
-          <span className={clsx('dcsvly-boolean-control-label', mergedClassNames.label)}>{label}</span>
+          <span className={clsx("dcsvly-boolean-control-label", mergedClassNames.label)}>{label}</span>
           <Explanation control={control} />
         </div>
-        { longDescription && <div className={mergedClassNames.longDescription}>{longDescription}</div>}
+        {longDescription && <div className={mergedClassNames.longDescription}>{longDescription}</div>}
         <Error id={attribute} />
       </div>
     );
   } else {
     return (
-      <div className={clsx('dcsvly-boolean-control-root-seperate', mergedClassNames.rootSeperate)}>
-        <div className={clsx('dcsvly-boolean-control-label-seperate', mergedClassNames.labelSeperate)}>{label}</div>
+      <div className={clsx("dcsvly-boolean-control-root-seperate", mergedClassNames.rootSeperate)}>
+        <div className={clsx("dcsvly-boolean-control-label-seperate", mergedClassNames.labelSeperate)}>{label}</div>
         <div>{checkbox}</div>
         <Explanation control={control} />
-        { longDescription && <div className={clsx('dcsvly-boolean-control-long-description', mergedClassNames.longDescription)}>{longDescription}</div>}
+        {longDescription && (
+          <div className={clsx("dcsvly-boolean-control-long-description", mergedClassNames.longDescription)}>
+            {longDescription}
+          </div>
+        )}
         <Error id={attribute} />
       </div>
     );

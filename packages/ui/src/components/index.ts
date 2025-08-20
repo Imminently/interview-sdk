@@ -1,5 +1,5 @@
 export * from "./controls";
-export * from "./ui/form";
+export { default as Controls } from "./controls";
 
 export { RenderControl } from "./RenderControl";
-export { default as Controls } from "./controls";
+export * from "./ui/form";

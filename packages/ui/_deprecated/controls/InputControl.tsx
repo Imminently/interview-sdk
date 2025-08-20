@@ -1,11 +1,8 @@
 import clsx from "clsx";
-import { useEffect, useState } from "react";
-import { useRef } from "react";
-import { Explanation } from "./Explanation";
-import { Error } from "./Error";
+import { useEffect, useRef, useState } from "react";
 import { useInterview } from "../providers/InterviewProvider";
-
-
+import { Error } from "./Error";
+import { Explanation } from "./Explanation";
 
 export const _InputControl = (props: any) => {
   const { id, type, attribute, value, setValue, variation, readOnly, rows, inputClassNames, onFocus, onBlur } = props;
@@ -18,25 +15,26 @@ export const _InputControl = (props: any) => {
     onBlur && onBlur(e);
   };
 
-  const handleKeyDown = variation === 'number'
-    ? (e: React.KeyboardEvent) => {
-        if (
-          !/[0-9.-]/.test(e.key) &&
-          !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)
-        ) {
-          e.preventDefault();
+  const handleKeyDown =
+    variation === "number"
+      ? (e: React.KeyboardEvent) => {
+          if (
+            !/[0-9.-]/.test(e.key) &&
+            !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Enter"].includes(e.key)
+          ) {
+            e.preventDefault();
+          }
         }
-      }
-    : undefined;
+      : undefined;
 
   const commonProps = {
     className: inputClassNames,
     name: attribute,
     id,
-    type: type || 'text',
+    type: type || "text",
     disabled: readOnly,
     placeholder: " ",
-    defaultValue: value || '',
+    defaultValue: value || "",
     autoComplete: "off",
     onChange: handleChange,
     onBlur: handleBlur,
@@ -45,33 +43,56 @@ export const _InputControl = (props: any) => {
   };
 
   if (rows) {
-    return <textarea rows={rows} {...commonProps} />;
+    return (
+      <textarea
+        rows={rows}
+        {...commonProps}
+      />
+    );
   }
-  return <input type="text" {...commonProps} />;
+  return (
+    <input
+      type="text"
+      {...commonProps}
+    />
+  );
 };
 
 export const InputControl = (props: any) => {
   const [labelWidth, setLabelWidth] = useState(0);
   const [hasValue, setHasValue] = useState(false);
   const { values } = useInterview();
-  const { id, label, type, labelDisplay, attribute, value, setValue, variation, readOnly, rows, classNames, showExplanation, onBlur} = props;
+  const {
+    id,
+    label,
+    type,
+    labelDisplay,
+    attribute,
+    value,
+    setValue,
+    variation,
+    readOnly,
+    rows,
+    classNames,
+    showExplanation,
+    onBlur,
+  } = props;
 
   useEffect(() => {
-    if (values[attribute] || type === 'date' || type === 'time') {
+    if (values[attribute] || type === "date" || type === "time") {
       setHasValue(true);
     }
   }, [values[attribute], type]);
   // For legend width animation
   const labelRef = useRef<HTMLLabelElement>(null);
- 
+
   let inputClassNames;
-  if (!labelDisplay || labelDisplay === 'inline') {
+  if (!labelDisplay || labelDisplay === "inline") {
     inputClassNames = clsx(`dcsvly-ctrl-${type}-input`, classNames.input);
   } else {
     inputClassNames = clsx(`dcsvly-ctrl-${type}-input-seperate`, classNames.inputSeperate);
   }
-  if (!labelDisplay || labelDisplay === 'inline') {
-
+  if (!labelDisplay || labelDisplay === "inline") {
     return (
       <>
         <fieldset className={clsx(`dcsvly-ctrl-${type}-fieldset`, classNames.fieldset)}>
@@ -96,28 +117,26 @@ export const InputControl = (props: any) => {
             className={clsx(
               `dcsvly-ctrl-${type}-label`,
               classNames.label,
-              hasValue ? classNames.labelWithValue : classNames.labelNoValue
+              hasValue ? classNames.labelWithValue : classNames.labelNoValue,
             )}
           >
             {label}
           </label>
           <legend
-            className={clsx(
-              `dcsvly-ctrl-${type}-legend`,
-              classNames.legend
-            )}
+            className={clsx(`dcsvly-ctrl-${type}-legend`, classNames.legend)}
             style={{
               width: hasValue ? labelWidth + 8 : 0, // 8px for padding
-              transition: "width 0.2s"
+              transition: "width 0.2s",
             }}
           >
             <span>{"\u200B"}</span>
           </legend>
-          <Explanation control={{
-            showExplanation,
-            attribute,
-          }} />
-          
+          <Explanation
+            control={{
+              showExplanation,
+              attribute,
+            }}
+          />
         </fieldset>
         <Error id={attribute} />
       </>
@@ -126,14 +145,10 @@ export const InputControl = (props: any) => {
     return (
       <>
         <div className={clsx(`dcsvly-ctrl-${type}-container`, classNames.container)}>
-          <label
-            className={clsx(`dcsvly-ctrl-${type}-label-seperate`, classNames.labelSeperate)}
-          >
-            {label}
-          </label>
+          <label className={clsx(`dcsvly-ctrl-${type}-label-seperate`, classNames.labelSeperate)}>{label}</label>
           <_InputControl
             id={id}
-            attribute={attribute} 
+            attribute={attribute}
             type={type}
             value={value}
             setValue={setValue}
@@ -143,14 +158,15 @@ export const InputControl = (props: any) => {
             inputClassNames={inputClassNames}
             onBlur={onBlur}
           />
-          <Explanation control={{
-            showExplanation,
-            attribute,
-          }} />
+          <Explanation
+            control={{
+              showExplanation,
+              attribute,
+            }}
+          />
         </div>
         <Error id={attribute} />
       </>
-    )
+    );
   }
-
-}
+};

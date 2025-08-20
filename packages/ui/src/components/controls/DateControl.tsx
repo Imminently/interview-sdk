@@ -1,8 +1,8 @@
-import { UseControllerReturn } from "react-hook-form";
-import { DateControl } from "@imminently/interview-sdk";
 import { useTheme } from "@/providers";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import type { DateControl } from "@imminently/interview-sdk";
+import type { UseControllerReturn } from "react-hook-form";
 import { DatePicker } from "../ui/date-picker";
+import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 
 export const DateFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
@@ -21,4 +21,3 @@ export const DateFormControl = ({ field }: UseControllerReturn) => {
     </>
   );
 };
-

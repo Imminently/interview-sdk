@@ -1,9 +1,9 @@
-import { FileControl } from "@imminently/interview-sdk";
-import { UseControllerReturn } from "react-hook-form";
+import { useTheme } from "@/providers";
+import type { FileControl } from "@imminently/interview-sdk";
+import type { UseControllerReturn } from "react-hook-form";
 import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Input } from "../ui/input";
 import { Explanation } from "./Explanation";
-import { useTheme } from "@/providers";
 
 // TODO WIP still not complete
 export const FileFormControl = ({ field }: UseControllerReturn) => {
@@ -27,7 +27,7 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
               // convert to bytes since max_size is in MB
               const max = control.max_size * 1024 * 1024; // MB to bytes
               console.log("Validating file sizes", control.max_size, files);
-              const validFiles = files.filter(file => file.size <= max);
+              const validFiles = files.filter((file) => file.size <= max);
               field.onChange(validFiles);
             } else {
               field.onChange(files);
@@ -41,4 +41,4 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
       <FormMessage />
     </>
   );
-}
+};

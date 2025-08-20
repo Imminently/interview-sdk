@@ -1,10 +1,10 @@
-import * as React from "react";
-import { useFormContext } from "react-hook-form";
-import { Slot } from "@radix-ui/react-slot";
-import { cn } from "@/util";
-import { useInterview } from "../InterviewContext";
-import { useTheme } from "@/providers";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/providers";
+import { cn } from "@/util";
+import { Slot } from "@radix-ui/react-slot";
+import type * as React from "react";
+import { useFormContext } from "react-hook-form";
+import { useInterview } from "../InterviewContext";
 
 export interface InterviewNextProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;

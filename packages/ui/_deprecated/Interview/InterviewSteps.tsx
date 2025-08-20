@@ -1,7 +1,8 @@
-import React from 'react';
-import clsx from 'clsx';
-import { themeMerge } from '../providers/ThemeProvider';
-import { getInterviewComponent } from '../providers/InterviewProvider';
+import clsx from "clsx";
+import type React from "react";
+import { getInterviewComponent } from "../providers/InterviewProvider";
+import { themeMerge } from "../providers/ThemeProvider";
+
 interface Step {
   id: string;
   title: string;
@@ -23,9 +24,9 @@ interface StepsProps {
 }
 
 const getStepState = (step: Step) => {
-  if (step.current) return 'current';
-  if (step.visited) return 'visited';
-  return 'future';
+  if (step.current) return "current";
+  if (step.visited) return "visited";
+  return "future";
 };
 
 const StepItem: React.FC<{
@@ -47,31 +48,25 @@ const StepItem: React.FC<{
   const stateText = mergedClassNames[`text${state.charAt(0).toUpperCase() + state.slice(1)}`];
 
   return (
-    <div className={clsx('dcsvly-step-item', mergedClassNames.item)}>
-      <div className={clsx('dcsvly-step-index', mergedClassNames.index)} style={{ marginLeft: `${indent}px` }}>
+    <div className={clsx("dcsvly-step-item", mergedClassNames.item)}>
+      <div
+        className={clsx("dcsvly-step-index", mergedClassNames.index)}
+        style={{ marginLeft: `${indent}px` }}
+      >
         <div
           className={clsx(
-            depth === 0 ? 'dcsvly-step-circle' : 'dcsvly-step-sub-circle',
+            depth === 0 ? "dcsvly-step-circle" : "dcsvly-step-sub-circle",
             `dcsvly-step-${state}`,
             circleSize,
-            stateCircle
+            stateCircle,
           )}
         >
           {index + 1}
         </div>
-        <span
-          className={clsx(
-            'dcsvly-step-title',
-            `dcsvly-step-${state}`,
-            size,
-            stateText
-          )}
-        >
-          {step.title}
-        </span>
+        <span className={clsx("dcsvly-step-title", `dcsvly-step-${state}`, size, stateText)}>{step.title}</span>
       </div>
       {step.steps && depth + 1 < maxDepth && (
-        <div className={clsx('dcsvly-step-substeps', mergedClassNames.subSteps)}>
+        <div className={clsx("dcsvly-step-substeps", mergedClassNames.subSteps)}>
           {step.steps.map((sub, i) => (
             <StepItem
               key={sub.id + i}
@@ -95,13 +90,13 @@ export const InterviewSteps: React.FC<StepsProps> = ({
   maxDepth = 2,
   depth = 0,
   classNames = {},
-  className = ''
+  className = "",
 }) => {
-  const mergedClassNames = themeMerge('InterviewSteps', classNames);
-  const _steps = steps || getInterviewComponent('steps');
+  const mergedClassNames = themeMerge("InterviewSteps", classNames);
+  const _steps = steps || getInterviewComponent("steps");
   if (!_steps) return null;
   return (
-    <div className={clsx('dcsvly-step-root', mergedClassNames.root, className)}>
+    <div className={clsx("dcsvly-step-root", mergedClassNames.root, className)}>
       {_steps.map((step, i) => (
         <StepItem
           key={step.id + i}

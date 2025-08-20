@@ -1,4 +1,3 @@
-import { useFormContext } from "react-hook-form";
 import {
   Sidebar,
   SidebarContent,
@@ -8,6 +7,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useTheme } from "@/providers";
+import { useFormContext } from "react-hook-form";
 import { Badge } from "../components/ui/badge";
 
 const stringValue = (value: any) => {
@@ -36,21 +36,15 @@ export const InterviewDebugPanel = () => {
     >
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="p-0 text-lg font-bold">
-            {t("debug.form_values")}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel className="p-0 text-lg font-bold">{t("debug.form_values")}</SidebarGroupLabel>
           <SidebarMenu>
             {Object.entries(values).map(([key, value]) => (
               <SidebarMenuItem
                 key={key}
                 className="flex items-center justify-between py-1"
               >
-                <span className="text-sm font-mono text-muted-foreground">
-                  {key}
-                </span>
-                <Badge className="rounded-full text-sm font-mono">
-                  {stringValue(value)}
-                </Badge>
+                <span className="text-sm font-mono text-muted-foreground">{key}</span>
+                <Badge className="rounded-full text-sm font-mono">{stringValue(value)}</Badge>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

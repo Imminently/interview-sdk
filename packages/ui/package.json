@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-ui",
-  "version": "0.3.18",
+  "version": "0.3.21",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -20,17 +20,18 @@
     }
   },
   "sideEffects": false,
-  "files": [
-    "dist/**"
-  ],
+  "files": ["dist/**"],
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build:styles": "bunx @tailwindcss/cli@latest -i ./src/index.css -o ./dist/index.css --minify",
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "bump:patch": "bun run build && npm version patch --no-git-tag-version",
-    "deploy": "bun run bump:patch && bun publish"
+    "deploy": "bun run bump:patch && bun publish",
+    "check:fix": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check --write .",
+    "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check ."
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.2.3",
@@ -63,16 +64,18 @@
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
+    "@imminently/standard": "^0.2.5",
+    "@tailwindcss/cli": "^4.1.11",
+    "@tailwindcss/postcss": "^4.1.11",
     "@types/lodash-es": "^4.17.12",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@tailwindcss/cli": "^4.1.11",
-    "tailwindcss": "^4.1.11",
-    "@tailwindcss/postcss": "^4.1.11",
+    "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.3",
-    "autoprefixer": "^10.4.21"
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "@imminently/interview-sdk": ">= 0.2.0",

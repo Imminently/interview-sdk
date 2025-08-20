@@ -6,15 +6,9 @@
     "declarationDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src",
-  ],
-  "exclude": [
-    "_deprecated"
-  ]
+  "include": ["src"],
+  "exclude": ["_deprecated"]
 }

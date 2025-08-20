@@ -13,18 +13,21 @@ import { Typography } from "./Typography";
 
 export * from "./Explanation";
 
-export default Object.assign({}, {
-  Boolean: BooleanFormControl,
-  Currency: CurrencyFormControl,
-  Date: DateFormControl,
-  // Datetime: DateTimeControl,
-  Entity: EntityFormControl,
-  File: FileFormControl,
-  Error: Error,
-  Explanation: Explanation,
-  Radio: RadioFormControl,
-  Select: SelectFormControl,
-  Text: TextFormControl,
-  Time: TimeFormControl,
-  Typography: Typography,
-});
+export default Object.assign(
+  {},
+  {
+    Boolean: BooleanFormControl,
+    Currency: CurrencyFormControl,
+    Date: DateFormControl,
+    // Datetime: DateTimeControl,
+    Entity: EntityFormControl,
+    File: FileFormControl,
+    Error: Error,
+    Explanation: Explanation,
+    Radio: RadioFormControl,
+    Select: SelectFormControl,
+    Text: TextFormControl,
+    Time: TimeFormControl,
+    Typography: Typography,
+  },
+);

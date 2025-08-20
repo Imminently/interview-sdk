@@ -1,8 +1,8 @@
-import type { TypographyControl } from "@imminently/interview-sdk";
-import { cva, type VariantProps } from "class-variance-authority";
-import type React from "react";
 import { useOptions, useTheme } from "@/providers";
 import { cn } from "@/util";
+import type { TypographyControl } from "@imminently/interview-sdk";
+import { type VariantProps, cva } from "class-variance-authority";
+import type React from "react";
 import { Alert, AlertDescription } from "../ui/alert";
 import { FormControl, FormField, FormItem, FormLabel } from "../ui/form";
 
@@ -33,18 +33,14 @@ const typographyVariants = cva("", {
   },
 });
 
-interface BannerProps
-  extends React.HTMLAttributes<HTMLElement>,
-  VariantProps<typeof typographyVariants> {
+interface BannerProps extends React.HTMLAttributes<HTMLElement>, VariantProps<typeof typographyVariants> {
   "data-typography": TextVariant;
 }
 
 const Banner = ({ className, children, ...props }: BannerProps) => {
   const variant = props["data-typography"];
   return (
-    <Alert
-      variant={variant.replace("banner-", "") as "yellow" | "red" | "green"}
-    >
+    <Alert variant={variant.replace("banner-", "") as "yellow" | "red" | "green"}>
       <AlertDescription>{children}</AlertDescription>
     </Alert>
   );
@@ -81,12 +77,14 @@ export const Typography = ({ control }: TypographyControlProps) => {
   const variant: TextVariant = control.style || "body1";
   const Comp: React.ElementType = componentMap[variant] ?? "div";
 
-  const debugControl = debug ? () => {
-    console.log("Typography", {
-      variant,
-      control
-    });
-  } : undefined;
+  const debugControl = debug
+    ? () => {
+        console.log("Typography", {
+          variant,
+          control,
+        });
+      }
+    : undefined;
 
   const component = (
     <Comp
