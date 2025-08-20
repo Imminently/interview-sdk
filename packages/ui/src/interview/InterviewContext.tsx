@@ -60,7 +60,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
   const methods = useForm(form);
   const snapshot = useSyncExternalStore(manager.subscribe, manager.getSnapshot);
 
-  if (manager.debug) {
+  if (manager.isDebugEnabled()) {
     console.log("[InterviewProvider] Snapshot", snapshot);
   }
 

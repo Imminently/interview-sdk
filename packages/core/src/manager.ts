@@ -273,6 +273,9 @@ export class SessionManager {
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
 
+  private debugEnabled: boolean;
+  private advancedDebugEnabled;
+
   private renderAt: number = Date.now();
   private externalLoading = false;
   private rulesEnginePromise: Promise<RulesEngine> | undefined = undefined;
@@ -296,6 +299,8 @@ export class SessionManager {
     this.error = undefined;
     this._options = options;
     this.listeners = new Set();
+    this.debugEnabled = Boolean(options.debug);
+    this.advancedDebugEnabled = false;
 
     // create the API manager
     this.apiManager =
@@ -324,7 +329,7 @@ export class SessionManager {
   }
 
   private log = (message: string, ...args: any[]) => {
-    if (this.debug) {
+    if (this.isDebugEnabled()) {
       console.log(`[DEBUG:${LogGroup}] ${message}`, ...args);
     }
   };
@@ -334,6 +339,25 @@ export class SessionManager {
     this.error = error || undefined;
     this.log("State updated:", this.state, this.error);
     this.notifyListeners();
+  };
+
+  isDebugEnabled = () => {
+    return this.debugEnabled;
+  };
+
+  isAdvancedDebugEnabled = () => {
+    return this.advancedDebugEnabled;
+  };
+
+  setDebugEnabled = (enabled: boolean) => {
+    this.debugEnabled = enabled;
+    if (!enabled) {
+      this.advancedDebugEnabled = false;
+    }
+  };
+
+  setAdvancedDebugEnabled = (enabled: boolean) => {
+    this.advancedDebugEnabled = enabled;
   };
 
   private preCacheClient = () => {
@@ -377,10 +401,6 @@ export class SessionManager {
 
   get options() {
     return this._options;
-  }
-
-  get debug() {
-    return Boolean(this.options.debug);
   }
 
   isOnScreen = (control: Control, screen?: Screen): boolean => {

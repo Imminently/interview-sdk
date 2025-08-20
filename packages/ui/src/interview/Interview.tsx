@@ -1,13 +1,10 @@
-import type {Control, ManagerOptions} from "@imminently/interview-sdk";
+import InterviewDebugIndicator from "@/interview/InterviewDebugIndicator";
+import { DebugSettingsProvider } from "@/providers";
+import type { ManagerOptions } from "@imminently/interview-sdk";
 import { SessionManager } from "@imminently/interview-sdk";
 import { type PropsWithChildren, useState } from "react";
-import {
-  type InterviewConfig, InterviewContextState,
-  InterviewProvider
-} from "./InterviewContext";
+import { type InterviewConfig, InterviewProvider } from "./InterviewContext";
 import { InterviewLayout } from "./InterviewLayout";
-import { DebugSettingsProvider } from "@/providers";
-import InterviewDebugIndicator from "@/interview/InterviewDebugIndicator";
 
 export interface InterviewProps extends PropsWithChildren, InterviewConfig {
   options: ManagerOptions;
@@ -21,14 +18,14 @@ export const Interview = ({ options, children, ...props }: InterviewProps) => {
   const [manager] = useState(() => new SessionManager(options));
 
   return (
-    <DebugSettingsProvider initialDebug={options?.debug}>
-      <InterviewDebugIndicator />
-      <InterviewProvider
-        manager={manager}
-        {...props}
-      >
+    <InterviewProvider
+      manager={manager}
+      {...props}
+    >
+      <DebugSettingsProvider>
+        <InterviewDebugIndicator />
         {children ? children : <InterviewLayout key={manager.session?.screen.id} />}
-      </InterviewProvider>
-    </DebugSettingsProvider>
+      </DebugSettingsProvider>
+    </InterviewProvider>
   );
 };

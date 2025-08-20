@@ -1,5 +1,4 @@
 import { isReadOnly } from "@/components/controls/ReadOnlyControl";
-import { useDebugSettings } from "@/providers";
 import type { Control, RenderableControl } from "@imminently/interview-sdk";
 import type React from "react";
 import { useEffect, useMemo } from "react";
@@ -9,7 +8,6 @@ import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { generateValidatorForControl } from "../util/validation";
 import { useInterview } from "./InterviewContext";
-import InterviewControlDebug from "./InterviewControlDebug";
 
 export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   control: Control;

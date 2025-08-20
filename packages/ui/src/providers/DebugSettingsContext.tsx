@@ -1,3 +1,4 @@
+import { useInterview } from "@/interview";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type DebugSettings = {
@@ -11,18 +12,35 @@ const DebugSettingsContext = createContext<DebugSettings | undefined>(undefined)
 
 export function DebugSettingsProvider({
   children,
-  initialDebug,
 }: {
   children: React.ReactNode;
-  initialDebug?: boolean;
 }) {
-  const [debugEnabled, setDebugEnabled] = useState<boolean>(Boolean(initialDebug));
-  const [advancedDebugEnabled, setadvancedDebugEnabled] = useState<boolean>(false);
+  const interview = useInterview();
+  const [debugEnabled, _setDebugEnabled] = useState<boolean>(interview.manager.isDebugEnabled());
+  const [advancedDebugEnabled, _setAdvancedDebugEnabled] = useState<boolean>(
+    interview.manager.isAdvancedDebugEnabled(),
+  );
+
+  const setDebugEnabled: typeof _setDebugEnabled = (update) => {
+    _setDebugEnabled((prevValue) => {
+      const newValue = typeof update === "function" ? update(prevValue) : update;
+      interview.manager.setDebugEnabled(newValue);
+      return newValue;
+    });
+  };
+
+  const setaAdvancedDebugEnabled: typeof _setAdvancedDebugEnabled = (update) => {
+    _setAdvancedDebugEnabled((preValue) => {
+      const newValue = typeof update === "function" ? update(preValue) : update;
+      interview.manager.setAdvancedDebugEnabled(newValue);
+      return newValue;
+    });
+  };
 
   // When debug is turned off, also turn off the debug UI
   useEffect(() => {
     if (!debugEnabled && advancedDebugEnabled) {
-      setadvancedDebugEnabled(false);
+      setaAdvancedDebugEnabled(false);
     }
   }, [debugEnabled, advancedDebugEnabled]);
 
@@ -38,7 +56,7 @@ export function DebugSettingsProvider({
       // ` or ~ toggles debug UI if debug is enabled
       if (event.key === "`" || event.code === "Backquote" || event.key === "~") {
         if (debugEnabled) {
-          setadvancedDebugEnabled((v) => !v);
+          setaAdvancedDebugEnabled((v) => !v);
           event.preventDefault();
         }
         return;
@@ -54,7 +72,7 @@ export function DebugSettingsProvider({
       debugEnabled,
       advancedDebugEnabled,
       setDebugEnabled,
-      setadvancedDebugEnabled,
+      setadvancedDebugEnabled: setaAdvancedDebugEnabled,
     }),
     [debugEnabled, advancedDebugEnabled],
   );
