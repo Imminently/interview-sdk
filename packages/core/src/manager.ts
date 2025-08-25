@@ -716,13 +716,19 @@ export class SessionManager {
       return undefined;
     }
 
-    this.log(`[${LogGroup}] Release':`, release);
+    const goal = root[0];
+    this.log(`[${LogGroup}] Release:`, release);
+    this.log(`[${LogGroup}] Payload:`, {
+      "@goal": goal,
+      "@root": roots,
+      ...input,
+    });
 
     const result = await rulesEngine.solve(
       {
         input: input,
         roots: roots,
-        goal: roots[0],
+        goal: goal,
         response_elements: [
           {
             type: "attributes",
@@ -745,11 +751,7 @@ export class SessionManager {
       {},
     );
 
-    this.log(`[${LogGroup}] Payload:`, {
-      "@goal": result.goal,
-      "@root": roots,
-      ...input,
-    });
+
     this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
 
     return result;
