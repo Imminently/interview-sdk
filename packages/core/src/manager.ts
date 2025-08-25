@@ -716,7 +716,7 @@ export class SessionManager {
       return undefined;
     }
 
-    const goal = root[0];
+    const goal = roots[0];
     this.log(`[${LogGroup}] Release:`, release);
     this.log(`[${LogGroup}] Payload:`, {
       "@goal": goal,
