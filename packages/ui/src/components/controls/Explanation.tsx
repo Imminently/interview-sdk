@@ -16,6 +16,7 @@ import clsx from "clsx";
 import { HelpCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { useAttributeToFieldName } from "@/util";
 
 // Omit control types that do not have explanations
 type ExplanationControl = Exclude<
@@ -41,26 +42,31 @@ export const Explanation = (props: ExplanationProps) => {
   const { control, className } = props;
   const { t } = useTheme();
   const { session } = useInterview();
-  if ((control as ExplanationControl).showExplanation && control.attribute) {
-    const explanation = session.explanations?.[control.attribute] || null;
-    if (!explanation) return null;
-    return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            aria-label="Show explanation"
-            className={clsx("size-6 rounded-full", className)}
-          >
-            <span className="sr-only">{t("form.explanation")}</span>
-            <HelpCircle className="size-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent>{t(explanation)}</PopoverContent>
-      </Popover>
-    );
-  }
-  return null;
+  const showExplanation = (control as ExplanationControl).showExplanation;
+  
+  // make sure we use just the attribute id, ie strip all the pathing
+  const attribute = useAttributeToFieldName(control.attribute);
+
+  if (!showExplanation || !attribute) return null;
+
+  const explanation = session.explanations?.[attribute] || null;
+  if (!explanation) return null;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          aria-label="Show explanation"
+          className={clsx("size-6 rounded-full", className)}
+        >
+          <span className="sr-only">{t("form.explanation")}</span>
+          <HelpCircle className="size-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent>{t(explanation)}</PopoverContent>
+    </Popover>
+  );
 };
