@@ -1,5 +1,6 @@
 import { useInterview } from "@/interview";
 import { useTheme } from "@/providers";
+import { useAttributeToFieldName } from "@/util";
 import type {
   CertaintyContainerControl,
   Control,
@@ -16,7 +17,6 @@ import clsx from "clsx";
 import { HelpCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { useAttributeToFieldName } from "@/util";
 
 // Omit control types that do not have explanations
 type ExplanationControl = Exclude<
@@ -43,7 +43,7 @@ export const Explanation = (props: ExplanationProps) => {
   const { t } = useTheme();
   const { session } = useInterview();
   const showExplanation = (control as ExplanationControl).showExplanation;
-  
+
   // make sure we use just the attribute id, ie strip all the pathing
   const attribute = useAttributeToFieldName(control.attribute);
 

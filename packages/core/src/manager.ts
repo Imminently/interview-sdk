@@ -493,11 +493,13 @@ export class SessionManager {
   create = async (config: SessionConfig): Promise<Session> => {
     this.log("Creating session:", config);
     this.setState("loading");
-    const session = await this.apiManager.create({ config: {
-      ...config,
-      clientGraphBookmark: this.getClientGraphBookmark(),
-      readOnly: this.options.readOnly,
-    }});
+    const session = await this.apiManager.create({
+      config: {
+        ...config,
+        clientGraphBookmark: this.getClientGraphBookmark(),
+        readOnly: this.options.readOnly,
+      },
+    });
     this.log("Session created successfully:", session);
     this.setState("success");
     this.push(session);
@@ -752,7 +754,6 @@ export class SessionManager {
       },
       {},
     );
-
 
     this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
 

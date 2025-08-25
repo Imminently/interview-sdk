@@ -2,20 +2,20 @@ import type { AxiosInstance, AxiosRequestConfig } from "axios";
 import type {
   AttributeValues,
   AuthConfigGetter,
+  BackOptions,
+  ChatOptions,
   ChatResponse,
+  CreateOptions,
+  ExportTimelineOptions,
+  GetRulesEngineOptions,
   Navigate,
+  NavigateOptions,
   Overrides,
   Session,
   SessionConfig,
-  StepId,
-  CreateOptions,
-  SubmitOptions,
-  ChatOptions,
-  NavigateOptions,
-  BackOptions,
   SimulateOptions,
-  ExportTimelineOptions,
-  GetRulesEngineOptions,
+  StepId,
+  SubmitOptions,
 } from "./types";
 import { buildUrl, createApiInstance } from "./util";
 

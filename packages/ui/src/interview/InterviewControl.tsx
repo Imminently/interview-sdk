@@ -92,10 +92,61 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     [resolvedControl],
   );
 
+  // useEffect(() => {
+  //   // if (manager.debug) {
+  //   //   console.log("[InterviewControl] Registering control", {
+  //   //     name,
+  //   //     control: resolvedControl,
+  //   //   });
+  //   // }
+
+  //   // return a cleanup function to unregister the control
+  //   return () => {
+  //     if (manager.isOnScreen(resolvedControl as Control)) return; // don't unregister if the control is on screen
+  //     // if the control is not on screen, we can safely unregister it
+  //     if (manager.debug) {
+  //       console.log("[InterviewControl] Unregistering control", name);
+  //     }
+  //     unregister(name);
+  //   };
+  // }, [manager, resolvedControl, name, unregister]);
+
+  // TEMP disabling as it was causing recursive updates and max depth exceeded errors
+  // set validation errors from the session object
+  // const { setError, clearErrors } = form;
+  // const validations = useAttributeValidationErrors(control.attribute);
+  // useEffect(() => {
+  //   if (validations.length > 0) {
+  //     setError(name, { type: "manual", message: validations[0].message });
+  //   } else {
+  //     clearErrors(name);
+  //   }
+  // }, [name, validations, setError, clearErrors]);
+
   // don't render if the control is hidden
   if (hidden) {
     return null;
   }
+
+  // we only override the render if the control is readOnly and labelDisplay is "automatic"
+  // if (readOnly && (control as any).labelDisplay === "automatic") {
+  //   return (
+  //     <FormField
+  //       name={name}
+  //       data={resolvedControl}
+  //       control={form.control}
+  //       defaultValue={defaultValue}
+  //       render={(props) => (
+  //         <FormItem>
+  //           <ReadOnlyControl {...props} />
+  //         </FormItem>
+  //       )}
+  //     />
+  //   );
+  // } else if (readOnly) {
+  //   // @ts-ignore since its flagged readOnly, we want to force it disabled
+  //   resolvedControl.disabled = true;
+  // }
 
   return (
     <FormField
@@ -109,7 +160,19 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
       render={(props) => (
         <>
           <FormItem>
-            {children(props)}
+            {
+              // children({
+              //   fieldState,
+              //   formState,
+              //   field: {
+              //     ...field,
+              //     // we want to use the control value if we are readOnly, as it might get dynamically updated, which is outisde of the form
+              //     // @ts-ignore if value doesn't exist, it'll just use the field value
+              //     value: resolvedControl.readOnly && resolvedControl.value ? resolvedControl.value : field.value
+              //   }
+              // })
+              children(props)
+            }
           </FormItem>
         </>
       )}
