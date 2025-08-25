@@ -90,12 +90,11 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
 export const EntityFormControl = ({ control, className }: EntityFormControlProps) => {
   const { t } = useTheme();
   const { control: formControl } = useFormContext();
-  const { readOnly: forceReadOnly } = useInterview();
 
   const parentPath = useAttributeToFieldName(control.attribute);
   const fieldName = parentPath ?? control.entity;
   // @ts-ignore check control as we will probably add readOnly in future
-  const readOnly = forceReadOnly ?? control.readOnly;
+  const readOnly = control.readOnly;
 
   const { fields, append, remove } = useFieldArray({
     control: formControl,

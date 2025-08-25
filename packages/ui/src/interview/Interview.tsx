@@ -8,14 +8,15 @@ import { InterviewLayout } from "./InterviewLayout";
 
 export interface InterviewProps extends PropsWithChildren, InterviewConfig {
   options: ManagerOptions;
+  readOnly?: boolean;
 }
 
 /**
  * A simple interview component that provides the interview context and layout.
  * It creates a new SessionManager instance and passes it to the InterviewProvider.
  */
-export const Interview = ({ options, children, ...props }: InterviewProps) => {
-  const [manager] = useState(() => new SessionManager(options));
+export const Interview = ({ options, children, readOnly, ...props }: InterviewProps) => {
+  const [manager] = useState(() => new SessionManager({ ...options, readOnly }));
 
   return (
     <InterviewProvider

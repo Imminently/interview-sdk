@@ -18,14 +18,15 @@ export const API = {
 }
 
 class CustomApi extends ApiManager {
-  simulate = async (session: Session, data: Partial<Simulate>) => {
+  simulate = async (options: { session: Session; payload: Partial<Simulate> }) => {
+    const { session, payload } = options;
     // Dynamic interactions are now on a post (due to new interaction behaviour in backend)
     const res = await this.api.post<AttributeValues>(
       buildUrl(session.sessionId, "interview"),
       {
         mode: "api",
         save: false,
-        ...data,
+        ...payload,
       }
     );
     return res.data;

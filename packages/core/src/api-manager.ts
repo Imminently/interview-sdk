@@ -8,6 +8,14 @@ import type {
   Session,
   SessionConfig,
   StepId,
+  CreateOptions,
+  SubmitOptions,
+  ChatOptions,
+  NavigateOptions,
+  BackOptions,
+  SimulateOptions,
+  ExportTimelineOptions,
+  GetRulesEngineOptions,
 } from "./types";
 import { buildUrl, createApiInstance } from "./util";
 
@@ -20,15 +28,15 @@ export interface ApiManagerOptions {
   overrides?: AxiosRequestConfig;
   /** API getters for each function */
   apiGetters?: {
-    create?: (options: SessionConfig) => string;
+    create?: (options: CreateOptions) => string;
     load?: (options: SessionConfig) => string;
-    submit?: (session: Session, data: AttributeValues, navigate: Navigate) => string;
-    chat?: (session: Session, message: string, goal: string) => string;
-    navigate?: (session: Session, step: StepId) => string;
-    back?: (session: Session) => string;
-    simulate?: (session: Session, data: Partial<AttributeValues>) => string;
-    exportTimeline?: (session: Session) => string;
-    getRulesEngine?: (checksum?: string) => string;
+    submit?: (options: SubmitOptions) => string;
+    chat?: (options: ChatOptions) => string;
+    navigate?: (options: NavigateOptions) => string;
+    back?: (options: BackOptions) => string;
+    simulate?: (options: SimulateOptions) => string;
+    exportTimeline?: (options: ExportTimelineOptions) => string;
+    getRulesEngine?: (options?: GetRulesEngineOptions) => string;
   };
 }
 
@@ -44,8 +52,9 @@ export class ApiManager {
     this.options = options;
   }
 
-  create = async (options: SessionConfig = {}) => {
-    const { initialData, project, release, responseElements, sessionId, ...rest } = options;
+  create = async (options: CreateOptions) => {
+    const { config } = options;
+    const { initialData, project, release, responseElements, sessionId, ...rest } = config;
 
     const url = this.options.apiGetters?.create ? this.options.apiGetters.create(options) : buildUrl(project, release);
 
@@ -83,15 +92,10 @@ export class ApiManager {
    * @param navigate The desired navigation after update, defaults to next
    * @param overrides Other params to pass through to payload
    */
-  submit = async (
-    session: Session,
-    data: AttributeValues,
-    navigate: Navigate,
-    overrides?: Overrides,
-    clientGraphBookmark?: string,
-  ) => {
+  submit = async (options: SubmitOptions) => {
+    const { session, data, navigate, overrides, clientGraphBookmark } = options;
     const url = this.options.apiGetters?.submit
-      ? this.options.apiGetters.submit(session, data, navigate)
+      ? this.options.apiGetters.submit(options)
       : buildUrl(session.model, session.release);
     const res = await this.api.patch<Session>(
       url,
@@ -100,6 +104,7 @@ export class ApiManager {
         navigate: navigate || undefined,
         index: session.index,
         clientGraphBookmark,
+        readOnly: options.readOnly,
         ...overrides,
       },
       {
@@ -115,18 +120,11 @@ export class ApiManager {
   /**
    * Send a generative chat message
    */
-  chat = async (
-    session: Session,
-    message: string,
-    goal: string,
-    overrides?: Overrides,
-    interactionId?: string | null,
-  ): Promise<ChatResponse> => {
+  chat = async (options: ChatOptions): Promise<ChatResponse> => {
+    const { session, message, goal, overrides, interactionId } = options;
     const resolvedInteractionId = interactionId !== undefined ? interactionId : session.interactionId;
 
-    const url = this.options.apiGetters?.chat
-      ? this.options.apiGetters.chat(session, message, goal)
-      : buildUrl(session.model);
+    const url = this.options.apiGetters?.chat ? this.options.apiGetters.chat(options) : buildUrl(session.model);
 
     const res = await this.api[resolvedInteractionId ? "patch" : "post"]<ChatResponse>(
       url,
@@ -153,13 +151,12 @@ export class ApiManager {
    *
    * @param step The desired step ID
    */
-  navigate = async (session: Session, step: StepId, overrides?: Overrides) => {
-    const url = this.options.apiGetters?.navigate
-      ? this.options.apiGetters.navigate(session, step)
-      : buildUrl(session.model);
+  navigate = async (options: NavigateOptions) => {
+    const { session, step, overrides } = options;
+    const url = this.options.apiGetters?.navigate ? this.options.apiGetters.navigate(options) : buildUrl(session.model);
     const res = await this.api.patch<Session>(
       url,
-      { navigate: step, ...overrides },
+      { navigate: step, readOnly: options.readOnly, ...overrides },
       {
         params: {
           session: session.sessionId,
@@ -170,11 +167,12 @@ export class ApiManager {
     return res.data;
   };
 
-  back = async (session: Session, overrides?: Overrides) => {
-    const url = this.options.apiGetters?.back ? this.options.apiGetters.back(session) : buildUrl(session.model);
+  back = async (options: BackOptions) => {
+    const { session, overrides } = options;
+    const url = this.options.apiGetters?.back ? this.options.apiGetters.back(options) : buildUrl(session.model);
     const res = await this.api.patch<Session>(
       url,
-      { navigate: "@back", ...overrides },
+      { navigate: "@back", readOnly: options.readOnly, ...overrides },
       {
         params: {
           session: session.sessionId,
@@ -185,9 +183,10 @@ export class ApiManager {
     return res.data;
   };
 
-  simulate = async (session: Session, data: Partial<AttributeValues>) => {
+  simulate = async (options: SimulateOptions) => {
+    const { session, payload } = options;
     const url = this.options.apiGetters?.simulate
-      ? this.options.apiGetters.simulate(session, data)
+      ? this.options.apiGetters.simulate(options)
       : buildUrl(session.model, session.release);
     // Dynamic interactions are now on a post (due to new interaction behaviour in backend)
     const res = await this.api.post<Session>(
@@ -195,7 +194,7 @@ export class ApiManager {
       {
         mode: "api",
         save: false,
-        ...data,
+        ...payload,
       },
       {
         params: {
@@ -207,9 +206,10 @@ export class ApiManager {
     return res.data;
   };
 
-  exportTimeline = async (session: Session) => {
+  exportTimeline = async (options: ExportTimelineOptions) => {
+    const { session } = options;
     const url = this.options.apiGetters?.exportTimeline
-      ? this.options.apiGetters.exportTimeline(session)
+      ? this.options.apiGetters.exportTimeline(options)
       : buildUrl(session.model);
     const res = await this.api.post<string>(
       url,
@@ -237,9 +237,10 @@ export class ApiManager {
    * @param checksum Optional checksum to fetch a specific version of the rules engine script
    * @returns The rules engine script as a string
    */
-  getRulesEngine = async (checksum?: string) => {
+  getRulesEngine = async (options?: GetRulesEngineOptions) => {
+    const checksum = options?.checksum;
     const url = this.options.apiGetters?.getRulesEngine
-      ? this.options.apiGetters.getRulesEngine(checksum)
+      ? this.options.apiGetters.getRulesEngine(options)
       : this.getRulesEngineUrl(checksum);
 
     const res = await this.api.get(url, {

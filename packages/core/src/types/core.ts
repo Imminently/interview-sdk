@@ -274,6 +274,7 @@ export interface SessionConfig {
   /** the session goal */
   sessionGoal?: string;
   clientGraphBookmark?: string;
+  readOnly?: boolean;
 }
 
 export type Overrides = Record<string, any>;
@@ -305,6 +306,57 @@ export interface ChatResponse {
   goal: string;
   status: "in-progress" | "complete" | "error";
   processed: ChatProcessed;
+}
+
+export interface CreateOptions {
+  config: SessionConfig;
+}
+
+// ApiManager options object types
+export interface SubmitOptions {
+  session: Session;
+  data: AttributeValues;
+  navigate?: Navigate;
+  overrides?: Overrides;
+  clientGraphBookmark?: string;
+  /** If true, do not mutate state server-side */
+  readOnly?: boolean;
+}
+
+export interface ChatOptions {
+  session: Session;
+  message: string;
+  goal: string;
+  overrides?: Overrides;
+  interactionId?: string | null;
+}
+
+export interface NavigateOptions {
+  session: Session;
+  step: StepId;
+  overrides?: Overrides;
+  /** If true, do not mutate state server-side */
+  readOnly?: boolean;
+}
+
+export interface BackOptions {
+  session: Session;
+  overrides?: Overrides;
+  readOnly?: boolean;
+}
+
+export interface SimulateOptions {
+  session: Session;
+  /** Payload passed through to simulation API. Can be Simulate or partial additional fields */
+  payload: Partial<Simulate> | Record<string, any>;
+}
+
+export interface ExportTimelineOptions {
+  session: Session;
+}
+
+export interface GetRulesEngineOptions {
+  checksum?: string;
 }
 
 export interface ChatMessage {

@@ -10,7 +10,6 @@ export type InterviewContextState = {
   callbacks: InterviewCallbacks;
   state: ManagerState;
   error?: Error;
-  readOnly?: boolean;
   isLoading: boolean;
   backDisabled: boolean;
   nextDisabled: boolean;
@@ -27,8 +26,6 @@ export type InterviewConfig = {
   theme?: Theme;
   icons?: IconMap;
   slots?: Partial<InterviewControls>;
-  /** Force all controls into readOnly */
-  readOnly?: boolean;
   callbacks?: InterviewCallbacks;
 };
 
@@ -56,7 +53,7 @@ export interface InterviewProviderProps extends PropsWithChildren, InterviewConf
  * It provides methods to navigate through the interview steps, manage form values, and handle interactions.
  */
 export const InterviewProvider = ({ manager, children, ...config }: InterviewProviderProps) => {
-  const { form, theme, icons, slots, readOnly, callbacks } = config;
+  const { form, theme, icons, slots, callbacks } = config;
   const methods = useForm(form);
   const snapshot = useSyncExternalStore(manager.subscribe, manager.getSnapshot);
 
@@ -79,7 +76,6 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
       state,
       error,
       isLoading: loading,
-      readOnly,
       backDisabled: manager.isSubInterview ? false : buttons?.back === false || loading,
       nextDisabled:
         validationsFail ||
@@ -88,7 +84,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
         (!manager.isSubInterview && finished) ||
         loading,
     };
-  }, [snapshot, readOnly, manager, callbacks]);
+  }, [snapshot, manager, callbacks]);
 
   return (
     <OptionsProvider value={manager.options}>

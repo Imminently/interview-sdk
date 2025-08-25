@@ -176,6 +176,7 @@ export interface ManagerOptions {
   sessionConfig?: SessionConfig;
   /** EXPERIMENTAL: trying out adding support to load/store sessions */
   sessionStore?: Storage;
+  readOnly?: boolean;
 }
 
 export const updateReportingWithReplacements = (reporting: any, replacements: any, parent?: string) => {
@@ -492,10 +493,11 @@ export class SessionManager {
   create = async (config: SessionConfig): Promise<Session> => {
     this.log("Creating session:", config);
     this.setState("loading");
-    const session = await this.apiManager.create({
+    const session = await this.apiManager.create({ config: {
       ...config,
       clientGraphBookmark: this.getClientGraphBookmark(),
-    });
+      readOnly: this.options.readOnly,
+    }});
     this.log("Session created successfully:", session);
     this.setState("success");
     this.push(session);
@@ -883,7 +885,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to load rules engine");
       throw new Error("No active session to load rules engine");
     }
-    const engine = await this.apiManager.getRulesEngine(this.activeSession.rulesEngineChecksum);
+    const engine = await this.apiManager.getRulesEngine({ checksum: this.activeSession.rulesEngineChecksum });
     // biome-ignore lint: https://esbuild.github.io/content-types/#direct-eval
     return (0, eval)(engine);
   };
@@ -902,12 +904,15 @@ export class SessionManager {
     if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0 && this.activeSession.screen) {
       const requestId = this.internals.latestRequest;
 
-      const result = await this.apiManager.simulate(this.activeSession, {
-        goal: this.activeSession.goal,
-        mode: "interview",
-        data: {
-          "@parent": this.activeSession.data["@parent"],
-          ...(this.internals.userValues as any),
+      const result = await this.apiManager.simulate({
+        session: this.activeSession,
+        payload: {
+          goal: this.activeSession.goal,
+          mode: "interview",
+          data: {
+            "@parent": this.activeSession.data["@parent"],
+            ...(this.internals.userValues as any),
+          },
         },
       });
 
@@ -927,10 +932,10 @@ export class SessionManager {
       this.log("Simulate sidebar?", this.internals.sidebarSimulate);
 
       if (this.internals.sidebarSimulate) {
-        const result = await this.apiManager.simulate(
-          this.activeSession,
-          this.internals.sidebarSimulate.simulate?.data,
-        );
+        const result = await this.apiManager.simulate({
+          session: this.activeSession,
+          payload: this.internals.sidebarSimulate.simulate?.data,
+        });
         for (const sidebarId of this.internals.sidebarSimulate.ids) {
           const screenSidebar = newScreen.sidebars?.find((s) => s.id === sidebarId);
           if (screenSidebar) {
@@ -1038,16 +1043,17 @@ export class SessionManager {
     }
     this.triggerUpdate({ externalLoading: true });
 
-    const session = await this.apiManager.submit(
-      this.activeSession,
-      transformResponse(this.activeSession, data as any),
+    const session = await this.apiManager.submit({
+      session: this.activeSession,
+      data: transformResponse(this.activeSession, data as any),
       navigate,
-      {
+      overrides: {
         // response: this.options.responseElements,
         ...overrides,
       },
-      this.getClientGraphBookmark(),
-    );
+      clientGraphBookmark: this.getClientGraphBookmark(),
+      readOnly: this.options.readOnly,
+    });
     this.updateSession(session);
     this.triggerUpdate({ externalLoading: false });
     return this;
@@ -1065,7 +1071,13 @@ export class SessionManager {
     }
     try {
       this.triggerUpdate({ externalLoading: true });
-      const payload = await this.apiManager.chat(this.activeSession, message, goal, overrides, interactionId);
+      const payload = await this.apiManager.chat({
+        session: this.activeSession,
+        message,
+        goal,
+        overrides,
+        interactionId,
+      });
       this.triggerUpdate({ externalLoading: false });
       return payload;
     } catch (error) {
@@ -1080,7 +1092,13 @@ export class SessionManager {
       throw new Error("No active session to navigate from");
     }
     this.triggerUpdate({ externalLoading: true });
-    this.updateSession(await this.apiManager.navigate(this.activeSession, step));
+    this.updateSession(
+      await this.apiManager.navigate({
+        session: this.activeSession,
+        step,
+        readOnly: this.options.readOnly,
+      }),
+    );
     this.triggerUpdate({ externalLoading: false });
     return this;
   };
@@ -1095,7 +1113,12 @@ export class SessionManager {
       // pop the session, then we will invoke back on the parent
       this.pop();
     }
-    this.updateSession(await this.apiManager.back(this.activeSession));
+    this.updateSession(
+      await this.apiManager.back({
+        session: this.activeSession,
+        readOnly: this.options.readOnly,
+      }),
+    );
     this.triggerUpdate({ externalLoading: false });
     return this;
   };
@@ -1111,15 +1134,16 @@ export class SessionManager {
       this.pop();
     }
     this.updateSession(
-      await this.apiManager.submit(
-        this.activeSession,
-        transformResponse(this.activeSession, data as any),
-        false,
-        {
+      await this.apiManager.submit({
+        session: this.activeSession,
+        data: transformResponse(this.activeSession, data as any),
+        navigate: false,
+        overrides: {
           // response: this.options.responseElements,
         },
-        this.getClientGraphBookmark(),
-      ),
+        clientGraphBookmark: this.getClientGraphBookmark(),
+        readOnly: this.options.readOnly,
+      }),
     );
     this.triggerUpdate({ externalLoading: false });
     return this;
@@ -1130,7 +1154,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to export timeline from");
       throw new Error("No active session to export timeline from");
     }
-    return this.apiManager.exportTimeline(this.activeSession);
+    return this.apiManager.exportTimeline({ session: this.activeSession });
   };
 
   // file management methods
