@@ -32,8 +32,9 @@ export const getInterviewConfig = (interview?: string) => {
       }),
       apiGetters: {
         simulate: ({ session }) => buildUrl(session.sessionId, "interview"),
-        getRulesEngine: (checksum?: string) =>
-          `${API.baseUrl}/rules-engine?=${checksum}`,
+        // @ts-ignore
+        getRulesEngine: ({ checksum }) =>
+          `${API.baseUrl}/decisionapi/rules-engine-script?checksum=${checksum}`,
       },
     },
     fileManager: {

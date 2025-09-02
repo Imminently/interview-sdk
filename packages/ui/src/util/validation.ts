@@ -21,6 +21,47 @@ import {
 import * as yup from "yup";
 import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate } from "./index";
 
+// Helper: parse various time representations into seconds since midnight.
+const timeToSeconds = (input: any): number => {
+  if (input === undefined || input === null || input === "") return NaN;
+
+  // If it's already a Date, extract local time parts
+  if (input instanceof Date && !Number.isNaN(Number(input))) {
+    // ignore seconds, as we don't support that precision in the UI
+    return input.getHours() * 3600 + input.getMinutes() * 60;
+  }
+
+  const s = String(input).trim();
+
+  // Match HH:MM(:SS)? with optional AM/PM
+  const match = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?$/);
+  if (match) {
+    let hh = Number(match[1]);
+    const mm = Number(match[2]);
+    // const ss = Number(match[3] ?? 0);
+    const ampm = match[4];
+    if (ampm) {
+      const up = ampm.toUpperCase();
+      if (up === "AM") {
+        if (hh === 12) hh = 0;
+      } else if (up === "PM") {
+        if (hh !== 12) hh += 12;
+      }
+    }
+    // ignore seconds, as we don't support that precision in the UI
+    return hh * 3600 + mm * 60;
+  }
+
+  // Fallback: attempt Date parse (may include timezone offsets)
+  const dt = new Date(s);
+  if (!Number.isNaN(Number(dt))) {
+    // ignore seconds, as we don't support that precision in the UI
+    return dt.getHours() * 3600 + dt.getMinutes() * 60;
+  }
+
+  return NaN;
+};
+
 const setCustomValidity = (ref: Ref, fieldPath: string, errors: FieldErrors) => {
   if (ref && "reportValidity" in ref) {
     const error = get(errors, fieldPath) as FieldError | undefined;
@@ -105,19 +146,19 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
         max === undefined
           ? withRequired
           : withRequired.test(
-              "withMax",
-              `Should be lower or equal to ${max}`,
-              (v) => v !== undefined && v !== null && v <= max,
-            );
+            "withMax",
+            `Should be lower or equal to ${max}`,
+            (v) => v !== undefined && v !== null && v <= max,
+          );
 
       const afterMin: typeof afterMax =
         min === undefined
           ? afterMax
           : afterMax.test(
-              "withMin",
-              `Should be bigger or equal to ${min}`,
-              (v) => v !== undefined && v !== null && v >= min,
-            );
+            "withMin",
+            `Should be bigger or equal to ${min}`,
+            (v) => v !== undefined && v !== null && v >= min,
+          );
 
       return afterMin;
     }
@@ -147,19 +188,19 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
           nowLessMax === undefined
             ? it
             : it.test(
-                "withMax",
-                `Should be before or equal to ${nowLessMax}`,
-                (v) => v !== undefined && v !== null && v <= nowLessMax,
-              ),
+              "withMax",
+              `Should be before or equal to ${nowLessMax}`,
+              (v) => v !== undefined && v !== null && v <= nowLessMax,
+            ),
         )
         .map((it) =>
           nowLessMin === undefined
             ? it
             : it.test(
-                "withMin",
-                `Should be after or equal to ${nowLessMin}`,
-                (v) => v !== undefined && v !== null && v >= nowLessMin,
-              ),
+              "withMin",
+              `Should be after or equal to ${nowLessMin}`,
+              (v) => v !== undefined && v !== null && v >= nowLessMin,
+            ),
         )[0];
 
       return finalSchema;
@@ -167,37 +208,42 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
     case "time": {
       const { max, min, required, amPmFormat } = c;
 
+      // for easy comparison, we will convert time to seconds since midnight
+      const minSeconds = min === undefined ? undefined : timeToSeconds(min);
+      const maxSeconds = max === undefined ? undefined : timeToSeconds(max);
+      // format min/max for UI display
       const maxForUi =
-        max && formatDate(deriveDateFromTimeComponent(max), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
+        max && formatDate(new Date(max), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
       const minForUi =
-        min && formatDate(deriveDateFromTimeComponent(min), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
+        min && formatDate(new Date(min), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
 
-      const schema = yup.string().nullable();
+      // Use a numeric schema (seconds since midnight) so we can use yup.min / yup.max
+      const schema = yup
+        .number()
+        .nullable()
+        .transform(function (value, originalValue) {
+          if (originalValue === undefined || originalValue === null || originalValue === "") return undefined;
+          const secs = timeToSeconds(originalValue);
+          return Number.isFinite(secs) ? secs : NaN;
+        })
+        .typeError("Please specify a valid time");
 
       const withRequired: typeof schema =
         required === undefined
           ? schema
           : schema.test("withRequired", requiredErrStr, (v) => v !== undefined && v !== null);
 
-      const afterMax: typeof withRequired =
-        max === undefined
+      const withMax: typeof withRequired =
+        maxSeconds === undefined
           ? withRequired
-          : withRequired.test(
-              "withMax",
-              `Should be before or equal to ${maxForUi}`,
-              (v) => v !== undefined && v !== null && v <= max,
-            );
+          : withRequired.max(maxSeconds!, `Should be before or equal to ${maxForUi}`);
 
-      const afterMin: typeof afterMax =
-        min === undefined
-          ? afterMax
-          : afterMax.test(
-              "withMin",
-              `Should be after or equal to ${minForUi}`,
-              (v) => v !== undefined && v !== null && v >= min,
-            );
+      const withMin: typeof withMax =
+        minSeconds === undefined
+          ? withMax
+          : withMax.min(minSeconds!, `Should be after or equal to ${minForUi}`);
 
-      return afterMin;
+      return withMin;
     }
     case "datetime": {
       const { required, time_max, time_min, date_max, date_min, amPmFormat } = c;
@@ -221,37 +267,37 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
         nowLessDateMax === undefined
           ? withRequired
           : withRequired.test(
-              "withDateMax",
-              `Date should be before or equal to ${nowLessDateMax}`,
-              (v) => v !== undefined && v !== null && formatDate(new Date(v), DATE_FORMAT) <= nowLessDateMax,
-            );
+            "withDateMax",
+            `Date should be before or equal to ${nowLessDateMax}`,
+            (v) => v !== undefined && v !== null && formatDate(new Date(v), DATE_FORMAT) <= nowLessDateMax,
+          );
 
       const withDateMin: typeof withDateMax =
         nowLessDateMin === undefined
           ? withDateMax
           : withDateMax.test(
-              "withDateMin",
-              `Date should be after or equal to ${nowLessDateMin}`,
-              (v) => v !== undefined && v !== null && formatDate(new Date(v), DATE_FORMAT) >= nowLessDateMin,
-            );
+            "withDateMin",
+            `Date should be after or equal to ${nowLessDateMin}`,
+            (v) => v !== undefined && v !== null && formatDate(new Date(v), DATE_FORMAT) >= nowLessDateMin,
+          );
 
       const withTimeMax: typeof withDateMin =
         time_max === undefined
           ? withDateMin
           : withDateMin.test(
-              "withTimeMax",
-              `Time should be before or equal to ${maxTimeForUi}`,
-              (v) => v !== undefined && v !== null && formatDate(new Date(v), TIME_FORMAT_24) <= time_max,
-            );
+            "withTimeMax",
+            `Time should be before or equal to ${maxTimeForUi}`,
+            (v) => v !== undefined && v !== null && formatDate(new Date(v), TIME_FORMAT_24) <= time_max,
+          );
 
       const withTimeMin: typeof withTimeMax =
         time_min === undefined
           ? withTimeMax
           : withTimeMax.test(
-              "withTimeMin",
-              `Time should be after or equal to ${minTimeForUi}`,
-              (v) => v !== undefined && v !== null && formatDate(new Date(v), TIME_FORMAT_24) >= time_min,
-            );
+            "withTimeMin",
+            `Time should be after or equal to ${minTimeForUi}`,
+            (v) => v !== undefined && v !== null && formatDate(new Date(v), TIME_FORMAT_24) >= time_min,
+          );
 
       return withTimeMin;
     }

@@ -68,6 +68,7 @@ export const constructInputFromPreProcessed = (
   if (parent) {
     const nestedPath = pathToNested(parent, input, true).split(".");
     const existing = get(input, nestedPath);
+
     set(input, pathToNested(parent, input, true), {
       ...existing,
       ...userValues,
@@ -280,7 +281,7 @@ export class SessionManager {
   private renderAt: number = Date.now();
   private externalLoading = false;
   private rulesEnginePromise: Promise<RulesEngine> | undefined = undefined;
-  private processedScreen: Screen | undefined;
+
   private internals: SessionInternal = {
     userValues: {},
     prevUserValues: {},
@@ -603,7 +604,7 @@ export class SessionManager {
 
   onScreenDataChange = (data: AttributeValues) => {
     this.log("Screen data changed:", data);
-    Object.assign(this.internals.userValues, data);
+    this.internals.userValues = deepClone(data);
     this.clientSideDynamic();
   };
 
@@ -740,9 +741,9 @@ export class SessionManager {
           },
           debug
             ? {
-                type: "graph",
-                debug: true,
-              }
+              type: "graph",
+              debug: true,
+            }
             : undefined,
         ].filter(Boolean) as any,
       },
@@ -856,8 +857,8 @@ export class SessionManager {
 
         const requiresServiceDynamic = Boolean(
           !this.clientGraph &&
-            (Object.keys(this.internals.unknownsRequiringSimulate).length > 0 ||
-              replacementQueries.sidebarSimulate?.ids?.length),
+          (Object.keys(this.internals.unknownsRequiringSimulate).length > 0 ||
+            replacementQueries.sidebarSimulate?.ids?.length),
         );
 
         this.activeSession.screen = newScreen;
@@ -1003,18 +1004,18 @@ export class SessionManager {
         };
       }
       /*this.processedScreen = produce(session.screen as Screen, (draft) => {
-				iterateControls(draft.controls, (control: any) => {
-					postProcessControl(control, this.internals.replacements);
-				});
-			});
+        iterateControls(draft.controls, (control: any) => {
+          postProcessControl(control, this.internals.replacements);
+        });
+      });
 
-			// call this first so the debounce doesn't fire during unknown calculation
-			this.updateDynamicValues();
-			this.calculateUnknowns();
+      // call this first so the debounce doesn't fire during unknown calculation
+      this.updateDynamicValues();
+      this.calculateUnknowns();
 
-			// force trigger an update of dynamic values
-			// @ts-ignore
-			this.updateDynamicValues.flush();*/
+      // force trigger an update of dynamic values
+      // @ts-ignore
+      this.updateDynamicValues.flush();*/
     }
 
     this.handleClientGraphBookmark(session);
