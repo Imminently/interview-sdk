@@ -13,10 +13,27 @@ interface DatePickerProps {
   disabled?: boolean;
 }
 
+// Helper function to parse YYYY-MM-DD as local time
+function parseLocalDate(dateString: string): Date | null {
+  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10) - 1; // Month is 0-indexed
+  const day = Number.parseInt(match[3], 10);
+
+  return new Date(year, month, day);
+}
+
 function DatePicker({ value, onChange, disabled }: DatePickerProps) {
-  const [date, setDate] = React.useState<Date | undefined>(
-    value ? (typeof value === "string" ? new Date(value) : value) : undefined,
-  );
+  const [date, setDate] = React.useState<Date | undefined>(() => {
+    if (!value) return undefined;
+    if (value instanceof Date) return value;
+
+    // Parse string as local time
+    const localDate = parseLocalDate(value);
+    return localDate || new Date(value); // Fallback to original behavior
+  });
 
   const handleDateChange = (newDate: Date | undefined) => {
     setDate(newDate);
@@ -25,8 +42,13 @@ function DatePicker({ value, onChange, disabled }: DatePickerProps) {
 
   React.useEffect(() => {
     if (value !== undefined) {
-      const dateValue = typeof value === "string" ? new Date(value) : value;
-      setDate(dateValue);
+      if (value instanceof Date) {
+        setDate(value);
+      } else {
+        // Parse string as local time
+        const localDate = parseLocalDate(value);
+        setDate(localDate || new Date(value)); // Fallback to original behavior
+      }
     }
   }, [value]);
 
