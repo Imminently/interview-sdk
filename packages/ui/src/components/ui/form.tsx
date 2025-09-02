@@ -1,5 +1,5 @@
 import { useInterview } from "@/interview";
-import { useDebugSettings, useOptions, useTheme } from "@/providers";
+import { useDebugSettings, useTheme } from "@/providers";
 import { cn } from "@/util";
 import type { Control } from "@imminently/interview-sdk";
 import type * as LabelPrimitive from "@radix-ui/react-label";
@@ -98,11 +98,10 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
-  // pull the debug option, falling back to true if not set (ie likely in a mocked context)
-  const { debug } = useOptions({ debug: true });
+  const { debugEnabled } = useDebugSettings();
   const { error, formItemId, name, control } = useFormField();
 
-  const debugControl = debug
+  const debugControl = debugEnabled
     ? () => {
         console.log("FormLabel", {
           name,
