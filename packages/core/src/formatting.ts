@@ -2,7 +2,7 @@ import { isMatch, parse } from "date-fns";
 import type { AttributeValue } from "./types";
 import { formatDate } from "./util";
 
-export type Formatter = "currency" | `date ${string}` | "date";
+export type Formatter = "currency" | `date ${string}` | "date" | `decimalHours ${number}` | "decimalHours" | "uppercase" | "relative";
 
 const PARSE_FORMATS = [
   "uuuu-MM-dd'T'HH:mm:ss",
@@ -104,6 +104,60 @@ export const formatValue = (value: AttributeValue, options?: FormatOptions) => {
             }
           } else {
             result = formatDateTimeDefault(result, type, resolvedLocale);
+          }
+          break;
+        case "decimalHours":
+          try {
+            const hours = Number.parseFloat(result);
+            if (Number.isNaN(hours)) {
+              result = "-";
+            } else {
+              // Check if decimal places are specified (e.g., "decimalHours 2")
+              const decimalPlaces = args[1] ? Number.parseInt(args[1], 10) : 3;
+
+              if (Number.isNaN(decimalPlaces) || decimalPlaces < 0) {
+                // Invalid decimal places, use default behavior
+                const [integerPart, decimalPart] = hours.toString().split(".");
+                if (decimalPart && decimalPart.length > 3) {
+                  result = `${Number(hours).toFixed(3)} hrs`;
+                } else {
+                  result = `${hours} hrs`;
+                }
+              } else {
+                // Use specified decimal places
+                result = `${Number(hours).toFixed(decimalPlaces)} hrs`;
+              }
+            }
+          } catch (error) {
+            result = "-";
+          }
+          break;
+        case "uppercase":
+          result = String(result ?? "").toUpperCase();
+          break;
+        case "relative":
+          try {
+            // Simple relative date formatting - could be enhanced with date-fns
+            const date = new Date(result);
+            if (!Number.isNaN(date.getTime())) {
+              const now = new Date();
+              const diffMs = now.getTime() - date.getTime();
+              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+              if (diffDays === 0) {
+                result = "today";
+              } else if (diffDays === 1) {
+                result = "yesterday";
+              } else if (diffDays === -1) {
+                result = "tomorrow";
+              } else if (diffDays > 0) {
+                result = `${diffDays} days ago`;
+              } else {
+                result = `in ${Math.abs(diffDays)} days`;
+              }
+            }
+          } catch (error) {
+            // Keep original value if parsing fails
           }
           break;
         default:
