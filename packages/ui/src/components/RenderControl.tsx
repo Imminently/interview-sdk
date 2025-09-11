@@ -42,6 +42,7 @@ const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   date: SlottableFormControl(Controls.Date),
   entity: Controls.Entity, // do not support slottable yet, as entities are complicated
   file: SlottableFormControl(Controls.File),
+  number: SlottableFormControl(Controls.Number),
   radio: SlottableFormControl(Controls.Radio, "radio"),
   select: SlottableFormControl(Controls.Select, "select"),
   text: SlottableFormControl(Controls.Text),

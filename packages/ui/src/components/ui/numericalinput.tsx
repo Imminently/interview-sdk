@@ -64,6 +64,13 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       return Number.isFinite(n) ? Math.max(0, n) : undefined;
     }, [maxDecimalPlaces]);
 
+    // Hint Base UI to format the displayed value consistently
+    const formatOptions = React.useMemo(() => {
+      if (!allowDecimals) return { maximumFractionDigits: 0 } as Intl.NumberFormatOptions;
+      if (typeof maxDp === "number") return { maximumFractionDigits: maxDp } as Intl.NumberFormatOptions;
+      return undefined;
+    }, [allowDecimals, maxDp]);
+
     const handleValueChange = React.useCallback(
       (newValue: number | null) => {
         let processedValue: number | undefined = newValue ?? undefined;
@@ -139,9 +146,24 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       (event: React.FormEvent<HTMLInputElement> & { data?: string }) => {
         if (!allowDecimals && event.data && (event.data.includes(".") || event.data.includes(","))) {
           event.preventDefault();
+          return;
+        }
+
+        // Prevent typing beyond maxDecimalPlaces
+        if (allowDecimals && typeof maxDp === "number" && event.data) {
+          const currentValue = (event.target as HTMLInputElement).value;
+          const decimalIndex = currentValue.indexOf(".");
+          
+          if (decimalIndex !== -1) {
+            const currentDecimalPlaces = currentValue.length - decimalIndex - 1;
+            if (currentDecimalPlaces >= maxDp) {
+              event.preventDefault();
+              return;
+            }
+          }
         }
       },
-      [allowDecimals]
+      [allowDecimals, maxDp]
     );
 
     const handleKeyDown = React.useCallback(
@@ -150,9 +172,22 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           if (event.key === "." || event.key === "," || event.key.toLowerCase() === "e") {
             event.preventDefault();
           }
+        } else if (allowDecimals && typeof maxDp === "number") {
+          // Prevent typing beyond maxDecimalPlaces
+          if (event.key === "." || event.key === "," || event.key.toLowerCase() === "e") {
+            const currentValue = (event.target as HTMLInputElement).value;
+            const decimalIndex = currentValue.indexOf(".");
+            
+            if (decimalIndex !== -1) {
+              const currentDecimalPlaces = currentValue.length - decimalIndex - 1;
+              if (currentDecimalPlaces >= maxDp) {
+                event.preventDefault();
+              }
+            }
+          }
         }
       },
-      [allowDecimals]
+      [allowDecimals, maxDp]
     );
 
     const handlePaste = React.useCallback(
@@ -163,12 +198,13 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
             event.preventDefault();
           }
         }
+        // For allowDecimals with maxDecimalPlaces, let the paste happen
+        // and let the onChange handler process and round the value
       },
       [allowDecimals]
     );
 
-    // Keep the input uncontrolled for display to avoid fighting the user's typing.
-    // We rely on onChange/onValueChange to enforce the rules and propagate a valid value upstream.
+    // Keep input display uncontrolled to avoid blocking user typing/paste.
 
     return (
       <NumberField.Root
