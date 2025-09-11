@@ -11,6 +11,8 @@ interface DatePickerProps {
   value?: Date | string;
   onChange?: (date: Date | undefined) => void;
   disabled?: boolean;
+  minDate?: Date;
+  maxDate?: Date;
 }
 
 // Helper function to parse YYYY-MM-DD as local time
@@ -25,7 +27,7 @@ function parseLocalDate(dateString: string): Date | null {
   return new Date(year, month, day);
 }
 
-function DatePicker({ value, onChange, disabled }: DatePickerProps) {
+function DatePicker({ value, onChange, disabled, minDate, maxDate }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(() => {
     if (!value) return undefined;
     if (value instanceof Date) return value;
@@ -52,6 +54,23 @@ function DatePicker({ value, onChange, disabled }: DatePickerProps) {
     }
   }, [value]);
 
+  const disableDates = (date: Date) => {
+    // ensure we compare ignoring time component
+    date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    if (minDate) {
+      minDate = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+    }
+    if (maxDate) {
+      maxDate = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+    }
+    // if no bounds, don't disable anything
+    if (!minDate && !maxDate) return false;
+    // using minDate and maxDate as inclusive bounds
+    if (minDate && date < minDate) return true;
+    if (maxDate && date > maxDate) return true;
+    return false;
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -73,7 +92,7 @@ function DatePicker({ value, onChange, disabled }: DatePickerProps) {
           selected={date}
           onSelect={handleDateChange}
           autoFocus
-          disabled={disabled}
+          disabled={disableDates}
         />
       </PopoverContent>
     </Popover>

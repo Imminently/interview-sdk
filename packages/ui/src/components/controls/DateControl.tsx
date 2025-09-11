@@ -1,5 +1,5 @@
 import { useTheme } from "@/providers";
-import type { DateControl } from "@imminently/interview-sdk";
+import type { DateControl, DateControlThreeVariantDate } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
 import { DatePicker } from "../ui/date-picker";
 import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
@@ -14,9 +14,28 @@ const defaultFormatter = (date: Date) => {
   return `${year}-${month}-${day}`;
 }
 
+const getDateFromVariant = (value?: DateControlThreeVariantDate): Date | undefined => {
+  if (!value) return undefined;
+  if (typeof value === "string") {
+    // check if special value of "now"
+    if (value.toLowerCase().trim() === "now") {
+      return new Date();
+    }
+    // assume YYYY-MM-DD
+    return new Date(value);
+  }
+  // TODO how do we want to handle warnings
+  console.warn("Unexpected date variant value", value);
+  return undefined;
+};
+
 export const DateFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
   const { control } = useFormField<DateControl>();
+
+  const minDate = control.min ? getDateFromVariant(control.min) : undefined;
+  const maxDate = control.max ? getDateFromVariant(control.max) : undefined;
+
   return (
     <>
       <FormLabel>
@@ -28,9 +47,23 @@ export const DateFormControl = ({ field }: UseControllerReturn) => {
           value={field.value}
           onChange={(d) => field.onChange(d ? defaultFormatter(d) : undefined)}
           disabled={field.disabled}
+          minDate={minDate}
+          maxDate={maxDate}
         />
       </FormControl>
       <FormMessage />
+      <p>
+        {minDate && (
+          <>
+            {t("Minimum date")}: {defaultFormatter(minDate)} ({control.min})
+          </>
+        )}
+        {maxDate && (
+          <>
+            {t("Maximum date")}: {defaultFormatter(maxDate)} ({control.max})
+          </>
+        )}
+      </p>
     </>
   );
 };
