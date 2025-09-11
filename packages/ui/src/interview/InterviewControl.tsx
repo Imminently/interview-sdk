@@ -7,6 +7,7 @@ import { FormField, FormItem } from "../components/ui/form";
 import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { generateValidatorForControl, useAttributeValidationErrors } from "../util/validation";
+import { useOptions } from "@/providers";
 
 export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   control: Control;
@@ -52,6 +53,7 @@ const getControlDefault = (type: string) => {
 export const InterviewControl = ({ control, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
+  const { inlineErrors } = useOptions();
   const { unregister, ...form } = useFormContext();
   // take a local copy
   // TODO why do some of the controls have booleans listed as type 'true'?
@@ -94,6 +96,9 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   const { setError, clearErrors } = form;
   const validations = useAttributeValidationErrors(control.attribute);
   useEffect(() => {
+    // don't set errors if inlineErrors is false
+    if(!inlineErrors) return;
+
     if (validations.length > 0) {
       // clear the errors, then set the first one
       clearErrors(name);
@@ -102,7 +107,7 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     } else {
       clearErrors(name);
     }
-  }, [name, validations, setError, clearErrors]);
+  }, [name, validations, setError, clearErrors, inlineErrors]);
 
   // don't render if the control is hidden
   if (hidden) {

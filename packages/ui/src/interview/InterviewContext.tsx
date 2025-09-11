@@ -27,6 +27,7 @@ export type InterviewConfig = {
   icons?: IconMap;
   slots?: Partial<InterviewControls>;
   callbacks?: InterviewCallbacks;
+  inlineErrors?: boolean;
 };
 
 const InterviewContext = createContext<InterviewContextState | undefined>(undefined);
@@ -67,7 +68,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
     const validationsFail = session?.validations?.some(
       (validation) => validation.shown && validation.severity === "error",
     );
-    console.log("Validations fail:", validationsFail);
+    // console.log("Validations fail:", validationsFail);
     const finished = manager.isLastStep && manager.isComplete;
     return {
       manager,
@@ -86,8 +87,13 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
     };
   }, [snapshot, manager, callbacks]);
 
+  const options = useMemo(() => ({
+    inlineErrors: config.inlineErrors ?? false,
+    ...manager.options
+  }), [config.inlineErrors, manager.options]);
+
   return (
-    <OptionsProvider value={manager.options}>
+    <OptionsProvider value={options}>
       <ThemeProvider
         theme={theme}
         icons={icons}
