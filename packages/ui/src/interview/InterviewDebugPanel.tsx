@@ -13,7 +13,7 @@ import { Badge } from "../components/ui/badge";
 const stringValue = (value: any) => {
   // support null -> null, undefined -> undefined, boolean -> true/false, number -> string
   if (typeof value === "string") {
-    return value;
+    return (value as string).length == 0 ? "\"\"" : value;
   } else if (typeof value === "object") {
     return JSON.stringify(value);
   } else if (value === null) {
@@ -32,12 +32,12 @@ export const InterviewDebugPanel = () => {
   return (
     <Sidebar
       collapsible="offcanvas"
-      className="sticky top-0 hidden h-svh border-l lg:flex"
+      className="sticky top-0 hidden h-svh border-l lg:flex w-[500px]"
     >
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="p-0 text-lg font-bold">{t("debug.form_values")}</SidebarGroupLabel>
-          <SidebarMenu>
+          {/* <SidebarMenu>
             {Object.entries(values).map(([key, value]) => (
               <SidebarMenuItem
                 key={key}
@@ -47,7 +47,8 @@ export const InterviewDebugPanel = () => {
                 <Badge className="rounded-full text-sm font-mono">{stringValue(value)}</Badge>
               </SidebarMenuItem>
             ))}
-          </SidebarMenu>
+          </SidebarMenu> */}
+          <pre><code>{JSON.stringify(values, null, 2)}</code></pre>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
