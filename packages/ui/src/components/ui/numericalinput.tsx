@@ -20,7 +20,7 @@ const numberInputVariants = cva("", {
 });
 
 const buttonVariants = cva(
-  "flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm disabled:opacity-50 disabled:pointer-events-none"
+  "flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm disabled:opacity-50 disabled:pointer-events-none font-bold border border-border"
 );
 
 export interface NumberInputProps {
@@ -222,7 +222,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           <NumberField.Decrement
             className={cn(buttonVariants(), "absolute left-1 top-1/2 -translate-y-1/2")}
           >
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-4 w-4" />
           </NumberField.Decrement>
           
           <NumberField.Input
@@ -242,7 +242,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           <NumberField.Increment
             className={cn(buttonVariants(), "absolute right-1 top-1/2 -translate-y-1/2")}
           >
-            <ChevronUp className="h-3 w-3" />
+            <ChevronUp className="h-4 w-4" />
           </NumberField.Increment>
         </NumberField.Group>
       </NumberField.Root>
