@@ -52,18 +52,6 @@ export const DateFormControl = ({ field }: UseControllerReturn) => {
         />
       </FormControl>
       <FormMessage />
-      <p>
-        {minDate && (
-          <>
-            {t("Minimum date")}: {defaultFormatter(minDate)} ({control.min})
-          </>
-        )}
-        {maxDate && (
-          <>
-            {t("Maximum date")}: {defaultFormatter(maxDate)} ({control.max})
-          </>
-        )}
-      </p>
     </>
   );
 };
