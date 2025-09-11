@@ -27,6 +27,27 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
   const type = control.variation?.type === "number" ? "number" : "text";
   const isNumberType = type === "number";
 
+  const step = (() => {
+    const no = control?.numericalOptions || {};
+    if (no && no.allowDecimals === false) return 1;
+
+    const hasMinMax = typeof no?.min === "number" && typeof no?.max === "number";
+    if (hasMinMax) {
+      const range = (no.max as number) - (no.min as number);
+      if (range < 1) {
+        const mdp = Number(no.maxDecimalPlaces);
+        if (Number.isFinite(mdp)) {
+          return 10 ** -Math.max(0, mdp);
+        }
+        return 0.1;
+      }
+    }
+
+    return 1;
+  })();
+
+  
+
   return (
     <>
       <FormLabel>{t(control.label)}</FormLabel>
@@ -49,6 +70,7 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
             max={control.numericalOptions?.max}
             allowDecimals={control.numericalOptions?.allowDecimals}
             maxDecimalPlaces={control.numericalOptions?.maxDecimalPlaces}
+            step={step}
           />
         ) : (
           <Input

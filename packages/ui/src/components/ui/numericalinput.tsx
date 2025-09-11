@@ -59,6 +59,11 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     },
     ref
   ) => {
+    const maxDp = React.useMemo(() => {
+      const n = Number(maxDecimalPlaces);
+      return Number.isFinite(n) ? Math.max(0, n) : undefined;
+    }, [maxDecimalPlaces]);
+
     const handleValueChange = React.useCallback(
       (newValue: number | null) => {
         let processedValue: number | undefined = newValue ?? undefined;
@@ -67,9 +72,9 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           // 1) Enforce integer mode when decimals are not allowed
           if (!allowDecimals) {
             processedValue = Math.round(processedValue);
-          } else if (maxDecimalPlaces !== undefined) {
+          } else if (typeof maxDp === "number") {
             // 2) Otherwise, if decimals are allowed, cap decimal places if requested
-            processedValue = Number(processedValue.toFixed(maxDecimalPlaces));
+            processedValue = Number(processedValue.toFixed(maxDp));
           }
 
           // 3) Clamp to min/max
@@ -84,7 +89,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         onChange?.(processedValue);
         onValueChange?.(processedValue);
       },
-      [onChange, onValueChange, min, max, allowDecimals, maxDecimalPlaces]
+      [onChange, onValueChange, min, max, allowDecimals, maxDp]
     );
 
     // Handle input formatting and decimal place validation as the user types
@@ -111,8 +116,8 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         let processedValue = numericValue;
         if (!allowDecimals) {
           processedValue = Math.round(processedValue);
-        } else if (maxDecimalPlaces !== undefined) {
-          processedValue = Number(processedValue.toFixed(maxDecimalPlaces));
+        } else if (typeof maxDp === "number") {
+          processedValue = Number(processedValue.toFixed(maxDp));
         }
 
         // Apply min/max constraints
@@ -126,7 +131,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         onChange?.(processedValue);
         onValueChange?.(processedValue);
       },
-      [onChange, onValueChange, min, max, allowDecimals, maxDecimalPlaces]
+      [onChange, onValueChange, min, max, allowDecimals, maxDp]
     );
 
     // Prevent entering decimals when not allowed (typing/paste/keys)
