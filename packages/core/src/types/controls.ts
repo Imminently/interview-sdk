@@ -86,6 +86,39 @@ export interface CurrencyControl extends BaseControl {
   readOnly?: boolean;
 }
 
+/** Collects or displays a numeric value from/to the user. */
+export interface NumberControl extends BaseControl {
+  /** unique id of the control */
+  id: string;
+  type: "number";
+  label?: string;
+  labelDisplay?: LabelDisplay;
+  customClassName?: string;
+  sxForSeparateLabel?: Record<string, unknown>;
+  labelLength?: number;
+  required?: true;
+  disabled?: true;
+  /** uuid */
+  attribute: string;
+  /** current numeric value */
+  value?: number | null;
+  /** numeric default */
+  default?: number;
+  /** Numeric-only configuration */
+  numericalOptions?: {
+    /** The minimum numeric value allowed */
+    min?: number;
+    /** The maximum numeric value allowed */
+    max?: number;
+    /** Whether decimal values are allowed (false means integers only) */
+    allowDecimals?: boolean;
+    /** If decimals are allowed, restrict to this many decimal places */
+    maxDecimalPlaces?: number;
+  };
+  showExplanation?: boolean;
+  readOnly?: boolean;
+}
+
 /**
  * @deprecated Use `CurrencyControl` instead
  */
@@ -251,6 +284,7 @@ export const DATE_TIME_FORMAT_12 = `${DATE_FORMAT} ${TIME_FORMAT_12}`;
 
 export interface Option {
   label?: string;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   value: any;
 }
 
@@ -664,6 +698,7 @@ export interface ConditionExpression {
 export type RenderableControl = (
   | BooleanControl
   | CurrencyControl
+  | NumberControl
   | DateControl
   | TimeControl
   | DateTimeControl
@@ -690,6 +725,7 @@ export type RenderableControlType = RenderableControl["type"];
 export type Control =
   | BooleanControl
   | CurrencyControl
+  | NumberControl
   | DateControl
   | TimeControl
   | DateTimeControl
@@ -710,6 +746,7 @@ export type Control =
 export type ControlType = Control["type"];
 
 export interface ControlsValue {
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   [controlUUID: string]: any;
 }
 
