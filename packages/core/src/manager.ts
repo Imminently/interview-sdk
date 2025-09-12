@@ -311,10 +311,23 @@ export class SessionManager {
         : new ApiManager(options.apiManager as ApiManagerOptions);
 
     // create the file manager
-    this.fileManager =
-      options.fileManager instanceof FileManager
-        ? options.fileManager
-        : new FileManager(options.fileManager as FileManagerOptions);
+    if (options.fileManager instanceof FileManager) {
+      this.fileManager = options.fileManager;
+    } else {
+      const fm = options.fileManager as FileManagerOptions;
+      // Attempt to inherit auth from the ApiManager options if not explicitly provided
+      const apiAuth =
+        options.apiManager instanceof ApiManager ? undefined : (options.apiManager as ApiManagerOptions)?.auth;
+
+      if ("api" in fm) {
+        this.fileManager = new FileManager(fm);
+      } else {
+        this.fileManager = new FileManager({
+          ...fm,
+          auth: fm.auth ?? apiAuth,
+        });
+      }
+    }
 
     // auto start a session if sessionConfig is provided
     if (options.sessionConfig && this.sessions.length === 0) {
