@@ -9,7 +9,10 @@ import { getNameFromFileAttributeRef, isFileAttributeValue, type FileAttributeVa
 import { Download, Loader2, Paperclip, Trash2 } from "lucide-react";
 import React from "react";
 
-type LoadingState = { type: "idle" } | { type: "add" } | { type: "remove"; ref: string };
+type LoadingState = { type: "idle" } | { type: "add" } | { type: "remove"; ref: string } | { type: "download"; ref: string };
+
+const TEST_READ_ONLY = false; // **WARN** leave as `false`....
+const TEST_MAX = undefined; // **WARN** leave as `undefined`...
 
 const toBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -27,22 +30,36 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
   const [loading, setLoading] = React.useState<LoadingState>({ type: "idle" });
   const [localError, setLocalError] = React.useState<string | undefined>(undefined);
 
+  const clearLocalError = () => setLocalError(undefined);
+
   const inputRef = React.useRef<HTMLInputElement>(null);
   const triggerFileDialog = React.useCallback(() => {
     inputRef.current?.click();
   }, []);
 
   const normalizedValue: FileAttributeValue = React.useMemo(() => {
+
+    if (TEST_READ_ONLY) {
+      // Dummy data for testing read-only mode
+      const dummyFileRefs = [
+        "data:id=123e4567-e89b-12d3-a456-426614174000;base64,UXVvdGF0aW9uIFJlcXVlc3QucGRm",
+        "data:id=987fcdeb-51a2-43d1-9c8e-123456789abc;base64,SW52b2ljZS5kb2N4",
+        "data:id=456789ab-cdef-1234-5678-90abcdef1234;base64,UmVjZWlwdC5qcGc="
+      ];
+      return isFileAttributeValue(field.value) ? field.value : { fileRefs: dummyFileRefs };
+    }
+
     return isFileAttributeValue(field.value) ? field.value : { fileRefs: [] };
   }, [field.value]);
 
-  const max = control.max ?? 1;
+  const max = TEST_MAX ?? control.max ?? 1;
+  const readOnly = TEST_READ_ONLY ? true : (control.readOnly ?? false);
   const accept = control.file_type && control.file_type.length > 0 ? control.file_type.join(",") : undefined;
-  const canAddMore = !control.readOnly && normalizedValue.fileRefs.length < max && loading.type !== "add";
+  const canAddMore = !readOnly && normalizedValue.fileRefs.length < max && loading.type !== "add";
 
   const handleUpload: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     try {
-      setLocalError(undefined);
+      clearLocalError();
       const inputEl = e.currentTarget; // capture before any awaits
       const files = Array.from(inputEl.files || []);
       const [file] = files;
@@ -110,9 +127,13 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
 
   const handleDownload = async (ref: string) => {
     try {
-      setLoading({ type: "remove", ref: "__download__" }); // reuse state to show spinner on button if desired
+      setLoading({ type: "download", ref });
+      clearLocalError();
       const response = await manager.downloadFile(ref);
-      if (!response || !response.data) return;
+      if (!response || !response.data) {
+        setLocalError(t("form.file_download_failed"));
+        return;
+      }
       const fileName = getNameFromFileAttributeRef(ref);
       const link = document.createElement("a");
       link.href = response.data;
@@ -122,6 +143,7 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
       document.body.removeChild(link);
     } catch (err) {
       console.error("[FileFormControl] Download error", err);
+      setLocalError(t("form.file_download_failed"));
     } finally {
       setLoading({ type: "idle" });
     }
@@ -147,41 +169,50 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
           />
 
           {/* Files list */}
-          <div className="flex flex-col gap-1">
+          <div className="space-y-1">
             {normalizedValue.fileRefs.map((ref) => {
               const isRemoving = loading.type === "remove" && loading.ref === ref;
+              const isDownloading = loading.type === "download" && loading.ref === ref;
               const name = getNameFromFileAttributeRef(ref);
               return (
                 <div
                   key={ref}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-3 p-3 border rounded-md bg-muted/30"
                 >
-                  {!control.readOnly && (
+                  <div className="flex items-center gap-1">
+                    {!readOnly && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(ref)}
+                        disabled={isRemoving}
+                        aria-label={t("form.file_delete")}
+                        className="h-8 w-8 p-0"
+                      >
+                        {isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    )}
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(ref)}
-                      aria-label={t("form.file_delete")}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(ref)}
+                      disabled={isDownloading}
+                      aria-label={t("form.file_download")}
+                      className="h-8 w-8 p-0"
                     >
-                      {isRemoving ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                      {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     </Button>
-                  )}
-                  <span className="text-sm">{name}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDownload(ref)}
-                    aria-label={t("form.file_download")}
-                  >
-                    {loading.type !== "idle" ? <Loader2 className="animate-spin" /> : <Download />}
-                  </Button>
+                  </div>
+                  <span className="text-sm font-medium text-foreground flex-1 truncate flex items-center leading-none" title={name}>
+                    {name}
+                  </span>
                 </div>
               );
             })}
           </div>
 
           {/* Add button and counter */}
-          {!control.readOnly && normalizedValue.fileRefs.length < max && (
+          {!readOnly && normalizedValue.fileRefs.length < max && (
             <div className="flex items-center gap-2">
               <Button
                 onClick={triggerFileDialog}
@@ -196,6 +227,10 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
 
           {max > 1 && (
             <span className="text-muted-foreground text-xs">{normalizedValue.fileRefs.length} / {max}</span>
+          )}
+
+          {readOnly && normalizedValue.fileRefs.length === 0 && (
+            <p className="text-muted-foreground text-sm">{t("form.no_files")}</p>
           )}
 
           {localError && <p className="text-destructive text-sm">{localError}</p>}
