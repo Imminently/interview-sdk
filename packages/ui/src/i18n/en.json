@@ -15,7 +15,9 @@
     "remove_item": "Remove item",
     "no_items": "No items added yet",
     "select_placeholder": "Select an option",
-    "text_placeholder": "Enter text here..."
+    "text_placeholder": "Enter text here...",
+    "file_select_prompt": "Select a file",
+    "file_upload_failed": "Failed to upload file"
   },
   "has_errors": "The interview has errors",
   "validations": {

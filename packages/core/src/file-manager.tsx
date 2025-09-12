@@ -24,7 +24,9 @@ export type UploadFileResponse = {
 
 interface FileManagerInterface {
   uploadFile(arg: UploadFileArgs): Promise<UploadFileResponse | null>;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   downloadFile(ref: any): Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   removeFile(ref: any): Promise<void>;
   onFileTooBig(file: File): void;
 }
@@ -76,6 +78,7 @@ export class FileManager implements FileManagerInterface {
    * @throws Will log an error to the console if the download fails.
    */
   async downloadFile(ref: string) {
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     let result: any;
     try {
       result = await this.api.get(getIdFromFileAttributeRef(ref));
