@@ -29,21 +29,25 @@ function DatePicker({ value, onChange, disabled }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(() => {
     if (!value) return undefined;
     if (value instanceof Date) return value;
+    if (value === "now") return new Date();
 
     // Parse string as local time
     const localDate = parseLocalDate(value);
     return localDate || new Date(value); // Fallback to original behavior
   });
 
-  const handleDateChange = (newDate: Date | undefined) => {
-    setDate(newDate);
-    onChange?.(newDate);
+  const handleDateChange = (newDate: Date | "now" | undefined) => {
+    const newValue = newDate === "now" ? new Date() : newDate;
+    setDate(newValue);
+    onChange?.(newValue);
   };
 
   React.useEffect(() => {
     if (value !== undefined) {
       if (value instanceof Date) {
         setDate(value);
+      } else if (value === "now") {
+        setDate(new Date());
       } else {
         // Parse string as local time
         const localDate = parseLocalDate(value);
