@@ -1,6 +1,7 @@
-import { useInterview } from "@/interview/InterviewContext";
+import {useInterview} from "@/interview/InterviewContext";
 import {
   DATE_FORMAT,
+  formatDate,
   type RenderableControl,
   TIME_FORMAT_12,
   TIME_FORMAT_24,
@@ -13,14 +14,14 @@ import {
   type FieldError,
   type FieldErrors,
   type FieldValues,
+  get,
   type InternalFieldName,
   type Ref,
   type ResolverOptions,
-  get,
   set,
 } from "react-hook-form";
 import * as yup from "yup";
-import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate } from "./index";
+import {deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate} from "./index";
 import { useMemo } from "react";
 import { useTheme } from "@/providers/ThemeProvider";
 
@@ -123,7 +124,7 @@ const isNameInFieldArray = (names: InternalFieldName[], name: InternalFieldName)
 export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema | undefined => {
   switch (c.type) {
     case "boolean": {
-      const { required } = c;
+      const {required} = c;
 
       const schema = yup.boolean().nullable();
       const maybeDefined: typeof schema =
@@ -137,7 +138,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return maybeDefined;
     }
     case "currency": {
-      const { max, min, required } = c;
+      const {max, min, required} = c;
 
       const schema = yup.number().typeError("Please specify a valid number. E.g. 5.50").nullable();
       const withRequired: typeof schema =
@@ -166,7 +167,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return afterMin;
     }
     case "date": {
-      const { max, min, required } = c;
+      const {max, min, required} = c;
       /** a.k.a YYYY-MM-DD */
       const DATE_FORMAT_REGEX = /^\d\d\d\d-\d\d-\d\d$/;
 
@@ -181,7 +182,9 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
             : it.test("withRequired", requiredErrStr, (v) => v !== undefined && v !== null && v !== ""),
         )
         .map((it) =>
-          it.test("correctFormat", "Should be formatted like YYYY-MM-DD", (v) =>
+          it.transform((v) => {
+            return resolveNowInDate(v);
+          }).test("correctFormat", "Should be formatted like YYYY-MM-DD", (v) =>
             v === undefined || v === null || v === ""
               ? true
               : Boolean(v.match(DATE_FORMAT_REGEX) && Number.isNaN(Number(new Date(v))) === false),
@@ -209,7 +212,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return finalSchema;
     }
     case "time": {
-      const { max, min, required, amPmFormat } = c;
+      const {max, min, required, amPmFormat} = c;
 
       // for easy comparison, we will convert time to seconds since midnight
       const minSeconds = min === undefined ? undefined : timeToSeconds(min);
@@ -249,7 +252,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return withMin;
     }
     case "datetime": {
-      const { required, time_max, time_min, date_max, date_min, amPmFormat } = c;
+      const {required, time_max, time_min, date_max, date_min, amPmFormat} = c;
 
       const nowLessDateMax = resolveNowInDate(date_max);
       const nowLessDateMin = resolveNowInDate(date_min);
@@ -305,7 +308,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return withTimeMin;
     }
     case "number_of_instances": {
-      const { max, min } = c;
+      const {max, min} = c;
 
       const schema = yup.number().typeError("Please specify a valid positive integer. E.g. 5").nullable();
 
@@ -323,7 +326,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return withMin;
     }
     case "text": {
-      const { required, max, variation } = c;
+      const {required, max, variation} = c;
 
       const schema = yup.string().nullable();
       const maybeRequired: typeof schema =
@@ -352,7 +355,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return nextSchema;
     }
     case "options": {
-      const { required } = c;
+      const {required} = c;
 
       const schema = yup.mixed().nullable();
 
@@ -371,7 +374,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return withType;
     }
     case "file": {
-      const { required } = c;
+      const {required} = c;
 
       if (required !== true) return undefined;
 
@@ -408,7 +411,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
  * @returns An array of validation errors for the given attribute. Validations are translated.
  */
 export const useAttributeValidationErrors = (attribute: string | undefined, severity: string | undefined = "error") => {
-  const { session } = useInterview();
+  const {session} = useInterview();
   const { t } = useTheme();
 
   // split regex based on / or .

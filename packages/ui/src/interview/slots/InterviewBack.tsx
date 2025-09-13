@@ -15,7 +15,7 @@ const InterviewBack = ({ asChild, children, className, ...props }: InterviewBack
   const { t } = useTheme();
   const { manager, state, backDisabled } = useInterview();
   // do not display back if interview is finished
-  const hide = !manager.isSubInterview; // && manager.isLastStep && manager.isComplete;
+  const hide = manager.numberOfSessions > 1 && !manager.isSubInterview; // && manager.isLastStep && manager.isComplete;
   if (state !== "success" || hide) {
     return null; // Don't render if not in success state
   }

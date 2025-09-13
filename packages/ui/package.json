@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-ui",
-  "version": "0.4.8",
+  "version": "0.4.9-alpha.8",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -24,6 +24,7 @@
     "dist/**"
   ],
   "scripts": {
+    "prepublishOnly": "bun run build",
     "build:styles": "bunx @tailwindcss/cli@latest -i ./src/index.css -o ./dist/index.css --minify",
     "build": "tsup",
     "dev": "tsup --watch",
@@ -35,6 +36,7 @@
     "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check ."
   },
   "dependencies": {
+    "@base-ui-components/react": "^1.0.0-beta.3",
     "@radix-ui/react-checkbox": "^1.2.3",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
