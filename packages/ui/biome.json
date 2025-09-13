@@ -4,7 +4,8 @@
   "linter": {
     "rules": {
       "suspicious": {
-        "noConfusingVoidType": "off"
+        "noConfusingVoidType": "off",
+        "noExplicitAny": "info"
       }
     }
   }

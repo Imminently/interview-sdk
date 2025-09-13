@@ -69,7 +69,7 @@ export const useFormSync = (delay = 300) => {
 
   useEffect(() => {
     const subscription = watch((value, { type }) => {
-      console.log("[FormSync] Watch triggered", type, value);
+      // console.log("[FormSync] Watch triggered", type, value);
       if (type === "change") {
         sync(value);
       }

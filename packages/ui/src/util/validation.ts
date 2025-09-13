@@ -5,6 +5,9 @@ import {
   type RenderableControl,
   TIME_FORMAT_12,
   TIME_FORMAT_24,
+  Validation,
+  formatDate,
+  // isFileAttributeValue,
 } from "@imminently/interview-sdk";
 import {
   type Field,
@@ -19,6 +22,8 @@ import {
 } from "react-hook-form";
 import * as yup from "yup";
 import {deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate} from "./index";
+import { useMemo } from "react";
+import { useTheme } from "@/providers/ThemeProvider";
 
 // Helper: parse various time representations into seconds since midnight.
 const timeToSeconds = (input: any): number => {
@@ -402,18 +407,34 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
  * This hook filters the session's validations to find those that are shown
  * and include the specified attribute, returning them sorted by the number of attributes.
  *
- * @param attribute The attribute to check for validation errors.
- * @returns An array of validation errors for the given attribute.
+ * @param attribute The attribute to check for validation errors. If none, returns all valid interview errors.
+ * @returns An array of validation errors for the given attribute. Validations are translated.
  */
-export const useAttributeValidationErrors = (attribute: string | undefined) => {
+export const useAttributeValidationErrors = (attribute: string | undefined, severity: string | undefined = "error") => {
   const {session} = useInterview();
+  const { t } = useTheme();
 
-  // if no attribute, return empty array
-  if (!attribute) return [];
+  // split regex based on / or .
+  const baseAttribute = attribute?.split(/[\/\.]/).pop() as string;
 
-  const baseAttribute = attribute.split("/").pop() as string;
+  const validations = useMemo(() => {
+    return (session.validations ?? [])
+      // only want those that apply to this attribute and are shown
+      .filter((v) => v.shown && (baseAttribute ? v.attributes.findIndex((a: string) => a.includes(baseAttribute)) > -1 : true))
+      // only want errors
+      .filter((v) => v.severity === severity)
+      // remove duplicates by message
+      .reduce((unique, item) => {
+        if (!unique.some((v) => v.message === item.message)) {
+          unique.push(item);
+        }
+        return unique;
+      }, [] as Validation[])
+      // translate messages
+      .map((v) => ({ ...v, message: t(v.message) }))
+      // sort by number of attributes (fewer attributes = more specific)
+      .sort((a, b) => a.attributes.length - b.attributes.length);
+  }, [session.validations, baseAttribute]);
 
-  return (session.validations ?? [])
-    .filter((v) => v.shown && v.attributes.includes(baseAttribute))
-    .sort((a, b) => a.attributes.length - b.attributes.length);
+  return validations;
 };

@@ -43,14 +43,11 @@ export const SwitchContainer = ({
 }) => {
   const { outcome_true, outcome_false, branch, attribute } = control;
 
-  const { watch } = useFormContext();
-  const value = attribute ? watch(attribute) : false; // Ensure the switch is aware of its target attribute
-  const controls = (branch === "true" || value ? outcome_true : outcome_false) || [];
-  // console.log("SwitchContainer controls", { controls, branch, attribute, value });
+  const controls = (branch === "true" ? outcome_true : outcome_false) || [];
 
-  const mappedControls = useMemo(() => mapControls(controls, attribute), [controls, attribute]);
+  const mappedControls = useMemo(() => mapControls(controls, attribute), [controls, attribute, branch]);
 
-  const activeBranch = branch === "true" || value ? "true" : "false";
+  const activeBranch = branch === "true" ? "true" : "false";
 
   const [openTrue, setOpenTrue] = useState(activeBranch === "true");
   const [openFalse, setOpenFalse] = useState(activeBranch === "false");

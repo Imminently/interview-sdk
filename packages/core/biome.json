@@ -1,10 +1,13 @@
 {
   "$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["../../node_modules/@imminently/standard/biome.json"],
+  "extends": [
+    "../../node_modules/@imminently/standard/biome.json"
+  ],
   "linter": {
     "rules": {
       "suspicious": {
-        "noConfusingVoidType": "off"
+        "noConfusingVoidType": "off",
+        "noExplicitAny": "info"
       }
     }
   }

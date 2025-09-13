@@ -6,8 +6,8 @@ import { type RegisterOptions, type UseControllerReturn, useFormContext } from "
 import { FormField, FormItem } from "../components/ui/form";
 import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
-import { generateValidatorForControl } from "../util/validation";
-import { useInterview } from "./InterviewContext";
+import { generateValidatorForControl, useAttributeValidationErrors } from "../util/validation";
+import { useOptions } from "@/providers";
 
 export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   control: Control;
@@ -53,7 +53,7 @@ const getControlDefault = (type: string) => {
 export const InterviewControl = ({ control, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
-  const { manager } = useInterview();
+  const { inlineErrors } = useOptions();
   const { unregister, ...form } = useFormContext();
   // take a local copy
   // TODO why do some of the controls have booleans listed as type 'true'?
@@ -92,61 +92,27 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     [resolvedControl],
   );
 
-  // useEffect(() => {
-  //   // if (manager.debug) {
-  //   //   console.log("[InterviewControl] Registering control", {
-  //   //     name,
-  //   //     control: resolvedControl,
-  //   //   });
-  //   // }
-
-  //   // return a cleanup function to unregister the control
-  //   return () => {
-  //     if (manager.isOnScreen(resolvedControl as Control)) return; // don't unregister if the control is on screen
-  //     // if the control is not on screen, we can safely unregister it
-  //     if (manager.debug) {
-  //       console.log("[InterviewControl] Unregistering control", name);
-  //     }
-  //     unregister(name);
-  //   };
-  // }, [manager, resolvedControl, name, unregister]);
-
-  // TEMP disabling as it was causing recursive updates and max depth exceeded errors
   // set validation errors from the session object
-  // const { setError, clearErrors } = form;
-  // const validations = useAttributeValidationErrors(control.attribute);
-  // useEffect(() => {
-  //   if (validations.length > 0) {
-  //     setError(name, { type: "manual", message: validations[0].message });
-  //   } else {
-  //     clearErrors(name);
-  //   }
-  // }, [name, validations, setError, clearErrors]);
+  const { setError, clearErrors } = form;
+  const validations = useAttributeValidationErrors(control.attribute);
+  useEffect(() => {
+    // don't set errors if inlineErrors is false
+    if(!inlineErrors) return;
+
+    if (validations.length > 0) {
+      // clear the errors, then set the first one
+      clearErrors(name);
+      const msg = validations.map((v) => v.message).join(". ");
+      setError(name, { type: "manual", message: msg });
+    } else {
+      clearErrors(name);
+    }
+  }, [name, validations, setError, clearErrors, inlineErrors]);
 
   // don't render if the control is hidden
   if (hidden) {
     return null;
   }
-
-  // we only override the render if the control is readOnly and labelDisplay is "automatic"
-  // if (readOnly && (control as any).labelDisplay === "automatic") {
-  //   return (
-  //     <FormField
-  //       name={name}
-  //       data={resolvedControl}
-  //       control={form.control}
-  //       defaultValue={defaultValue}
-  //       render={(props) => (
-  //         <FormItem>
-  //           <ReadOnlyControl {...props} />
-  //         </FormItem>
-  //       )}
-  //     />
-  //   );
-  // } else if (readOnly) {
-  //   // @ts-ignore since its flagged readOnly, we want to force it disabled
-  //   resolvedControl.disabled = true;
-  // }
 
   return (
     <FormField
@@ -160,19 +126,7 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
       render={(props) => (
         <>
           <FormItem>
-            {
-              // children({
-              //   fieldState,
-              //   formState,
-              //   field: {
-              //     ...field,
-              //     // we want to use the control value if we are readOnly, as it might get dynamically updated, which is outisde of the form
-              //     // @ts-ignore if value doesn't exist, it'll just use the field value
-              //     value: resolvedControl.readOnly && resolvedControl.value ? resolvedControl.value : field.value
-              //   }
-              // })
-              children(props)
-            }
+            {children(props)}
           </FormItem>
         </>
       )}
