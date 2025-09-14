@@ -15,7 +15,9 @@ export const isReadOnly = (control: Control) => {
     control.type !== "datetime" &&
     control.type !== "options" &&
     control.type !== "number_of_instances" &&
-    control.type !== "text"
+    control.type !== "text" &&
+    control.type !== "file" &&
+    control.type !== "number"
   ) {
     return false;
   }

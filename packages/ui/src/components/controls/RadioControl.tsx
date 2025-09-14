@@ -10,6 +10,7 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
   const { control, formItemId } = useFormField<OptionsControl>();
   const { options } = control;
 
+
   if (!options || options.length === 0) {
     return null; // No options to display
   }
@@ -19,13 +20,18 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
       <FormLabel>{t(control.label)}</FormLabel>
       <FormControl>
         <RadioGroup
-          value={field.value}
-          onValueChange={field.onChange}
+          value={field.value !== null && field.value !== undefined ? String(field.value) : ""}
+          onValueChange={control.readOnly ? () => {} : field.onChange}
           className="flex flex-col"
         >
           {options.map((option) => {
             // generate a unique id for each option, as we need to ensure it doesn't conflict with other controls
             const id = `${formItemId}-${option.value}`;
+            const optionValue = String(option.value);
+            const fieldValue = field.value !== null && field.value !== undefined ? String(field.value) : "";
+            const isSelected = fieldValue === optionValue;
+            
+            
             return (
               <div
                 className="flex items-center space-x-2"
@@ -33,12 +39,20 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
               >
                 <RadioGroupItem
                   id={id}
-                  value={option.value}
-                  disabled={field.disabled}
+                  value={optionValue}
+                  disabled={field.disabled || control.readOnly}
                 />
                 <Label
                   htmlFor={id}
-                  className="cursor-pointer font-normal"
+                  className={`font-normal ${
+                    control.readOnly 
+                      ? "cursor-default text-foreground" 
+                      : "cursor-pointer"
+                  } ${
+                    control.readOnly && isSelected 
+                      ? "font-medium" 
+                      : ""
+                  }`}
                 >
                   {t(option.label)}
                 </Label>

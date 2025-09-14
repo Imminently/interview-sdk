@@ -15,11 +15,11 @@ export const SelectFormControl = ({ field }: UseControllerReturn) => {
       <Select
         name={field.name}
         value={field.value}
-        onValueChange={field.onChange}
-        disabled={options?.length === 0 || field.disabled}
+        onValueChange={control.readOnly ? undefined : field.onChange}
+        disabled={options?.length === 0 || field.disabled || control.readOnly}
       >
         <FormControl>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className={`w-full ${control.readOnly ? 'cursor-default' : ''}`}>
             {t(
               field.value ? options?.find((option) => option.value === field.value)?.label : "form.select_placeholder",
             )}
