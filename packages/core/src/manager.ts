@@ -31,6 +31,7 @@ import {
   postProcessControl,
   transformResponse,
 } from "./util";
+import { replaceTemplatedText } from "./helpers";
 
 const BOOKMARK_KEY = "immi_cg_bookmark_3";
 
@@ -680,6 +681,12 @@ export class SessionManager {
   //   (this.session as any).report = report;
   // }
 
+  templateText = (text: string, inputData: Record<string, any> = {}) => {
+    if (!this.activeSession) return text;
+    const { state, locale, data } = this.activeSession;
+    return replaceTemplatedText(text, { ...this.internals.replacements, ...inputData }, data, state, locale);
+  }
+
   private triggerUpdate = (update: Partial<{ externalLoading: boolean; screen: Screen }>) => {
     const { externalLoading, screen } = update;
 
@@ -1171,6 +1178,10 @@ export class SessionManager {
     }
     return this.apiManager.exportTimeline({ session: this.activeSession });
   };
+
+  get getConnectedData() {
+    return this.apiManager.getConnectedData;
+  }
 
   // file management methods
 

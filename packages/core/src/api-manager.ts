@@ -1,6 +1,6 @@
 import type { AxiosInstance, AxiosRequestConfig } from "axios";
 import type {
-  AttributeValues,
+  AsyncOptions,
   AuthConfigGetter,
   BackOptions,
   ChatOptions,
@@ -8,14 +8,11 @@ import type {
   CreateOptions,
   ExportTimelineOptions,
   GetRulesEngineOptions,
-  Navigate,
   NavigateOptions,
-  Overrides,
   Session,
   SessionConfig,
   SimulateOptions,
-  StepId,
-  SubmitOptions,
+  SubmitOptions
 } from "./types";
 import { buildUrl, createApiInstance } from "./util";
 
@@ -37,6 +34,7 @@ export interface ApiManagerOptions {
     simulate?: (options: SimulateOptions) => string;
     exportTimeline?: (options: ExportTimelineOptions) => string;
     getRulesEngine?: (options?: GetRulesEngineOptions) => string;
+    getConnectedData?: (options: AsyncOptions) => string;
   };
 }
 
@@ -249,4 +247,13 @@ export class ApiManager {
     });
     return res.data as string;
   };
+
+  getConnectedData = async <T = any>(options: AsyncOptions) => {
+    const url = this.options.apiGetters?.getConnectedData
+      ? this.options.apiGetters.getConnectedData(options)
+      : buildUrl(this.options.host, "decisionapi/connection");
+
+    const res = await this.api.post<T>(url, options);
+    return res.data as T;
+  }
 }

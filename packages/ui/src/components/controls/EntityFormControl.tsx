@@ -154,7 +154,13 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
     >
       {/* Header with label and add button */}
       <div className="flex items-center justify-between">
-        {control.label && <Text variant="h6">{t(control.label)}</Text>}
+        {
+          control.label
+            ? (<Text variant="h6" asChild>
+              <label aria-label={t(control.label)}>{t(control.label)}</label>
+            </Text>)
+            : null
+        }
 
         {canAddMore && (
           <Button
@@ -198,7 +204,7 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
                   />
 
                   {/* Field content */}
-                  <div className="flex-1 space-y-4">
+                  <div id={field.id} className="flex-1 space-y-4">
                     <FieldControl
                       control={control}
                       index={index}
@@ -215,6 +221,7 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
                       onClick={() => handleDelete(index)}
                       className="text-destructive hover:text-destructive"
                       aria-label={t("form.remove_item")}
+                      aria-controls={field.id}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

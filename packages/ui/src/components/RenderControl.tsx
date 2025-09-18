@@ -38,6 +38,7 @@ const SlottableControl =
 // Must store these in a constant to avoid re-creating components on every render
 const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   boolean: SlottableFormControl(Controls.Boolean),
+  combobox: SlottableFormControl(Controls.Combobox, "combobox"),
   currency: SlottableFormControl(Controls.Currency),
   date: SlottableFormControl(Controls.Date),
   entity: Controls.Entity, // do not support slottable yet, as entities are complicated

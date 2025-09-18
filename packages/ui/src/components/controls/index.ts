@@ -11,13 +11,17 @@ import { SelectFormControl } from "./SelectControl";
 import { TextFormControl } from "./TextControl";
 import { TimeFormControl } from "./TimeControl";
 import { Typography } from "./Typography";
+import { ComboboxFormControl } from "./ComboboxControl";
 
 export * from "./Explanation";
+// export in case they want to make their own
+export { useCombobox } from "./ComboboxControl";
 
 export default Object.assign(
   {},
   {
     Boolean: BooleanFormControl,
+    Combobox: ComboboxFormControl,
     Currency: CurrencyFormControl,
     Date: DateFormControl,
     // Datetime: DateTimeControl,

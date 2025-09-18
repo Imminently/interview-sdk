@@ -288,6 +288,23 @@ export interface Option {
   value: any;
 }
 
+export interface AsyncOptions {
+  /** The connection GUID */
+  connection: string;
+  /** the mapping GUID */
+  responseMapping: string;
+  path: string;
+  /** ie GET, POST */
+  method?: string;
+  /** Defaults to application/json */
+  contentType?: string;
+  /** Query string that requires templating */
+  query: string;
+  body?: string;
+  /** The minimum length of the search input string before running the query */
+  minInput?: number;
+}
+
 /**
  * Allow a user to select from a predefined list of options (eg: a dropdown or a radio button).
  * ```text
@@ -333,6 +350,9 @@ export interface OptionsControl extends BaseControl {
   enum_id?: string;
   showExplanation?: boolean;
   readOnly?: boolean;
+  /** async option control fields, ie requires async request to get data */
+  async?: boolean;
+  asyncOptions?: AsyncOptions;
 }
 
 /**
