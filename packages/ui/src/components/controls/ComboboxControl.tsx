@@ -1,5 +1,5 @@
 import { useTheme } from "@/providers";
-import { type AsyncOptions, type OptionsControl } from "@imminently/interview-sdk";
+import { type OptionsControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
 import {
   Combobox,
@@ -14,7 +14,7 @@ import {
 } from "../ui/combobox";
 import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Explanation } from "./Explanation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useInterview } from "@/interview";
 import { debounce } from "lodash-es";
 
@@ -75,21 +75,6 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
 
   return { options, loading, setSearch: debouncedSetSearch };
 }
-
-// const testControl = (control: OptionsControl) => {
-//   return useMemo(() => ({
-//     ...control,
-//     async: true,
-//     asyncOptions: {
-//       connection: "3c575efd-ba8f-4c21-9dd5-e727bffdeb7e",
-//       responseMapping: "6535f48d-ab20-49d3-ac21-31d5961336b8",
-//       path: "/gl-account-codes",
-//       method: "GET",
-//       query: "accountCode={{search}}&offset=0",
-//       minInput: 3,
-//     }
-//   }), []);
-// }
 
 export const ComboboxFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();

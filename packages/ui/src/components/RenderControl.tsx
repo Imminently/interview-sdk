@@ -1,6 +1,6 @@
 import { InterviewControl } from "@/interview/InterviewControl";
 import { useTheme } from "@/providers";
-import type { Control } from "@imminently/interview-sdk";
+import type { Control, OptionsControl } from "@imminently/interview-sdk";
 import type React from "react";
 import Containers from "./containers";
 import Controls from "./controls";
@@ -55,12 +55,23 @@ const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   switch_container: Containers.Switch, // do not support slottable yet, as containers are complicated
 };
 
+const getOptionsComponent = (control: OptionsControl) => {
+  if(control.asRadio) {
+    // Special case for options that depends on control.asRadio
+    return CONTROL_COMPONENTS["radio"];
+  }
+  if(control.asyncOptions) {
+    // Special case for options that depends on control.asyncOptions
+    return CONTROL_COMPONENTS["combobox"];
+  }
+  // Default select
+  return CONTROL_COMPONENTS["select"];
+}
+
 const getControlComponent = (control: Control): React.ComponentType<any> => {
   if (control.type === "options") {
-    // Special case for options that depends on control.asRadio
-    return CONTROL_COMPONENTS[control.asRadio ? "radio" : "select"];
+    return getOptionsComponent(control as OptionsControl);
   }
-
   return CONTROL_COMPONENTS[control.type] ?? MissingControl;
 };
 

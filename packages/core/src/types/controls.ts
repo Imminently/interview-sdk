@@ -351,7 +351,6 @@ export interface OptionsControl extends BaseControl {
   showExplanation?: boolean;
   readOnly?: boolean;
   /** async option control fields, ie requires async request to get data */
-  async?: boolean;
   asyncOptions?: AsyncOptions;
 }
 
