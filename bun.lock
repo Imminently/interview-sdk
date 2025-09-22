@@ -48,7 +48,7 @@
     },
     "packages/core": {
       "name": "@imminently/interview-sdk",
-      "version": "0.4.6",
+      "version": "0.4.7",
       "dependencies": {
         "@date-fns/utc": "^2.1.0",
         "axios": "^1.10.0",
@@ -67,17 +67,6 @@
         "@types/node": "^22.15.3",
         "@types/pako": "^2.0.3",
         "jest": "^29.7.0",
-        "tsup": "^8.5.0",
-        "typescript": "^5.8.3",
-      },
-    },
-    "packages/theme-default": {
-      "name": "@imminently/interview-sdk-theme-default",
-      "version": "0.1.7",
-      "devDependencies": {
-        "autoprefixer": "^10.4.21",
-        "postcss": "^8.5.3",
-        "tailwindcss": "^4.1.11",
         "tsup": "^8.5.0",
         "typescript": "^5.8.3",
       },
@@ -304,8 +293,6 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
     "@imminently/interview-sdk": ["@imminently/interview-sdk@workspace:packages/core"],
-
-    "@imminently/interview-sdk-theme-default": ["@imminently/interview-sdk-theme-default@workspace:packages/theme-default"],
 
     "@imminently/interview-ui": ["@imminently/interview-ui@workspace:packages/ui"],
 

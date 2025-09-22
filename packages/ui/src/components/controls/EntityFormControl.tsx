@@ -148,12 +148,13 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
   return (
     <div
       className={cn("flex flex-col gap-4", className)}
+      data-slot="form-item"
       data-control={control.type}
       data-id={control.id}
       data-name={fieldName}
     >
       {/* Header with label and add button */}
-      <div className="flex items-center justify-between">
+      <div data-slot="entity-header" className="flex items-center justify-between">
         {
           control.label
             ? (<Text variant="h6" asChild>
@@ -164,6 +165,7 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
 
         {canAddMore && (
           <Button
+            data-slot="entity-add"
             type="button"
             variant="ghost"
             size="icon"
@@ -176,14 +178,14 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
       </div>
       {fields.length === 0 ? (
         <div
-          data-slot="empty"
+          data-slot="entity-empty"
           className="text-muted-foreground text-center pt-4 pb-8"
         >
           {/* Empty state */}
           <Text variant="body">{t("form.no_items")}</Text>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div data-slot="entity-list" className="flex flex-col gap-4">
           {/* Field items */}
           <AttributeNestingProvider value={true}>
             {fields.map((field, index) => {
@@ -192,6 +194,7 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
 
               return (
                 <div
+                  data-slot="entity-item"
                   key={field.id}
                   className={cn("flex items-start gap-4", !isLastItem && "pb-4 border-b border-border")}
                 >
@@ -204,7 +207,7 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
                   />
 
                   {/* Field content */}
-                  <div id={field.id} className="flex-1 space-y-4">
+                  <div data-slot="entity-controls" id={field.id} className="flex-1 space-y-4">
                     <FieldControl
                       control={control}
                       index={index}
@@ -215,6 +218,7 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
                   {/* Delete button */}
                   {showDeleteButton && (
                     <Button
+                      data-slot="entity-remove"
                       type="button"
                       variant="ghost"
                       size="icon"
