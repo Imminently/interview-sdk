@@ -16,7 +16,7 @@ import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } fr
 import { Explanation } from "./Explanation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInterview } from "@/interview";
-import { debounce, throttle } from "lodash-es";
+import { debounce } from "lodash-es";
 
 export type ConnectedDataResponse = {
   data: ComboboxData[];
@@ -38,15 +38,12 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
 
   const fetchLabel = async (value: string) => {
     if (!value || !control.asyncOptions) {
-      debugger
       return;
     }
     const { asyncOptions: { query, ...options } } = control;
     try {
       setLoading(true);
       const templated = manager.templateText(query, { search: value });
-      // const templated = query.replace("{{search}}", value);
-      // console.log('fetching label for', value, templated);
       const res = await manager.getConnectedData<ConnectedDataResponse>({ ...options, query: templated })
       // find the item that matches the value
       const match = (res.data as any[]).find(item => item.value === value || item.key === value || item.id === value);
@@ -65,7 +62,6 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
 
   // Fetch data when control or search changes
   const fetchData = useCallback(async (val: string) => {
-    // console.log('searching with', val);
     if (!control.asyncOptions) {
       // filter control.options based on search
       const data = (control.options ?? []).filter((option: any) =>
@@ -97,13 +93,7 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
     }
   }, [control, manager]);
 
-  // Fetch data initially and when search changes
-  // useEffect(() => {
-  //   fetchData();
-  // }, [control, search]);
-
   useEffect(() => {
-    // console.log("Combobox value changed:", { value, label });
     if (value && label === undefined) {
       fetchLabel(value as string);
     }
@@ -130,21 +120,6 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
   return { label, search, options, loading, setSearch: handleSearchChange, clearSearch };
 }
 
-// const testControl = (control: OptionsControl) => {
-//   return useMemo(() => ({
-//     ...control,
-//     async: true,
-//     asyncOptions: {
-//       connection: "3c575efd-ba8f-4c21-9dd5-e727bffdeb7e",
-//       responseMapping: "6535f48d-ab20-49d3-ac21-31d5961336b8",
-//       path: "/gl-account-codes",
-//       method: "GET",
-//       query: "accountCode={{search}}&offset=0",
-//       minInput: 3,
-//     }
-//   }), []);
-// }
-
 // TODO we need to support custom config for list items, as it might need more than just label
 // CHANGEME: workaround is to just display label and value for now
 export const ComboboxFormControl = ({ field }: UseControllerReturn) => {
@@ -166,7 +141,11 @@ export const ComboboxFormControl = ({ field }: UseControllerReturn) => {
           onValueChange={control.readOnly ? undefined : field.onChange}
           type="item"
         >
-          <ComboboxTrigger loading={loading} label={label} placeholder={t("form.combobox.select_placeholder")} />
+          <ComboboxTrigger
+            loading={loading}
+            label={label}
+            placeholder={t("form.combobox.select_placeholder")}
+            disabled={field.disabled || control.readOnly} />
           <ComboboxContent>
             <ComboboxInput placeholder={t("form.combobox.search_placeholder")} name={field.name} value={search} onValueChange={setSearch} />
             <ComboboxEmpty>
