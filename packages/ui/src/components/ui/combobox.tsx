@@ -25,6 +25,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/util';
+import { Loader } from './loader';
 
 export type ComboboxData = {
   label: string;
@@ -48,13 +49,13 @@ const ComboboxContext = createContext<ComboboxContextType>({
   data: [],
   type: 'item',
   value: '',
-  onValueChange: () => {},
+  onValueChange: () => { },
   open: false,
-  onOpenChange: () => {},
+  onOpenChange: () => { },
   width: 200,
-  setWidth: () => {},
+  setWidth: () => { },
   inputValue: '',
-  setInputValue: () => {},
+  setInputValue: () => { },
 });
 
 export type ComboboxProps = ComponentProps<typeof Popover> & {
@@ -111,11 +112,13 @@ export const Combobox = ({
   );
 };
 
-export type ComboboxTriggerProps = ComponentProps<typeof Button> & { placeholder?: string };
+export type ComboboxTriggerProps = ComponentProps<typeof Button> & { label?: string, placeholder?: string, loading?: boolean; };
 
 export const ComboboxTrigger = ({
   children,
+  label,
   placeholder,
+  loading,
   ...props
 }: ComboboxTriggerProps) => {
   const { value, data, type, setWidth } = useContext(ComboboxContext);
@@ -148,12 +151,14 @@ export const ComboboxTrigger = ({
         {children ?? (
           <span className="flex w-full items-center justify-between gap-2">
             {value
-              ? data.find((item) => item.value === value)?.label ?? value
+              ? label ?? data.find((item) => item.value === value)?.label ?? value
               : placeholder ?? `Select ${type}...`}
-            <ChevronsUpDownIcon
-              className="shrink-0 text-muted-foreground"
-              size={16}
-            />
+            <span className="flex items-center gap-1">
+              {loading ? <Loader /> : null}
+              <ChevronsUpDownIcon
+                className="shrink-0 text-muted-foreground"
+                size={16}
+              /></span>
           </span>
         )}
       </Button>
