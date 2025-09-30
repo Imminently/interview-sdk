@@ -27,7 +27,7 @@ function parseLocalDate(dateString: string): Date | null {
   return new Date(year, month, day);
 }
 
-function DatePicker({ value, onChange, disabled, minDate, maxDate }: DatePickerProps) {
+function DatePicker({ value, onChange, disabled, minDate, maxDate, ...props }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(() => {
     if (!value) return undefined;
     if (value instanceof Date) return value;
@@ -79,6 +79,8 @@ function DatePicker({ value, onChange, disabled, minDate, maxDate }: DatePickerP
     <Popover>
       <PopoverTrigger asChild>
         <Button
+          // make sure we pass the props from the form control through
+          {...props}
           variant={"outline"}
           className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
           disabled={disabled}

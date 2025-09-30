@@ -1,6 +1,6 @@
 import { useTheme } from "@/providers";
 import { type OptionsControl } from "@imminently/interview-sdk";
-import { useFormContext, type UseControllerReturn } from "react-hook-form";
+import { useController, useFormContext } from "react-hook-form";
 import {
   Combobox,
   ComboboxContent,
@@ -30,7 +30,7 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
   const { name } = useFormField();
   const { watch } = useFormContext();
   const [search, setSearch] = useState("");
-  const [label, setLabel] = useState<string | undefined>(() => undefined);
+  const [label, setLabel] = useState<{ key: string; label: string } | undefined>(undefined);
   const [options, setOptions] = useState<ComboboxData[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -42,13 +42,16 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
     }
     const { asyncOptions: { query, ...options } } = control;
     try {
+      // make sure label is set to the value we are loading
+      setLabel({ key: value, label: value });
       setLoading(true);
       const templated = manager.templateText(query, { search: value });
       const res = await manager.getConnectedData<ConnectedDataResponse>({ ...options, query: templated })
       // find the item that matches the value
       const match = (res.data as any[]).find(item => item.value === value || item.key === value || item.id === value);
       if (match) {
-        setLabel(match.label || match.name || match.value || match.key || "Unknown");
+        const label = match.label || match.name || match.value || match.key || "Unknown";
+        setLabel({ key: value, label });
       } else {
         setLabel(undefined);
       }
@@ -94,7 +97,7 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
   }, [control, manager]);
 
   useEffect(() => {
-    if (value && label === undefined) {
+    if (value && (label === undefined || label.key !== value)) {
       fetchLabel(value as string);
     }
   }, [control, label, value]);
@@ -117,15 +120,54 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
     setOptions([]);
   };
 
-  return { label, search, options, loading, setSearch: handleSearchChange, clearSearch };
+  return { label: label?.label, search, options, loading, setSearch: handleSearchChange, clearSearch };
 }
+
+// need to do this as we need to unpack the slot props onto the trigger
+const ComboControl = (props: any) => {
+  const { t } = useTheme();
+  const { name, control } = useFormField<OptionsControl>();
+  const { field } = useController({ name });
+  const { label, search, options, loading, setSearch, clearSearch } = useCombobox(control);
+  return (
+    <Combobox
+      data={options}
+      value={field.value}
+      onOpenChange={clearSearch} // reset search when opening
+      onValueChange={control.readOnly ? undefined : field.onChange}
+      type="item"
+    >
+      <ComboboxTrigger
+        {...props}
+        loading={loading}
+        label={label}
+        placeholder={t("form.combobox.select_placeholder")}
+        disabled={field.disabled || control.readOnly} />
+      <ComboboxContent>
+        <ComboboxInput placeholder={t("form.combobox.search_placeholder")} name={field.name} value={search} onValueChange={setSearch} />
+        <ComboboxEmpty>
+          {loading ? t("form.combobox.loading") : t("form.combobox.no_options")}
+        </ComboboxEmpty>
+        <ComboboxList>
+          <ComboboxGroup>
+            {options.map((item) => (
+              <ComboboxItem key={item.value} value={item.value} className="flex flex-col items-start gap-1">
+                <span>{item.label}</span>
+                <span className="text-muted-foreground text-sm italic">{item.value}</span>
+              </ComboboxItem>
+            ))}
+          </ComboboxGroup>
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+};
 
 // TODO we need to support custom config for list items, as it might need more than just label
 // CHANGEME: workaround is to just display label and value for now
-export const ComboboxFormControl = ({ field }: UseControllerReturn) => {
+export const ComboboxFormControl = () => {
   const { t } = useTheme();
   const { control } = useFormField<OptionsControl>();
-  const { label, search, options, loading, setSearch, clearSearch } = useCombobox(control);
 
   return (
     <>
@@ -134,35 +176,7 @@ export const ComboboxFormControl = ({ field }: UseControllerReturn) => {
         <Explanation control={control} />
       </FormLabel>
       <FormControl>
-        <Combobox
-          data={options}
-          value={field.value}
-          onOpenChange={clearSearch} // reset search when opening
-          onValueChange={control.readOnly ? undefined : field.onChange}
-          type="item"
-        >
-          <ComboboxTrigger
-            loading={loading}
-            label={label}
-            placeholder={t("form.combobox.select_placeholder")}
-            disabled={field.disabled || control.readOnly} />
-          <ComboboxContent>
-            <ComboboxInput placeholder={t("form.combobox.search_placeholder")} name={field.name} value={search} onValueChange={setSearch} />
-            <ComboboxEmpty>
-              {loading ? t("form.combobox.loading") : t("form.combobox.no_options")}
-            </ComboboxEmpty>
-            <ComboboxList>
-              <ComboboxGroup>
-                {options.map((item) => (
-                  <ComboboxItem key={item.value} value={item.value} className="flex flex-col items-start gap-1">
-                    <span>{item.label}</span>
-                    <span className="text-muted-foreground text-sm italic">{item.value}</span>
-                  </ComboboxItem>
-                ))}
-              </ComboboxGroup>
-            </ComboboxList>
-          </ComboboxContent>
-        </Combobox>
+        <ComboControl />
       </FormControl>
       <FormDescription />
       <FormMessage />

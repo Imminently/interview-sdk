@@ -138,13 +138,13 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
     }
   };
 
+  // disabled other debug click events as they may be overriding standard control click behaviour
+  // also only enable if debugEnabled is true
   return (
     <Slot
       data-slot="form-control"
       id={formItemId}
-      onMouseDown={handleDebugClick}
-      onMouseUp={handleDebugClick}
-      onClick={handleDebugClick}
+      onMouseUp={debugEnabled ? handleDebugClick : undefined}
       aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
       aria-invalid={!!error}
       {...props}
