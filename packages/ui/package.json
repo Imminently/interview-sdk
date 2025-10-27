@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-ui",
-  "version": "0.4.19",
+  "version": "0.4.20",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -30,7 +30,7 @@
     "dev": "tsup --watch",
     "lint": "eslint src/",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "bump:patch": "bun run build && npm version patch --no-git-tag-version",
+    "bump:patch": "npm version patch --no-git-tag-version",
     "deploy": "bun run bump:patch && bun publish",
     "check:fix": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check --write .",
     "check": "tsc --noEmit --project tsconfig.json && npx @biomejs/biome check ."

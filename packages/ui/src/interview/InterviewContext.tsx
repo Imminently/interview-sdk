@@ -10,6 +10,10 @@ export type InterviewContextState = {
   callbacks: InterviewCallbacks;
   state: ManagerState;
   error?: Error;
+  validation: {
+    error: boolean;
+    warning: boolean;
+  };
   isLoading: boolean;
   backDisabled: boolean;
   nextDisabled: boolean;
@@ -65,9 +69,15 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
   const value = useMemo<InterviewContextState>(() => {
     const { session, state, error, loading } = snapshot;
     const buttons = session?.screen.buttons;
-    const validationsFail = session?.validations?.some(
-      (validation) => validation.shown && validation.severity === "error",
-    );
+    // calculate and expose both of these for ease of use
+    const validation = {
+      error: session?.validations?.some(
+        (validation) => validation.shown && validation.severity === "error",
+      ) ?? false,
+      warning: session?.validations?.some(
+        (validation) => validation.shown && validation.severity === "warning",
+      ) ?? false
+    };
     // console.log("Validations fail:", validationsFail);
     const finished = manager.isLastStep && manager.isComplete;
     return {
@@ -76,10 +86,12 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
       session: session!,
       state,
       error,
+      validation,
       isLoading: loading,
       backDisabled: manager.isSubInterview ? false : buttons?.back === false || loading,
       nextDisabled:
-        validationsFail ||
+        // only disable next on validation error
+        validation.error ||
         (manager.isSubInterview ? false : buttons?.next === false) ||
         // !manager.canProgress ||
         (!manager.isSubInterview && finished) ||

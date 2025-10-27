@@ -29,10 +29,25 @@ const getDateFromVariant = (value?: DateControlThreeVariantDate): Date | undefin
   return undefined;
 };
 
+export const parseDateControl = (control: DateControl) => {
+  // we need to convert the dates, ie default, min, max to proper date objects
+  const parsedControl: DateControl = {
+    ...control,
+    value: control.value ? defaultFormatter(getDateFromVariant(control.value)!) : undefined,
+    default: control.default ? defaultFormatter(getDateFromVariant(control.default)!) : undefined,
+    min: control.min ? defaultFormatter(getDateFromVariant(control.min)!) : undefined,
+    max: control.max ? defaultFormatter(getDateFromVariant(control.max)!) : undefined,
+  };
+  return parsedControl;
+};
+
+type ParsedDateControl = ReturnType<typeof parseDateControl>;
+
 export const DateFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
-  const { control } = useFormField<DateControl>();
+  const { control } = useFormField<ParsedDateControl>();
 
+  // as this is already parsed, it will be in YYYY-MM-DD so should convert to Date
   const minDate = control.min ? getDateFromVariant(control.min) : undefined;
   const maxDate = control.max ? getDateFromVariant(control.max) : undefined;
 

@@ -8,6 +8,8 @@ import { MAX_INLINE_LABEL_LENGTH } from "../util";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { generateValidatorForControl, useAttributeValidationErrors } from "../util/validation";
 import { useOptions } from "@/providers";
+// import directly to avoid circular dependency
+import { parseControl } from "@/components/parseControl";
 
 export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   control: Control;
@@ -62,7 +64,8 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     readOnly: boolean;
   } = useMemo(() => {
     const readOnly = isReadOnly(control);
-    return { ...control, readOnly, disabled: readOnly };
+    // parse the control here, so the later defaultValue uses the updated values
+    return parseControl({ ...control, readOnly, disabled: readOnly });
   }, [control]);
   // @ts-ignore
   const name: string = useAttributeToFieldName(attribute) ?? control.entity;
@@ -97,7 +100,7 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   const validations = useAttributeValidationErrors(control.attribute);
   useEffect(() => {
     // don't set errors if inlineErrors is false
-    if(!inlineErrors) return;
+    if (!inlineErrors) return;
 
     if (validations.length > 0) {
       // clear the errors, then set the first one
