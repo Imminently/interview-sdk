@@ -12,7 +12,7 @@ export const CertaintyContainer = ({
 
   const controls = branch === "certain" ? certain : uncertain;
 
-  if (controls.length === 0) return null;
+  if (!controls || controls.length === 0) return null;
 
   return (
     <div
