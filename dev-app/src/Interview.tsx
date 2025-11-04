@@ -1,8 +1,5 @@
 import { type ManagerOptions, buildUrl } from "@imminently/interview-sdk";
-import { Interview } from "@imminently/interview-ui";
-
-// place token here for testing
-const user = {};
+import { Interview, useInterview } from "@imminently/interview-ui";
 
 export const API = {
   baseUrl: "https://api.dev.decisively.imminently.co",
@@ -16,7 +13,7 @@ export const API = {
 };
 
 
-export const getInterviewConfig = (interview?: string) => {
+export const getInterviewConfig = (token: string, interview?: string) => {
   return {
     debug: true,
     sessionConfig: {
@@ -27,7 +24,7 @@ export const getInterviewConfig = (interview?: string) => {
     apiManager: {
       host: API.baseUrl,
       auth: () => ({
-        token: `Bearer ${user.id_token as string}`,
+        token: `Bearer ${token as string}`,
         tenancy: API.tenancy,
       }),
       apiGetters: {
@@ -35,6 +32,7 @@ export const getInterviewConfig = (interview?: string) => {
         // @ts-ignore
         getRulesEngine: ({ checksum }) =>
           `${API.baseUrl}/decisionapi/rules-engine-script?checksum=${checksum}`,
+        getConnectedData: () => `https://api.dev.edward.imminently.co/meta/custom/connection`,
       },
     },
     fileManager: {
@@ -43,7 +41,61 @@ export const getInterviewConfig = (interview?: string) => {
   } as ManagerOptions;
 };
 
+const InterviewError = () => {
+  const { error } = useInterview();
+  const status = (error as any)?.status;
+  if (status === 401 || status === 403) {
+    // remove token from url and reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete("token");
+    window.location.href = url.toString();
+    return null;
+  }
+  return <Interview.Error />;
+}
+
 export const InterviewPage = () => {
-  const options = getInterviewConfig();
-  return <Interview options={options} />;
+  // get user token from url params, e.g. ?token=...
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("token");
+
+  if (!token) {
+    // render token input, then redirect with token in url
+    return (
+      <div style={{ padding: 20 }}>
+        <h2>Enter your access token</h2>
+        <input
+          type="text"
+          id="tokenInput"
+          placeholder="Access Token"
+          style={{ width: "300px", padding: "10px", fontSize: "16px" }}
+        />
+        <button
+          style={{ marginLeft: "10px", padding: "10px 20px", fontSize: "16px" }}
+          onClick={() => {
+            const input = document.getElementById("tokenInput") as HTMLInputElement;
+            const tokenValue = input.value.trim();
+            if (tokenValue) {
+              const newUrl = new URL(window.location.href);
+              newUrl.searchParams.set("token", tokenValue);
+              window.location.href = newUrl.toString();
+            } else {
+              alert("Please enter a valid token.");
+            }
+          }}
+        >
+          Submit
+        </button>
+      </div>
+    )
+  }
+
+  const options = getInterviewConfig(token);
+  return (
+    <Interview options={options} inlineErrors>
+      <InterviewError />
+      <Interview.Loading />
+      <Interview.Content />
+    </Interview>
+  );
 };
