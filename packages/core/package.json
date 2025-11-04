@@ -34,24 +34,24 @@
     "deploy": "bun run bump:patch && npm publish"
   },
   "dependencies": {
-    "@date-fns/utc": "^2.1.0",
-    "axios": "^1.10.0",
+    "@date-fns/utc": "^2.1.1",
+    "axios": "^1.13.1",
     "date-fns": "^4.1.0",
     "lodash-es": "^4.17.21",
     "pako": "^2.1.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.8.3",
+    "@biomejs/biome": "^1.9.4",
     "@imminently/standard": "^0.2.5",
-    "@swc/core": "^1.13.0",
-    "@swc/jest": "^0.2.36",
-    "@types/jest": "^29.5.12",
+    "@swc/core": "^1.14.0",
+    "@swc/jest": "^0.2.39",
+    "@types/jest": "^29.5.14",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^22.15.3",
-    "@types/pako": "^2.0.3",
+    "@types/node": "^22.19.0",
+    "@types/pako": "^2.0.4",
     "jest": "^29.7.0",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   }
 }
