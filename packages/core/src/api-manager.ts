@@ -5,7 +5,6 @@ import type {
   BackOptions,
   ChatOptions,
   ChatResponse,
-  CreateOptions,
   ExportTimelineOptions,
   GetRulesEngineOptions,
   NavigateOptions,
@@ -25,7 +24,7 @@ export interface ApiManagerOptions {
   overrides?: AxiosRequestConfig;
   /** API getters for each function */
   apiGetters?: {
-    create?: (options: CreateOptions) => string;
+    create?: (options: SessionConfig) => string;
     load?: (options: SessionConfig) => string;
     submit?: (options: SubmitOptions) => string;
     chat?: (options: ChatOptions) => string;
@@ -50,9 +49,8 @@ export class ApiManager {
     this.options = options;
   }
 
-  create = async (options: CreateOptions) => {
-    const { config } = options;
-    const { initialData, project, release, responseElements, sessionId, ...rest } = config;
+  create = async (options: SessionConfig) => {
+    const { initialData, project, release, responseElements, sessionId, ...rest } = options;
 
     const url = this.options.apiGetters?.create ? this.options.apiGetters.create(options) : buildUrl(project, release);
 

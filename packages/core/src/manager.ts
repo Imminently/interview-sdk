@@ -174,7 +174,11 @@ export interface ManagerOptions {
   preCacheClient?: boolean;
   apiManager: ApiManager | ApiManagerOptions;
   fileManager: FileManager | FileManagerOptions;
-  /** Initial session config. If provided, will automatically start an interview on creation */
+  init?: (this: SessionManager) => Promise<void>;
+  /**
+   * @deprecated Use init instead. If init provided, this will be ignored. Will be removed in v1.0.0
+   * Initial session config. If provided, will automatically start an interview on creation
+   */
   sessionConfig?: SessionConfig;
   /** EXPERIMENTAL: trying out adding support to load/store sessions */
   sessionStore?: Storage;
@@ -330,14 +334,23 @@ export class SessionManager {
       }
     }
 
-    // auto start a session if sessionConfig is provided
-    if (options.sessionConfig && this.sessions.length === 0) {
-      const { sessionConfig } = options;
-      this.log("Initializing session with config:", sessionConfig);
-      this.create(sessionConfig).catch((error) => {
-        console.error(LogGroup, "Error creating initial session:", error);
+    if (options.init) {
+      options.init.call(this).catch((error) => {
+        console.error(LogGroup, "Error during SessionManager init:", error);
         this.setState("error", error as Error);
       });
+    } else {
+      // deprecated in favor of `init` which is given this instance
+      // allows the consumer to create or load with whatever they want
+      // auto start a session if sessionConfig is provided
+      if (options.sessionConfig && this.sessions.length === 0) {
+        const { sessionConfig } = options;
+        this.log("Initializing session with config:", sessionConfig);
+        this.create(sessionConfig).catch((error) => {
+          console.error(LogGroup, "Error creating initial session:", error);
+          this.setState("error", error as Error);
+        });
+      }
     }
 
     // @ts-ignore
@@ -509,11 +522,9 @@ export class SessionManager {
     this.log("Creating session:", config);
     this.setState("loading");
     const session = await this.apiManager.create({
-      config: {
-        ...config,
-        clientGraphBookmark: this.getClientGraphBookmark(),
-        readOnly: this.options.readOnly,
-      },
+      ...config,
+      clientGraphBookmark: this.getClientGraphBookmark(),
+      readOnly: this.options.readOnly,
     });
     this.log("Session created successfully:", session);
     this.setState("success");

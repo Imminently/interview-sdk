@@ -308,10 +308,6 @@ export interface ChatResponse {
   processed: ChatProcessed;
 }
 
-export interface CreateOptions {
-  config: SessionConfig;
-}
-
 // ApiManager options object types
 export interface SubmitOptions {
   session: Session;
