@@ -35,27 +35,27 @@ const isLabelTooLong = (label: string | undefined): label is string => {
 };
 
 // as forms are weird, we need to ensure we have the correct default value for each control type
-const getControlDefault = (type: string) => {
-  switch (type) {
-    case "boolean":
-      return null; // use undefined as we support indeterminate state
-    // case "currency":
-    // return 0;
-    // case "text":
-    // case "number_of_instances":
-    // case "date":
-    // case "datetime":
-    // case "time":
-    // return "";
-    default:
-      return null;
-  }
-};
+// const getControlDefault = (type: string) => {
+//   switch (type) {
+//     case "boolean":
+//       return undefined; // use undefined as we support indeterminate state
+//     // case "currency":
+//     // return 0;
+//     // case "text":
+//     // case "number_of_instances":
+//     // case "date":
+//     // case "datetime":
+//     // case "time":
+//     // return "";
+//     default:
+//       return undefined;
+//   }
+// };
 
 export const InterviewControl = ({ control, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
-  const { inlineErrors } = useOptions();
+  const { inlineErrors, _experimental_strictMode } = useOptions();
   const { unregister, ...form } = useFormContext();
   // take a local copy
   // TODO why do some of the controls have booleans listed as type 'true'?
@@ -70,12 +70,26 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   // @ts-ignore
   const name: string = useAttributeToFieldName(attribute) ?? control.entity;
 
+  // !!IMPORTANT!! the default value is very important
+  // we must respect the following precedence:
+  // 1. value set on the control (for pre-filled values)
+  // 2. default set on the control (for static defaults)
+  // 3. undefined (so RHF knows it's empty)
+  // The different between undefined and null is also very important
+  // undefined = unknown, ie the user ask not been asked yet
+  // null = uncertain, ie the user has been asked and explicitly did not provide a value
+  // Setting an empty string or 0 would be actual values, and not what the user actually provided
+  // The legacy system would only send null if the user gave empty string, which is technically incorrect
+  // We want to change to null if on screen, as that indicates the user has seen the question.
+  // Undefined is when the control gets hidden, either through a container or soeme else. Meaning they did not see it.
+  // This is risky however, as everything has been built using the legacy method.
+  // For now, we will make this experimental and opt-in.
   const defaultValue =
     // @ts-ignore
     resolvedControl.value ??
     // @ts-ignore
     resolvedControl.default ??
-    getControlDefault(resolvedControl.type);
+    (_experimental_strictMode ? null : undefined);
 
   const rules: RegisterOptions = useMemo(
     () => ({

@@ -172,6 +172,8 @@ export interface ManagerOptions {
    * Note requires an initial sessionConfig to be provided.
    */
   preCacheClient?: boolean;
+  /** Enable experimental strict mode, which enforces null (uncertain) for values on screen */
+  _experimental_strictMode?: boolean;
   apiManager: ApiManager | ApiManagerOptions;
   fileManager: FileManager | FileManagerOptions;
   init?: (manager: SessionManager) => void | Promise<void>;
