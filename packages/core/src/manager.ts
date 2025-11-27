@@ -494,7 +494,7 @@ export class SessionManager {
   private handleClientGraphBookmark(session: Session) {
     if (session.clientGraphBookmark) {
       if (!session.clientGraph) {
-        const bookmarkRaw = localStorage.getItem(BOOKMARK_KEY);
+        const bookmarkRaw = sessionStorage.getItem(BOOKMARK_KEY);
         if (!bookmarkRaw) {
           return;
         }
@@ -510,7 +510,7 @@ export class SessionManager {
         this.log("Saved client graph bookmark", {
           id: session.clientGraphBookmark,
         });
-        localStorage.setItem(
+        sessionStorage.setItem(
           BOOKMARK_KEY,
           JSON.stringify({
             clientGraph: session.clientGraph,
@@ -878,6 +878,15 @@ export class SessionManager {
               this.activeSession.validations = result.validations;
             } catch (error) {
               console.error(`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`, error);
+              // surface error under validations, so the user knows something went wrong
+              // this ideally blocks progress until resolved
+              this.activeSession.validations = [{
+                id: this.activeSession.goal,
+                attributes: [],
+                severity: "error",
+                message: "An error occurred while processing your input. Please refresh and try again.",
+                shown: true,
+              }];
             }
 
             // Update screen with new values
@@ -1088,7 +1097,7 @@ export class SessionManager {
   };
 
   private getClientGraphBookmark() {
-    const bookmarkRaw = localStorage.getItem(BOOKMARK_KEY);
+    const bookmarkRaw = sessionStorage.getItem(BOOKMARK_KEY);
     if (bookmarkRaw) {
       return (JSON.parse(bookmarkRaw) as ClientGraphBookmarkData).id;
     }
