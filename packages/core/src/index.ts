@@ -20,3 +20,5 @@ export {
   uuid,
   buildUrl,
 } from "./util";
+
+export * from "./graphUtil";

@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { RenderControl } from "../RenderControl";
+import { FormItemDebug } from "../ui/form";
 
 /**
  * we want to override child controls in case we are rendering\

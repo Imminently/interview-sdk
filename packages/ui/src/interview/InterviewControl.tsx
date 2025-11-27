@@ -38,17 +38,17 @@ const isLabelTooLong = (label: string | undefined): label is string => {
 const getControlDefault = (type: string) => {
   switch (type) {
     case "boolean":
-      return undefined; // use undefined as we support indeterminate state
-    case "currency":
-      return 0;
-    case "text":
-    case "number_of_instances":
+      return null; // use undefined as we support indeterminate state
+    // case "currency":
+    // return 0;
+    // case "text":
+    // case "number_of_instances":
     // case "date":
     // case "datetime":
-    case "time":
-      return "";
+    // case "time":
+    // return "";
     default:
-      return undefined;
+      return null;
   }
 };
 

@@ -11,10 +11,10 @@ export const BooleanFormControl = ({ field }: UseControllerReturn) => {
 
   return (
     <>
-      <FormLabel>
+      <FormLabel className="cursor-pointer">
         <FormControl>
           <Checkbox
-            checked={field.value === undefined ? "indeterminate" : field.value}
+            checked={field.value === undefined || field.value === null ? "indeterminate" : field.value}
             onCheckedChange={(val: boolean) => field.onChange(val)}
             disabled={control.readOnly ?? control.disabled}
             aria-label={control.label}

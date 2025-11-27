@@ -12,6 +12,7 @@ import { TextFormControl } from "./TextControl";
 import { TimeFormControl } from "./TimeControl";
 import { Typography } from "./Typography";
 import { ComboboxFormControl } from "./ComboboxControl";
+import { MarkdownControl } from "./MarkdownControl";
 
 export * from "./Explanation";
 // export in case they want to make their own
@@ -35,5 +36,6 @@ export default Object.assign(
     Text: TextFormControl,
     Time: TimeFormControl,
     Typography: Typography,
+    Markdown: MarkdownControl,
   },
 );

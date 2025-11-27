@@ -20,20 +20,20 @@ const MissingControl = ({ control }: { control: Control }) => {
 // allow type override for controls like select and radio
 const SlottableFormControl =
   (slot: React.FC<any>, type?: string) =>
-  ({ control }: any) => {
-    const { getControl } = useTheme();
-    const Comp = getControl(type ?? control.type) ?? slot;
-    return <InterviewControl control={control}>{(props) => <Comp {...props} />}</InterviewControl>;
-  };
+    ({ control }: any) => {
+      const { getControl } = useTheme();
+      const Comp = getControl(type ?? control.type) ?? slot;
+      return <InterviewControl control={control}>{(props) => <Comp {...props} />}</InterviewControl>;
+    };
 
 // Same as SlottableFormControl, but for controls that are not InterviewControls
 const SlottableControl =
   (slot: React.FC<any>) =>
-  ({ control }: any) => {
-    const { getControl } = useTheme();
-    const Comp = getControl(control.type) ?? slot;
-    return <Comp control={control} />;
-  };
+    ({ control }: any) => {
+      const { getControl } = useTheme();
+      const Comp = getControl(control.type) ?? slot;
+      return <Comp control={control} />;
+    };
 
 // Must store these in a constant to avoid re-creating components on every render
 const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
@@ -43,6 +43,7 @@ const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   date: SlottableFormControl(Controls.Date),
   entity: Controls.Entity, // do not support slottable yet, as entities are complicated
   file: SlottableFormControl(Controls.File),
+  markdown: SlottableControl(Controls.Markdown), // markdown is a special case, as it is not a form control
   number: SlottableFormControl(Controls.Number),
   radio: SlottableFormControl(Controls.Radio, "radio"),
   select: SlottableFormControl(Controls.Select, "select"),
@@ -56,11 +57,11 @@ const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
 };
 
 const getOptionsComponent = (control: OptionsControl) => {
-  if(control.asRadio) {
+  if (control.asRadio) {
     // Special case for options that depends on control.asRadio
     return CONTROL_COMPONENTS["radio"];
   }
-  if(control.asyncOptions) {
+  if (control.asyncOptions) {
     // Special case for options that depends on control.asyncOptions
     return CONTROL_COMPONENTS["combobox"];
   }
@@ -71,6 +72,12 @@ const getOptionsComponent = (control: OptionsControl) => {
 const getControlComponent = (control: Control): React.ComponentType<any> => {
   if (control.type === "options") {
     return getOptionsComponent(control as OptionsControl);
+  }
+  if (control.type === "typography") {
+    if (control.customClassName === "md") {
+      // Special case for typography that depends on style
+      return CONTROL_COMPONENTS["markdown"];
+    }
   }
   return CONTROL_COMPONENTS[control.type] ?? MissingControl;
 };

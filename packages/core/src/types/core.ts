@@ -104,7 +104,7 @@ export interface Parent {
   "@parent": string | undefined;
 }
 
-export type ResponseData = AttributeValues & Parent;
+export type ResponseData = AttributeValues & Partial<Parent>;
 
 export interface EntityInstance {
   "@id": string;

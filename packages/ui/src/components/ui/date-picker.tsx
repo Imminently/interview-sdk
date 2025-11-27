@@ -16,7 +16,8 @@ interface DatePickerProps {
 }
 
 // Helper function to parse YYYY-MM-DD as local time
-function parseLocalDate(dateString: string): Date | null {
+function parseLocalDate(dateString: string | null): Date | null {
+  if (!dateString) return null;
   const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return null;
 

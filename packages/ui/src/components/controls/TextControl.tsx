@@ -46,8 +46,6 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
     return 1;
   })();
 
-  
-
   return (
     <>
       <FormLabel>{t(control.label)}</FormLabel>
@@ -55,7 +53,7 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
         {control.rows && control.rows > 1 ? (
           <Textarea
             rows={control.rows}
-            value={field.value}
+            value={field.value ?? ""}
             onChange={(e) => field.onChange(e.target.value)}
             disabled={field.disabled}
             placeholder={t("form.text_placeholder")}
@@ -75,7 +73,7 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
         ) : (
           <Input
             type={type}
-            value={field.value}
+            value={field.value ?? ""}
             onChange={(e) => field.onChange(e.target.value)}
             disabled={field.disabled}
             placeholder={t("form.text_placeholder")}

@@ -339,7 +339,7 @@ export interface OptionsControl extends BaseControl {
   required?: true;
   disabled?: true;
   value?: string | boolean | null;
-  default?: string | boolean;
+  default?: string | boolean | null;
   /** uuid */
   attribute: string;
   /** design and runtime */

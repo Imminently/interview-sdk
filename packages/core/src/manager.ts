@@ -3,7 +3,6 @@ import get from "lodash-es/get";
 import isEmpty from "lodash-es/isEmpty";
 import isEqual from "lodash-es/isEqual";
 import set from "lodash-es/set";
-import pako from "pako";
 import { ApiManager, type ApiManagerOptions } from "./api-manager";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, type UnknownValues, buildDynamicReplacementQueries } from "./dynamic";
@@ -32,6 +31,7 @@ import {
   transformResponse,
 } from "./util";
 import { replaceTemplatedText } from "./helpers";
+import { decompressGraph, graphFromJSON } from "./graphUtil";
 
 const BOOKMARK_KEY = "immi_cg_bookmark_3";
 
@@ -174,10 +174,13 @@ export interface ManagerOptions {
   preCacheClient?: boolean;
   apiManager: ApiManager | ApiManagerOptions;
   fileManager: FileManager | FileManagerOptions;
-  init?: (this: SessionManager) => Promise<void>;
+  init?: (manager: SessionManager) => void | Promise<void>;
   /**
-   * @deprecated Use init instead. If init provided, this will be ignored. Will be removed in v1.0.0
-   * Initial session config. If provided, will automatically start an interview on creation
+   * @deprecated Use init instead. If init provided, this will be ignored.
+   * 
+   * Will be removed in v1.0.0
+   * 
+   * Legacy: Initial session config. If provided, will automatically start an interview on creation
    */
   sessionConfig?: SessionConfig;
   /** EXPERIMENTAL: trying out adding support to load/store sessions */
@@ -254,11 +257,7 @@ const getClientGraphForSession = (session: Session) => {
   }
 
   if (!session.decompressedClientGraph) {
-    const decompressed = JSON.parse(
-      // @ts-ignore string should work
-      pako.inflate(session.clientGraph, { to: "string" }),
-    );
-    session.decompressedClientGraph = decompressed;
+    session.decompressedClientGraph = decompressGraph(session.clientGraph);
   }
 
   return session.decompressedClientGraph;
@@ -335,10 +334,12 @@ export class SessionManager {
     }
 
     if (options.init) {
-      options.init.call(this).catch((error) => {
+      try {
+        options.init(this);
+      } catch (error) {
         console.error(LogGroup, "Error during SessionManager init:", error);
         this.setState("error", error as Error);
-      });
+      };
     } else {
       // deprecated in favor of `init` which is given this instance
       // allows the consumer to create or load with whatever they want
@@ -519,23 +520,31 @@ export class SessionManager {
   }
 
   create = async (config: SessionConfig): Promise<Session> => {
-    this.log("Creating session:", config);
-    this.setState("loading");
-    const session = await this.apiManager.create({
-      ...config,
-      clientGraphBookmark: this.getClientGraphBookmark(),
-      readOnly: this.options.readOnly,
-    });
-    this.log("Session created successfully:", session);
-    this.setState("success");
-    this.push(session);
-    this.updateSession(session);
-    // if we successfully created a session, try to pre-cache the client-side dynamic runtime
-    this.preCacheClient();
-    return session;
+    try {
+      this.log("Creating session:", config);
+      this.setState("loading");
+      const session = await this.apiManager.create({
+        ...config,
+        clientGraphBookmark: this.getClientGraphBookmark(),
+        readOnly: this.options.readOnly,
+      });
+      this.log("Session created successfully:", session);
+      this.setState("success");
+      this.push(session);
+      this.updateSession(session);
+      // if we successfully created a session, try to pre-cache the client-side dynamic runtime
+      this.preCacheClient();
+      return session;
+    } catch (error) {
+      console.error(LogGroup, "Error creating session:", error);
+      this.setState("error", error as Error);
+      // re-throw to allow caller to handle and respect promise interface
+      throw error;
+    }
   };
 
   load = async (config: SessionConfig): Promise<Session> => {
+    try {
     this.log("Loading session:", config);
     this.setState("loading");
     const session = await this.apiManager.load({
@@ -549,6 +558,12 @@ export class SessionManager {
     // if we successfully created a session, try to pre-cache the client-side dynamic runtime
     this.preCacheClient();
     return session;
+    } catch (error) {
+      console.error(LogGroup, "Error loading session:", error);
+      this.setState("error", error as Error);
+      // re-throw to allow caller to handle and respect promise interface
+      throw error;
+    }
   };
 
   createSubInterview = async (control: InterviewContainerControl) => {
@@ -640,6 +655,17 @@ export class SessionManager {
       return null;
     }
     return getClientGraphForSession(this.activeSession);
+  }
+
+  get parsedGraph() {
+    if (!this.activeSession) {
+      return null;
+    }
+    const raw = this.clientGraph;
+    if (!raw) {
+      return null;
+    }
+    return graphFromJSON(raw);
   }
 
   get canProgress() {

@@ -1,7 +1,7 @@
 import { useInterview } from "@/interview";
 import { useDebugSettings, useTheme } from "@/providers";
 import { cn } from "@/util";
-import type { Control } from "@imminently/interview-sdk";
+import { displayValue, type Control } from "@imminently/interview-sdk";
 import type * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot as ReactSlot, type SlotProps } from "@radix-ui/react-slot";
 import * as React from "react";
@@ -77,7 +77,30 @@ type FormItemContextValue = {
 
 const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 
-function FormItem({ className, ...props }: React.ComponentProps<"div">) {
+export const FormItemDebug = () => {
+  const { debugEnabled } = useDebugSettings();
+  const context = useInterview();
+  const { control, name } = useFormField();
+  const { watch } = useFormContext();
+  const graph = React.useMemo(() => context.manager.parsedGraph, [context]);
+  const val = watch(name);
+
+  if (!debugEnabled) {
+    return null;
+  }
+
+  const node = graph ? graph.node(name) : { description: "No graph", entity: "N/A" };
+  console.log("FormItemDebug", { name, control, val, node });
+  return (
+    <div className="flex flex-row gap-1 text-xs text-muted-foreground items-center">
+      {node?.entity ? <span>[{node.entity}]</span> : null}
+      <span>{node?.description ?? `Missing node for ${name}`}</span>
+      <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
+    </div>
+  );
+}
+
+function FormItem({ className, children, ...props }: React.ComponentProps<"div">) {
   const id = React.useId();
   const { control, name } = useFormField();
   // @ts-ignore the control may have a custom className, add it here so its always applied
@@ -92,7 +115,10 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
         data-id={control.id}
         data-name={name}
         {...props}
-      />
+      >
+        <FormItemDebug />
+        {children}
+      </div>
     </FormItemContext.Provider>
   );
 }
@@ -103,12 +129,12 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
 
   const debugControl = debugEnabled
     ? () => {
-        console.log("FormLabel", {
-          name,
-          formItemId,
-          control,
-        });
-      }
+      console.log("FormLabel", {
+        name,
+        formItemId,
+        control,
+      });
+    }
     : undefined;
 
   return (

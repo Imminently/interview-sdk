@@ -5,6 +5,10 @@ import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Time } from "../ui/time";
 import { Explanation } from "./Explanation";
 
+/**
+ * Legacy format code
+ * Why did this even exist??
+
 // Helper to parse time string to {h, m, s}
 function parseTimeString(str: string): { h: number; m: number; s: number } | null {
   if (!str) return null;
@@ -95,6 +99,8 @@ function formatRawDigits(digits: string): string | null {
 // }
 // field.onChange(newValue);
 
+*/
+
 export const TimeFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
   const { control } = useFormField<TimeControl>();
@@ -108,7 +114,8 @@ export const TimeFormControl = ({ field }: UseControllerReturn) => {
       </FormLabel>
       <FormControl>
         <Time
-          value={field.value}
+          // convert undefined to empty string for controlled component
+          value={field.value ?? ""}
           onChange={(e) => field.onChange(e.target.value)}
           disabled={field.disabled}
           min={control.min}
