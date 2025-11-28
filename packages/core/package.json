@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-sdk",
-  "version": "0.5.1",
+  "version": "0.5.7",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"

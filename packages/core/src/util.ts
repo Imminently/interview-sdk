@@ -401,14 +401,16 @@ export const postProcessControl = (
   }
   if (control.type === "switch_container" && control.kind === "dynamic" && control.attribute) {
     const update = replacements[control.attribute];
-    if (update !== undefined) {
-      control.branch = update ? "true" : "false";
-    }
+    // if (update !== undefined) {
+    control.branch = update ? "true" : "false";
+    // }
   }
   if (control.type === "certainty_container") {
     const update = replacements[control.attribute];
-    if (update !== undefined) {
-      control.branch = replacements[control.attribute] === null ? "uncertain" : "certain";
-    }
+    const certain = update !== null && update !== undefined;
+    control.branch = certain ? "certain" : "uncertain";
+    // if (update !== undefined) {
+    // control.branch = replacements[control.attribute] === null ? "uncertain" : "certain";
+    // }
   }
 };

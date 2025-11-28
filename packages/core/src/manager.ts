@@ -32,6 +32,7 @@ import {
 } from "./util";
 import { replaceTemplatedText } from "./helpers";
 import { decompressGraph, graphFromJSON } from "./graphUtil";
+import { produce } from "immer";
 
 const BOOKMARK_KEY = "immi_cg_bookmark_3";
 
@@ -42,6 +43,7 @@ const BOOKMARK_KEY = "immi_cg_bookmark_3";
  * @param preProcessedState - The preprocessed state containing entity structure and nodes
  * @param data - The session data containing parent information
  * @param userValues - The current user input values
+ * @param existingData - Optional existing data to merge into. It should come from the backend and contain information we might need.
  * @returns The constructed input object for rules engine evaluation
  */
 export const constructInputFromPreProcessed = (
@@ -50,33 +52,35 @@ export const constructInputFromPreProcessed = (
   userValues: AttributeValues,
   existingData?: any,
 ): any => {
-  // reconstruct the entity structure from the preprocessed state
-  const input = existingData ?? preProcessedState?.entityStructure ?? {};
-  const parent = data["@parent"];
-
-  // Apply previous values from preprocessed nodes
-  if (preProcessedState?.nodes) {
-    for (const [key, value] of Object.entries(preProcessedState.nodes)) {
-      const prev = (value as any)?.previousValue;
-      if (prev !== undefined) {
-        const nestedPath = pathToNested(key, input, true).split(".");
-        set(input, nestedPath, prev);
+  // reconstruct the entity structure from the existing data or preprocessed state
+  // IMPORANT make sure we do NOT mutate existingData or preProcessedState, or we are going to have a bad time
+  // this took forever to find
+  const input = produce(existingData ?? preProcessedState?.entityStructure ?? {}, (draft: any) => {
+    // Apply previous values from preprocessed nodes
+    if (preProcessedState?.nodes) {
+      for (const [key, value] of Object.entries(preProcessedState.nodes)) {
+        const prev = (value as any)?.previousValue;
+        if (prev !== undefined) {
+          const nestedPath = pathToNested(key, draft, true).split(".");
+          set(draft, nestedPath, prev);
+        }
       }
     }
-  }
 
-  // Apply user values to the appropriate parent context
-  if (parent) {
-    const nestedPath = pathToNested(parent, input, true).split(".");
-    const existing = get(input, nestedPath);
+    // Apply user values to the appropriate parent context
+    const parent = data["@parent"];
+    if (parent) {
+      const nestedPath = pathToNested(parent, draft, true);
+      const existing = get(draft, nestedPath.split("."));
 
-    set(input, pathToNested(parent, input, true), {
-      ...existing,
-      ...userValues,
-    });
-  } else {
-    Object.assign(input, userValues);
-  }
+      set(draft, nestedPath, {
+        ...existing,
+        ...userValues,
+      });
+    } else {
+      Object.assign(draft, userValues);
+    }
+  });
 
   return input;
 };
@@ -873,8 +877,10 @@ export class SessionManager {
 
               //if (result.result !== undefined) {
               // Update replacements with solved values
-              Object.assign(this.internals.replacements, replacements);
+              // Object.assign(this.internals.replacements, replacements);
+              this.internals.replacements = replacements;
 
+              // make sure we update the newScreen, as thats our working copy
               this.activeSession.validations = result.validations;
             } catch (error) {
               console.error(`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`, error);
