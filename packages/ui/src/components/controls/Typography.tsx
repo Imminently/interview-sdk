@@ -80,7 +80,7 @@ export const TypographyDebug = ({ name, control }: { name: string; control: Typo
   }
 
   const node = graph ? graph.node(name) : { description: "No graph", entity: "N/A" };
-  console.log("TypographyDebug", { name, node });
+  // console.log("TypographyDebug", { name, node });
 
   const dynamic = [] as string[];
   // @ts-ignore
@@ -93,7 +93,7 @@ export const TypographyDebug = ({ name, control }: { name: string; control: Typo
   }
 
   return (
-    <div className="flex flex-col text-xs text-muted-foreground">
+    <div data-slot="debug-info" className="flex flex-col text-xs text-muted-foreground">
       <div className="flex flex-row gap-1 items-center">
         {node?.entity ? <span>[{node.entity}]</span> : null}
         <span>{node?.description ?? `Missing node for ${name}`}</span>
@@ -124,34 +124,39 @@ export const Typography = ({ control }: TypographyControlProps) => {
     : undefined;
 
   const component = (
-    <>
-      <TypographyDebug name={control.attribute ?? control.id} control={control} />
-      <Comp
-        onClick={debugControl}
-        data-type={control.type}
-        data-typography={variant}
-        className={cn(typographyVariants({ variant }), control.customClassName)}
-      >
-        {control.emoji ? <span className="mr-2">{control.emoji}</span> : null}
-        {t(control.text)}
-      </Comp>
-    </>
+    <Comp
+      onClick={debugControl}
+      data-type={control.type}
+      data-typography={variant}
+      className={cn(typographyVariants({ variant }), control.customClassName)}
+    >
+      {control.emoji ? <span className="mr-2">{control.emoji}</span> : null}
+      {t(control.text)}
+    </Comp>
   );
 
   if (control.label) {
     return (
-      <FormField
-        name={control.attribute ?? control.id}
-        data={control}
-        render={() => (
-          <FormItem>
-            <FormLabel>{t(control.label)}</FormLabel>
-            <FormControl>{component}</FormControl>
-          </FormItem>
-        )}
-      />
+      <>
+        <TypographyDebug name={control.attribute ?? control.id} control={control} />
+        <FormField
+          name={control.attribute ?? control.id}
+          data={control}
+          render={() => (
+            <FormItem>
+              <FormLabel>{t(control.label)}</FormLabel>
+              <FormControl>{component}</FormControl>
+            </FormItem>
+          )}
+        />
+      </>
     );
   }
 
-  return component;
+  return (
+    <>
+      <TypographyDebug name={control.attribute ?? control.id} control={control} />
+      {component}
+    </>
+  );
 };

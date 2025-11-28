@@ -90,9 +90,9 @@ export const FormItemDebug = () => {
   }
 
   const node = graph ? graph.node(name) : { description: "No graph", entity: "N/A" };
-  console.log("FormItemDebug", { name, control, val, node });
+  // console.log("FormItemDebug", { name, control, val, node });
   return (
-    <div className="flex flex-row gap-1 text-xs text-muted-foreground items-center">
+    <div data-slot="debug-info" className="flex flex-row gap-1 text-xs text-muted-foreground items-center">
       {node?.entity ? <span>[{node.entity}]</span> : null}
       <span>{node?.description ?? `Missing node for ${name}`}</span>
       <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>

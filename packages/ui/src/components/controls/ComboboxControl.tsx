@@ -132,7 +132,7 @@ const ComboControl = (props: any) => {
   return (
     <Combobox
       data={options}
-      value={field.value}
+      value={field.value ?? ""}
       onOpenChange={clearSearch} // reset search when opening
       onValueChange={control.readOnly ? undefined : field.onChange}
       type="item"
