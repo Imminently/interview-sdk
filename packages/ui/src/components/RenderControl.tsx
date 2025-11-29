@@ -23,7 +23,7 @@ const SlottableFormControl =
     ({ control }: any) => {
       const { getControl } = useTheme();
       const Comp = getControl(type ?? control.type) ?? slot;
-      return <InterviewControl control={control}>{(props) => <Comp {...props} />}</InterviewControl>;
+      return <InterviewControl control={control}><Comp /></InterviewControl>;
     };
 
 // Same as SlottableFormControl, but for controls that are not InterviewControls

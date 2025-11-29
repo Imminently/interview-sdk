@@ -386,6 +386,14 @@ export const pathToNested = (basePath: string, values: AttributeValues, nested: 
   return result.join(nested ? "." : "/");
 };
 
+export const parseBoolean = (value: any): boolean => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    return value.toLowerCase() === "true";
+  }
+  return false;
+}
+
 export const postProcessControl = (
   control: any,
   replacements: any,
@@ -402,7 +410,7 @@ export const postProcessControl = (
   if (control.type === "switch_container" && control.kind === "dynamic" && control.attribute) {
     const update = replacements[control.attribute];
     // if (update !== undefined) {
-    control.branch = update ? "true" : "false";
+    control.branch = parseBoolean(update) ? "true" : "false";
     // }
   }
   if (control.type === "certainty_container") {

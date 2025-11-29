@@ -1,13 +1,11 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useInterview } from "@/interview";
-import { useDebugSettings, useOptions } from "@/providers";
+import { useDebugSettings } from "@/providers";
 import { getColor } from "@/util";
 import type { Control, RenderableSwitchContainerControl } from "@imminently/interview-sdk";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useFormContext } from "react-hook-form";
 import { RenderControl } from "../RenderControl";
-import { FormItemDebug } from "../ui/form";
 
 /**
  * we want to override child controls in case we are rendering\
@@ -147,16 +145,4 @@ export const SwitchContainer = ({
       ))}
     </>
   );
-
-  // return (
-  //   <div
-  //     data-id={control.id}
-  //     data-control={control.type}
-  //     // data-attribute={control.attribute}
-  //     data-loading={(control as any).loading ? "true" : undefined}
-  //     className={className}
-  //   >
-  //     {mappedControls.map((value) => <RenderControl key={value.id} control={value} />)}
-  //   </div>
-  // );
 };

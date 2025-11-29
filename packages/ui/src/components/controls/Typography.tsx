@@ -142,13 +142,10 @@ export const Typography = ({ control }: TypographyControlProps) => {
         <FormField
           name={control.attribute ?? control.id}
           data={control}
-          render={() => (
-            <FormItem>
-              <FormLabel>{t(control.label)}</FormLabel>
-              <FormControl>{component}</FormControl>
-            </FormItem>
-          )}
-        />
+        >
+          <FormLabel>{t(control.label)}</FormLabel>
+          <FormControl>{component}</FormControl>
+        </FormField>
       </>
     );
   }

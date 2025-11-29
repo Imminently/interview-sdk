@@ -7,9 +7,9 @@ export const parseControl = (control: any) => {
     case "date":
       return parseDateControl(control);
     case "options":
-      // if (control.asRadio) {
-      //   return parseRadioControl(control);
-      // }
+      if (control.asRadio) {
+        return parseRadioControl(control);
+      }
       return control;
     default:
       // default to do nothing

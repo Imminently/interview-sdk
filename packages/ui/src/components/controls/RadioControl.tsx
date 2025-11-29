@@ -6,14 +6,19 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { cn } from "@/util";
 
+const parse = (v: string) => {
+  if (v === "true") return true;
+  if (v === "false") return false;
+  if (v === "null") return null;
+  return v;
+};
+
 export const parseRadioControl = (control: OptionsControl) => {
   // we need to convert any 'null' string values to actual null values
+  // NOTE we don't want to change the options, as that will be handled in the control
+  // All options must be a string
   const parsedControl: OptionsControl = {
     ...control,
-    options: control.options?.map((option) => ({
-      ...option,
-      value: option.value === "null" ? null : option.value,
-    })),
     default: control.default === "null" ? null : control.default,
     value: control.value === "null" ? null : control.value,
   };
@@ -25,9 +30,12 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
   const { control, formItemId } = useFormField<OptionsControl>();
   const { options } = control;
 
-
   if (!options || options.length === 0) {
     return null; // No options to display
+  }
+
+  const handleChange = (value: string) => {
+    field.onChange(parse(value));
   }
 
   return (
@@ -35,15 +43,16 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
       <FormLabel>{t(control.label)}</FormLabel>
       <FormControl>
         <RadioGroup
-          value={field.value !== null && field.value !== undefined ? String(field.value) : ""}
-          onValueChange={control.readOnly ? () => { } : field.onChange}
+          disabled={field.disabled || control.readOnly}
+          value={field.value !== undefined ? String(field.value) : ""}
+          onValueChange={handleChange}
           className="flex flex-col"
         >
           {options.map((option) => {
             // generate a unique id for each option, as we need to ensure it doesn't conflict with other controls
             const id = `${formItemId}-${option.value}`;
             const optionValue = String(option.value);
-            const fieldValue = field.value !== null && field.value !== undefined ? String(field.value) : "";
+            const fieldValue = field.value !== undefined ? String(field.value) : "";
             const isSelected = fieldValue === optionValue;
 
             return (
@@ -54,7 +63,7 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
                 <RadioGroupItem
                   id={id}
                   value={option.value ?? ""}
-                  disabled={field.disabled || control.readOnly}
+                  // disabled={field.disabled || control.readOnly}
                 />
                 <Label
                   htmlFor={id}

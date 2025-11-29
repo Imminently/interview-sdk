@@ -37,11 +37,16 @@ const FormField = <
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 >({
   data, // pull data (the control) out of the props
+  children,
   ...props
-}: ControllerProps<TFieldValues, TName> & { data: Control }) => {
+}: Omit<ControllerProps<TFieldValues, TName>, 'render'> & React.PropsWithChildren<{ data: Control }>) => {
   return (
     <FormFieldContext.Provider value={{ name: props.name, control: data }}>
-      <Controller {...props} />
+      <Controller {...props} render={(p) => (
+        <FormItem>
+          <Slot children={children} {...p} />
+        </FormItem>
+      )} />
     </FormFieldContext.Provider>
   );
 };
