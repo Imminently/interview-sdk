@@ -1,9 +1,11 @@
 import { InterviewControl } from "@/interview/InterviewControl";
 import { useTheme } from "@/providers";
 import type { Control, OptionsControl } from "@imminently/interview-sdk";
+import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import type React from "react";
 import Containers from "./containers";
 import Controls from "./controls";
+import { useCallback } from "react";
 
 const MissingControl = ({ control }: { control: Control }) => {
   const { t } = useTheme();
@@ -82,8 +84,23 @@ const getControlComponent = (control: Control): React.ComponentType<any> => {
   return CONTROL_COMPONENTS[control.type] ?? MissingControl;
 };
 
+const ControlFallback = ({ error, control }: FallbackProps & { control: Control }) => {
+  return (
+    <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-xl">
+      <h2 className="font-bold">Failed to render control.</h2>
+      <pre className="text-wrap">{error.message}</pre>
+      <pre className="mt-2 text-sm text-wrap">{JSON.stringify(control, null, 2)}</pre>
+    </div>
+  );
+}
+
 export const RenderControl = ({ control }: { control: Control }) => {
   const Component = control ? getControlComponent(control) : null;
   if (!Component) return null;
-  return <Component control={control} />;
+  const fallback = useCallback((props: FallbackProps) => <ControlFallback {...props} control={control} />, [control]);
+  return (
+    <ErrorBoundary FallbackComponent={fallback} >
+      <Component control={control} />
+    </ErrorBoundary >
+  );
 };
