@@ -4,49 +4,65 @@ A TypeScript monorepo that provides a software development kit for building inte
 
 ## Project Overview
 
-This Interview SDK enables developers to build sophisticated questionnaire and survey applications with features like conditional logic, dynamic form controls, theming, and multi-language support. The architecture allows interviews to be defined declaratively (via JSON) and rendered dynamically with a rich set of UI components.
+This Interview SDK enables developers to build sophisticated questionnaire and survey applications with features like conditional logic, dynamic form controls, and multi-language support. The architecture allows interviews to be defined declaratively (via JSON) and rendered dynamically with a rich set of UI components.
 
 ## Packages
 
 ### Core Packages
 
 #### `@imminently/interview-sdk` (`packages/core/`)
-The main SDK package containing the core interview logic and utilities:
 
-- **API utilities** - Core API interaction logic
-- **Interview manager** - Main interview orchestration and state management
-- **File manager** - File handling capabilities for interview assets
-- **Types** - Comprehensive TypeScript definitions for controls, core types, and file handling
-- **Utilities** - Helper functions for interview processing and data manipulation
-- **Sidebars** - Sidebar component logic for navigation
-- **Constants and formatting** - Shared constants and formatting utilities
+The core SDK for integrating interview functionality into custom UIs. This package handles all communication with the Decisively API and abstracts the core model and control logic, allowing you to focus on building your view layer.
+
+**Key Features:**
+
+- 🔄 **Session Management** - Create, load, and manage interview sessions with state persistence
+- 🌐 **API Abstraction** - Clean interface for all API communications
+- 📁 **File Handling** - Built-in file upload/download support
+- ⚡ **Dynamic Updates** - Real-time form updates based on user input (client-side and server-side)
+- 📘 **TypeScript Support** - Fully typed for better developer experience
+- 🔐 **Flexible Authentication** - Support for custom auth configurations
+
+**Main Components:**
+
+- **SessionManager** - Main entry point for managing interview sessions
+- **ApiManager** - Handles all HTTP API interactions
+- **FileManager** - Manages file upload/download operations
+- **Types** - Comprehensive TypeScript definitions
+
+[📖 Full Documentation](./packages/core/README.md)
 
 #### `@imminently/interview-ui` (`packages/ui/`)
-React UI components package providing the visual layer:
 
-- **Interview components** - Main interview UI components and layouts
-- **Form controls** - Reusable form control components (inputs, selects, etc.)
-- **Providers** - React context providers including theme support
-- **Utilities** - UI-specific helper functions
-- **Internationalization** - Multi-language support system
+A React UI component library for building interview experiences on top of `@imminently/interview-sdk`. This package provides ready-to-use React components with built-in styling, form management, and state handling.
+
+**Key Features:**
+
+- 🎨 **Pre-styled Components** - Beautiful, accessible interview UI out of the box
+- 🧩 **Slot-based Customization** - Replace any component with your own implementation
+- 📋 **Form Management** - Built-in form handling with validation
+- 🔌 **Flexible Styling** - Use with Tailwind or standalone CSS
+- ♿ **Accessible** - Built on Radix UI primitives following WAI-ARIA standards
+
+**Main Components:**
+
+- **Interview** - Compositional components (Interview.Form, Interview.Steps, Interview.Next, etc.)
+- **InterviewProvider** - React context provider for interview state
+- **Form Controls** - Pre-built form controls (text, date, currency, boolean, etc.)
+- **Providers** - Theme and settings providers
+
+[📖 Full Documentation](./packages/ui/README.md)
 
 #### `@imminently/interview-sdk-theme-default` (`packages/theme-default/`)
-Default theme package with comprehensive styling:
 
-- **Tailwind CSS configuration** - Custom Tailwind setup with safelist generation
-- **Component styles** - Styled components for various form controls:
-  - Boolean controls
-  - Currency inputs
-  - Date/DateTime/Time pickers
-  - Text inputs
-  - Error handling
-  - Typography
-- **Interview styles** - Styling for interview layouts, actions, alerts, and sidebars
-- **Theme CSS** - Base theme styles and design system
+> **Coming Soon** - This package is being restructured and will be available in a future release.
+
+Default theme package with comprehensive styling capabilities for customizing the interview UI appearance.
 
 ### Development Environment
 
 #### `dev-app/`
+
 A development application for testing and demonstrating the SDK:
 
 - **Vite-based React app** - Fast development environment
@@ -68,7 +84,8 @@ A development application for testing and demonstrating the SDK:
 ## Development
 
 This project uses:
-- **Yarn Workspaces** for monorepo management
+
+- **Bun** for package management and script running
 - **Turbo** for build orchestration and caching
 - **TypeScript** for type safety
 - **React** for UI components
@@ -79,22 +96,22 @@ This project uses:
 
 ```bash
 # Install dependencies and build all packages
-npm run install:all
+bun run install:all
 
 # Start development servers for all packages
-npm run dev
+bun run dev
 
 # Build all packages
-npm run build
+bun run build
 
 # Run linting across packages
-npm run lint
+bun run lint
 
 # Clean all build artifacts
-npm run clean
+bun run clean
 
 # Publish patch versions
-npm run publish:patch
+bun run publish:patch
 ```
 
 ## Architecture
@@ -103,11 +120,11 @@ The SDK follows a modular architecture:
 
 1. **Core Layer** (`@imminently/interview-sdk`) - Business logic and data management
 2. **UI Layer** (`@imminently/interview-ui`) - React components and user interface
-3. **Theme Layer** (`@imminently/interview-sdk-theme-default`) - Styling and visual design
-4. **Development Tools** (`dev-app`) - Testing and development environment
+3. **Development Tools** (`dev-app`) - Testing and development environment
 
 This separation allows for:
-- **Flexibility** - Use different UI frameworks or themes
+
+- **Flexibility** - Use different UI frameworks or customize existing components
 - **Maintainability** - Clear separation of concerns
 - **Extensibility** - Easy to add new features or customize existing ones
 - **Reusability** - Components and logic can be shared across applications
@@ -115,6 +132,7 @@ This separation allows for:
 ## Use Cases
 
 The Interview SDK is ideal for:
+
 - **Enterprise surveys and questionnaires**
 - **Interactive forms with complex logic**
 - **Multi-step wizards and workflows**
