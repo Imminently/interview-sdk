@@ -342,9 +342,9 @@ export class SessionManager {
     if (options.init) {
       try {
         options.init(this);
-      } catch (error) {
+      } catch (error: any) {
         console.error(LogGroup, "Error during SessionManager init:", error);
-        this.setState("error", error as Error);
+        this.setState("error", error.response ?? error);
       };
     } else {
       // deprecated in favor of `init` which is given this instance
@@ -355,7 +355,7 @@ export class SessionManager {
         this.log("Initializing session with config:", sessionConfig);
         this.create(sessionConfig).catch((error) => {
           console.error(LogGroup, "Error creating initial session:", error);
-          this.setState("error", error as Error);
+          this.setState("error", error.response ?? error);
         });
       }
     }
@@ -541,9 +541,9 @@ export class SessionManager {
       // if we successfully created a session, try to pre-cache the client-side dynamic runtime
       this.preCacheClient();
       return session;
-    } catch (error) {
+    } catch (error: any) {
       console.error(LogGroup, "Error creating session:", error);
-      this.setState("error", error as Error);
+      this.setState("error", error.response ?? error);
       // re-throw to allow caller to handle and respect promise interface
       throw error;
     }
@@ -551,22 +551,22 @@ export class SessionManager {
 
   load = async (config: SessionConfig): Promise<Session> => {
     try {
-    this.log("Loading session:", config);
-    this.setState("loading");
-    const session = await this.apiManager.load({
-      ...config,
-      clientGraphBookmark: this.getClientGraphBookmark(),
-    });
-    this.log("Session loaded successfully:", session);
-    this.setState("success");
-    this.push(session);
-    this.updateSession(session);
-    // if we successfully created a session, try to pre-cache the client-side dynamic runtime
-    this.preCacheClient();
-    return session;
-    } catch (error) {
+      this.log("Loading session:", config);
+      this.setState("loading");
+      const session = await this.apiManager.load({
+        ...config,
+        clientGraphBookmark: this.getClientGraphBookmark(),
+      });
+      this.log("Session loaded successfully:", session);
+      this.setState("success");
+      this.push(session);
+      this.updateSession(session);
+      // if we successfully created a session, try to pre-cache the client-side dynamic runtime
+      this.preCacheClient();
+      return session;
+    } catch (error: any) {
       console.error(LogGroup, "Error loading session:", error);
-      this.setState("error", error as Error);
+      this.setState("error", error.response ?? error);
       // re-throw to allow caller to handle and respect promise interface
       throw error;
     }
@@ -601,9 +601,9 @@ export class SessionManager {
       const subSession = await this.create(createOpts);
       this.log("Sub-interview created successfully:", subSession);
       return subSession;
-    } catch (error) {
+    } catch (error: any) {
       console.error(LogGroup, "Error creating sub-interview:", createOpts, error);
-      this.setState("error", error as Error);
+      this.setState("error", error.response ?? error);
     }
   };
 
@@ -1118,21 +1118,27 @@ export class SessionManager {
       return Promise.resolve(null);
     }
     this.triggerUpdate({ externalLoading: true });
-
-    const session = await this.apiManager.submit({
-      session: this.activeSession,
-      data: transformResponse(this.activeSession, data as any),
-      navigate,
-      overrides: {
-        // response: this.options.responseElements,
-        ...overrides,
-      },
-      clientGraphBookmark: this.getClientGraphBookmark(),
-      readOnly: this.options.readOnly,
-    });
-    this.updateSession(session);
-    this.triggerUpdate({ externalLoading: false });
-    return this;
+    try {
+      const session = await this.apiManager.submit({
+        session: this.activeSession,
+        data: transformResponse(this.activeSession, data as any),
+        navigate,
+        overrides: {
+          // response: this.options.responseElements,
+          ...overrides,
+        },
+        clientGraphBookmark: this.getClientGraphBookmark(),
+        readOnly: this.options.readOnly,
+      });
+      this.updateSession(session);
+    } catch (error: any) {
+      console.error(LogGroup, "Error submitting data:", error);
+      this.setState("error", error.response ?? error);
+      throw error;
+    } finally {
+      this.triggerUpdate({ externalLoading: false });
+      return this;
+    }
   };
 
   chat = async (
@@ -1168,15 +1174,22 @@ export class SessionManager {
       throw new Error("No active session to navigate from");
     }
     this.triggerUpdate({ externalLoading: true });
-    this.updateSession(
-      await this.apiManager.navigate({
-        session: this.activeSession,
-        step,
-        readOnly: this.options.readOnly,
-      }),
-    );
-    this.triggerUpdate({ externalLoading: false });
-    return this;
+    try {
+      this.updateSession(
+        await this.apiManager.navigate({
+          session: this.activeSession,
+          step,
+          readOnly: this.options.readOnly,
+        }),
+      );
+    } catch (error: any) {
+      console.error(LogGroup, "Error navigating to step:", error);
+      this.setState("error", error.response ?? error);
+      throw error;
+    } finally {
+      this.triggerUpdate({ externalLoading: false });
+      return this;
+    }
   };
 
   back = async () => {
@@ -1185,18 +1198,25 @@ export class SessionManager {
       throw new Error("No active session to go back from");
     }
     this.triggerUpdate({ externalLoading: true });
-    if (this.isSubInterview && isFirstStep(this.activeSession.steps, this.activeSession.screen.id)) {
-      // pop the session, then we will invoke back on the parent
-      this.pop();
+    try {
+      if (this.isSubInterview && isFirstStep(this.activeSession.steps, this.activeSession.screen.id)) {
+        // pop the session, then we will invoke back on the parent
+        this.pop();
+      }
+      this.updateSession(
+        await this.apiManager.back({
+          session: this.activeSession,
+          readOnly: this.options.readOnly,
+        }),
+      );
+    } catch (error: any) {
+      console.error(LogGroup, "Error going back:", error);
+      this.setState("error", error.response ?? error);
+      throw error;
+    } finally {
+      this.triggerUpdate({ externalLoading: false });
+      return this;
     }
-    this.updateSession(
-      await this.apiManager.back({
-        session: this.activeSession,
-        readOnly: this.options.readOnly,
-      }),
-    );
-    this.triggerUpdate({ externalLoading: false });
-    return this;
   };
 
   next = async (data: AttributeValues) => {
@@ -1205,24 +1225,31 @@ export class SessionManager {
       throw new Error("No active session to next data");
     }
     this.triggerUpdate({ externalLoading: true });
-    if (this.isSubInterview && isComplete(this.activeSession)) {
-      // pop the session, then we will invoke next on the parent
-      this.pop();
+    try {
+      if (this.isSubInterview && isComplete(this.activeSession)) {
+        // pop the session, then we will invoke next on the parent
+        this.pop();
+      }
+      this.updateSession(
+        await this.apiManager.submit({
+          session: this.activeSession,
+          data: transformResponse(this.activeSession, data as any),
+          navigate: false,
+          overrides: {
+            // response: this.options.responseElements,
+          },
+          clientGraphBookmark: this.getClientGraphBookmark(),
+          readOnly: this.options.readOnly,
+        }),
+      );
+    } catch (error: any) {
+      console.error(LogGroup, "Error submitting data on next:", error);
+      this.setState("error", error.response ?? error);
+      throw error;
+    } finally {
+      this.triggerUpdate({ externalLoading: false });
+      return this;
     }
-    this.updateSession(
-      await this.apiManager.submit({
-        session: this.activeSession,
-        data: transformResponse(this.activeSession, data as any),
-        navigate: false,
-        overrides: {
-          // response: this.options.responseElements,
-        },
-        clientGraphBookmark: this.getClientGraphBookmark(),
-        readOnly: this.options.readOnly,
-      }),
-    );
-    this.triggerUpdate({ externalLoading: false });
-    return this;
   };
 
   exportTimeline = () => {

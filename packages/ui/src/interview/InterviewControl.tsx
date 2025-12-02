@@ -52,7 +52,9 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   } = useMemo(() => {
     const readOnly = isReadOnly(control);
     // parse the control here, so the later defaultValue uses the updated values
-    return parseControl({ ...control, readOnly, disabled: readOnly });
+    // do NOT assign disabled as readOnly, as disabled will omit the value from submission
+    // let the underlying control handle disabling with readonly as needed
+    return parseControl({ ...control, readOnly });
   }, [control]);
   // @ts-ignore
   const name: string = useAttributeToFieldName(attribute) ?? control.entity;

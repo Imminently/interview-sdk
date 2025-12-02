@@ -16,7 +16,7 @@ export const BooleanFormControl = ({ field }: UseControllerReturn) => {
           <Checkbox
             checked={field.value === undefined || field.value === null ? "indeterminate" : field.value}
             onCheckedChange={(val: boolean) => field.onChange(val)}
-            disabled={control.readOnly ?? control.disabled}
+            disabled={control.readOnly || control.disabled}
             aria-label={control.label}
           />
         </FormControl>

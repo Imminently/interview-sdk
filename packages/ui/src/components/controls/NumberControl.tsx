@@ -34,7 +34,7 @@ export const NumberFormControl = ({ field }: UseControllerReturn) => {
         <NumberInput
           value={typeof field.value === "number" ? field.value : field.value ? Number(field.value) : undefined}
           onChange={(value) => field.onChange(value ?? "")}
-          disabled={field.disabled}
+          disabled={field.disabled || control.readOnly}
           placeholder={t("form.text_placeholder")}
           min={control.numericalOptions?.min}
           max={control.numericalOptions?.max}

@@ -21,7 +21,7 @@ export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
             type={control.type}
             value={field.value}
             onChange={(e) => field.onChange(e.target.value)}
-            disabled={field.disabled}
+            disabled={field.disabled || control.readOnly}
             className="border-0 focus-visible:ring-0 shadow-none"
           />
         </div>

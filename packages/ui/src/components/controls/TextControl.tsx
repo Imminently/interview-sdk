@@ -46,6 +46,8 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
     return 1;
   })();
 
+  const disabled = field.disabled || control.readOnly;
+
   return (
     <>
       <FormLabel>{t(control.label)}</FormLabel>
@@ -55,14 +57,14 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
             rows={control.rows}
             value={field.value ?? ""}
             onChange={(e) => field.onChange(e.target.value)}
-            disabled={field.disabled}
+            disabled={disabled}
             placeholder={t("form.text_placeholder")}
           />
         ) : isNumberType ? (
           <NumberInput
             value={field.value ? Number(field.value) : undefined}
             onChange={(value) => field.onChange(value?.toString() ?? "")}
-            disabled={field.disabled}
+            disabled={disabled}
             placeholder={t("form.text_placeholder")}
             min={control.numericalOptions?.min}
             max={control.numericalOptions?.max}
@@ -75,7 +77,7 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
             type={type}
             value={field.value ?? ""}
             onChange={(e) => field.onChange(e.target.value)}
-            disabled={field.disabled}
+            disabled={disabled}
             placeholder={t("form.text_placeholder")}
           />
         )}
