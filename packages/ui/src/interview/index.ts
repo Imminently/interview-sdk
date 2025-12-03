@@ -1,6 +1,6 @@
 import { Interview as BasicInterview } from "./Interview";
 import { InterviewProvider } from "./InterviewContext";
-import { InterviewDebugPanel } from "./InterviewDebugPanel";
+import { InterviewDebugForm } from "./InterviewDebugPanel";
 import * as Slots from "./slots";
 
 export type {
@@ -22,5 +22,5 @@ export const Interview = Object.assign(BasicInterview, {
   Progress: Slots.InterviewProgress,
   Processing: Slots.InterviewProcessing,
   Validations: Slots.InterviewValidations,
-  Debug: InterviewDebugPanel,
+  Debug: InterviewDebugForm,
 });

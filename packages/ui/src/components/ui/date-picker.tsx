@@ -29,7 +29,8 @@ function parseLocalDate(dateString: string): Date | null {
 
 function DatePicker({ value, onChange, disabled, minDate, maxDate, ...props }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(() => {
-    if (!value) return undefined;
+    // if undefined or null, return as is, ie respect whats given
+    if (value === undefined || value === null) return value;
     if (value instanceof Date) return value;
     if (value === "now") return new Date();
 
@@ -45,7 +46,7 @@ function DatePicker({ value, onChange, disabled, minDate, maxDate, ...props }: D
   };
 
   React.useEffect(() => {
-    if (value !== undefined) {
+    if (value !== undefined && value !== null) {
       if (value instanceof Date) {
         setDate(value);
       } else if (value === "now") {

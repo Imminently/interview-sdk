@@ -28,6 +28,10 @@ export const isReadOnly = (control: Control) => {
 /** Defaul render simply tries to render a string. Note it must be within a span so the FormControl works. */
 const DEFAULT_RENDER_VALUE = (value: unknown) => <span>{String(value)}</span>;
 
+/**
+ * @deprecated in favour of each control handling its own readOnly state.
+ * If you want to display label and data, use Typography with a label and value as template text.
+ */
 export const ReadOnlyControl = ({ field }: UseControllerReturn) => {
   const { t, getControl } = useTheme();
   const { control } = useFormField<Control>();

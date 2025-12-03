@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-sdk",
-  "version": "0.4.9",
+  "version": "0.5.10",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -34,9 +34,11 @@
     "deploy": "bun run bump:patch && npm publish"
   },
   "dependencies": {
+    "@dagrejs/graphlib": "^2.2.4",
     "@date-fns/utc": "^2.1.1",
     "axios": "^1.13.1",
     "date-fns": "^4.1.0",
+    "immer": "^11.0.0",
     "lodash-es": "^4.17.21",
     "pako": "^2.1.0",
     "uuid": "^11.1.0"

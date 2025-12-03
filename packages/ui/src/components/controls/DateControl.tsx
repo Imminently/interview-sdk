@@ -61,7 +61,7 @@ export const DateFormControl = ({ field }: UseControllerReturn) => {
         <DatePicker
           value={field.value}
           onChange={(d) => field.onChange(d ? defaultFormatter(d) : undefined)}
-          disabled={field.disabled}
+          disabled={field.disabled || control.readOnly}
           minDate={minDate}
           maxDate={maxDate}
         />

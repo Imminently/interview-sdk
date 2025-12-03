@@ -12,14 +12,16 @@ export const API = {
   interview: "Control test",
 };
 
-
 export const getInterviewConfig = (token: string, interview?: string) => {
   return {
     debug: true,
-    sessionConfig: {
-      project: API.model,
-      // release: "interview",
-      interview: interview ?? API.interview,
+    preCacheClient: true,
+    init: (manager) => {
+      console.log("Interview initialized");
+      manager.create({
+        project: API.model,
+        interview: interview ?? API.interview,
+      })
     },
     apiManager: {
       host: API.baseUrl,
@@ -96,6 +98,9 @@ export const InterviewPage = () => {
       <InterviewError />
       <Interview.Loading />
       <Interview.Content />
+      <div className="fixed top-4 left-4 z-50 max-w-[300px] bg-card shadow-lg border rounded-xl overflow-auto">
+        <Interview.Debug />
+      </div>
     </Interview>
   );
 };

@@ -28,9 +28,10 @@ export type ConnectedDataResponse = {
 export const useCombobox = (control: OptionsControl, debounceMs: number = 300) => {
   const { manager } = useInterview();
   const { name } = useFormField();
-  const { watch } = useFormContext();
+  const { watch, setError: setFormError, clearErrors } = useFormContext();
   const [search, setSearch] = useState("");
   const [label, setLabel] = useState<{ key: string; label: string } | undefined>(undefined);
+  const [error, setError] = useState<{ key: string; message: string } | undefined>(undefined);
   const [options, setOptions] = useState<ComboboxData[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -52,12 +53,16 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
       if (match) {
         const label = match.label || match.name || match.value || match.key || "Unknown";
         setLabel({ key: value, label });
+        setError(undefined); // clear any previous error
       } else {
-        setLabel(undefined);
+        // we should have found it, throw an error
+        throw new Error("No matching label found");
       }
     } catch (error) {
       console.error("Error fetching combobox label:", error);
+      // clear the temp label and set error, using the value as key so we know when we can retry
       setLabel(undefined);
+      setError({ key: value, message: (error as any).message ?? "Failed to fetch label" });
     } finally {
       setLoading(false);
     }
@@ -88,15 +93,20 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
         value: item.value || item.key || item.id || item.name || "unknown",
       }));
       setOptions(mappedOptions);
+      setError(undefined); // clear any previous error
     } catch (error) {
       console.error("Error fetching combobox data:", error);
       setOptions([]);
+      setError({ key: val, message: "Failed to fetch options" });
     } finally {
       setLoading(false);
     }
   }, [control, manager]);
 
   useEffect(() => {
+    // don't refetch if we already have an error for this value
+    if (error && value && error.key === value) return;
+    // Fetch the label for the current value if not already loaded
     if (value && (label === undefined || label.key !== value)) {
       fetchLabel(value as string);
     }
@@ -115,12 +125,22 @@ export const useCombobox = (control: OptionsControl, debounceMs: number = 300) =
     };
   }, [debouncedSearch]);
 
+  // set form error if combobox has error
+  useEffect(() => {
+    if (error) {
+      setFormError(name, { type: "manual", message: error.message });
+    } else {
+      // make sure we clear it as well
+      clearErrors(name);
+    }
+  }, [error, name, setError]);
+
   const clearSearch = () => {
     setSearch("");
     setOptions([]);
   };
 
-  return { label: label?.label, search, options, loading, setSearch: handleSearchChange, clearSearch };
+  return { label: label?.label, search, options, loading, error, setSearch: handleSearchChange, clearSearch };
 }
 
 // need to do this as we need to unpack the slot props onto the trigger
@@ -129,10 +149,11 @@ const ComboControl = (props: any) => {
   const { name, control } = useFormField<OptionsControl>();
   const { field } = useController({ name });
   const { label, search, options, loading, setSearch, clearSearch } = useCombobox(control);
+
   return (
     <Combobox
       data={options}
-      value={field.value}
+      value={field.value ?? ""}
       onOpenChange={clearSearch} // reset search when opening
       onValueChange={control.readOnly ? undefined : field.onChange}
       type="item"

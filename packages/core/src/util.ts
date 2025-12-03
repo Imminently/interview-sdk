@@ -2,6 +2,7 @@ import { UTCDate } from "@date-fns/utc";
 import axios, { type AxiosRequestConfig, type AxiosRequestTransformer } from "axios";
 import { format } from "date-fns";
 import { v4 as baseUuid } from "uuid";
+import { produce } from "immer";
 import { replaceTemplatedText } from "./helpers";
 import type {
   AttributeValues,
@@ -54,12 +55,52 @@ export const createApiInstance = (baseURL: string, auth?: AuthConfigGetter, over
 
 export const deepClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));
 
-export const transformResponse = (session: Session, data: ResponseData): ResponseData => {
-  const newData = deepClone(data);
+/**
+ * An immer produce function that iterates over data and converts the following:
+ * - "" (empty strings) to null
+ * - "null" (string) to null
+ * - "true"/"false" (string) to boolean
+ *
+ * It should iterate sub arrays and objects using a frontier approach
+ */
+export const normalizeInputData = (data: Record<string, any>): Record<string, any> => {
+  return produce(data, (draft) => {
+    const frontier: any[] = [draft];
+    // console.log("Normalizing data:", draft, frontier);
+    while (frontier.length > 0) {
+      const current = frontier.pop();
+      if (typeof current === "object" && current !== null) {
+        for (const key of Object.keys(current)) {
+          const value = current[key];
+          if (value === "") {
+            current[key] = null;
+          } else if (value === "null") {
+            current[key] = null;
+          } else if (value === "true") {
+            current[key] = true;
+          } else if (value === "false") {
+            current[key] = false;
+          } else if (typeof value === "object" && value !== null) {
+            if(Array.isArray(value)) {
+              frontier.push(...value);
+            } else {
+              frontier.push(value);
+            }
+          }
+        }
+      }
+    }
+  });
+};
+
+export const transformResponse = (session: Session, data: AttributeValues): ResponseData => {
+  const newData = normalizeInputData(data);
+  console.log("normalised", JSON.parse(JSON.stringify(newData, null, 2)));
   if (session.data["@parent"]) {
     newData["@parent"] = session.data["@parent"];
   }
 
+  // TODO legacy, we should check this works if its within containers
   for (const control of session.screen.controls) {
     if (control.type === "number_of_instances") {
       const value = newData[control.entity];
@@ -345,6 +386,14 @@ export const pathToNested = (basePath: string, values: AttributeValues, nested: 
   return result.join(nested ? "." : "/");
 };
 
+export const parseBoolean = (value: any): boolean => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    return value.toLowerCase() === "true";
+  }
+  return false;
+}
+
 export const postProcessControl = (
   control: any,
   replacements: any,
@@ -360,14 +409,16 @@ export const postProcessControl = (
   }
   if (control.type === "switch_container" && control.kind === "dynamic" && control.attribute) {
     const update = replacements[control.attribute];
-    if (update !== undefined) {
-      control.branch = update ? "true" : "false";
-    }
+    // if (update !== undefined) {
+    control.branch = parseBoolean(update) ? "true" : "false";
+    // }
   }
   if (control.type === "certainty_container") {
     const update = replacements[control.attribute];
-    if (update !== undefined) {
-      control.branch = replacements[control.attribute] === null ? "uncertain" : "certain";
-    }
+    const certain = update !== null && update !== undefined;
+    control.branch = certain ? "certain" : "uncertain";
+    // if (update !== undefined) {
+    // control.branch = replacements[control.attribute] === null ? "uncertain" : "certain";
+    // }
   }
 };

@@ -1,10 +1,12 @@
-import { useOptions, useTheme } from "@/providers";
+import { useDebugSettings, useOptions, useTheme } from "@/providers";
 import { cn } from "@/util";
 import type { TypographyControl } from "@imminently/interview-sdk";
 import { type VariantProps, cva } from "class-variance-authority";
 import type React from "react";
 import { Alert, AlertDescription } from "../ui/alert";
 import { FormControl, FormField, FormItem, FormLabel } from "../ui/form";
+import { useInterview } from "@/interview";
+import { useMemo } from "react";
 
 type TextVariant = TypographyControl["style"];
 
@@ -68,6 +70,41 @@ export interface TypographyControlProps {
   control: TypographyControl;
 }
 
+export const TypographyDebug = ({ name, control }: { name: string; control: TypographyControl }) => {
+  const { debugEnabled } = useDebugSettings();
+  const context = useInterview();
+  const graph = useMemo(() => context.manager.parsedGraph, [context]);
+
+  if (!debugEnabled) {
+    return null;
+  }
+
+  const node = graph ? graph.node(name) : { description: "No graph", entity: "N/A" };
+  // console.log("TypographyDebug", { name, node });
+
+  const dynamic = [] as string[];
+  // @ts-ignore
+  if (control.dynamicAttributes) {
+    // @ts-ignore
+    for (const attr of control.dynamicAttributes) {
+      const n = graph?.node(attr);
+      dynamic.push(n ? n.description ?? attr : attr);
+    }
+  }
+
+  return (
+    <div data-slot="debug-info" className="flex flex-col text-xs text-muted-foreground">
+      <div className="flex flex-row gap-1 items-center">
+        {node?.entity ? <span>[{node.entity}]</span> : null}
+        <span>{node?.description ?? `Missing node for ${name}`}</span>
+      </div>
+      {/* @ts-ignore */}
+      {control.templateText ? <span>Template: {control.templateText}</span> : null}
+      {dynamic.length > 0 ? (<span>Dynamic Attributes: {dynamic.join(", ")}</span>) : null}
+    </div>
+  );
+}
+
 // NOTE name does not have Control included, as its just ready only text
 export const Typography = ({ control }: TypographyControlProps) => {
   // merge is a bit weird here, as we actually would want to merge the cva variants
@@ -79,11 +116,11 @@ export const Typography = ({ control }: TypographyControlProps) => {
 
   const debugControl = debug
     ? () => {
-        console.log("Typography", {
-          variant,
-          control,
-        });
-      }
+      console.log("Typography", {
+        variant,
+        control,
+      });
+    }
     : undefined;
 
   const component = (
@@ -100,18 +137,25 @@ export const Typography = ({ control }: TypographyControlProps) => {
 
   if (control.label) {
     return (
-      <FormField
-        name={control.attribute ?? control.id}
-        data={control}
-        render={() => (
-          <FormItem>
+      <>
+        <TypographyDebug name={control.attribute ?? control.id} control={control} />
+        <FormField
+          name={control.attribute ?? control.id}
+          data={control}
+        >
+          <>
             <FormLabel>{t(control.label)}</FormLabel>
             <FormControl>{component}</FormControl>
-          </FormItem>
-        )}
-      />
+          </>
+        </FormField>
+      </>
     );
   }
 
-  return component;
+  return (
+    <>
+      <TypographyDebug name={control.attribute ?? control.id} control={control} />
+      {component}
+    </>
+  );
 };

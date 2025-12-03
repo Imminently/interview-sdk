@@ -2,9 +2,8 @@ import { isReadOnly } from "@/components/controls/ReadOnlyControl";
 import type { Control, RenderableControl } from "@imminently/interview-sdk";
 import type React from "react";
 import { useEffect, useMemo } from "react";
-import { type RegisterOptions, type UseControllerReturn, useFormContext } from "react-hook-form";
-import { FormField, FormItem } from "../components/ui/form";
-import { MAX_INLINE_LABEL_LENGTH } from "../util";
+import { type RegisterOptions, useFormContext } from "react-hook-form";
+import { FormField } from "../components/ui/form";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { generateValidatorForControl, useAttributeValidationErrors } from "../util/validation";
 import { useOptions } from "@/providers";
@@ -13,49 +12,37 @@ import { parseControl } from "@/components/parseControl";
 
 export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   control: Control;
-  children: (props: UseControllerReturn) => React.ReactElement;
+  // children: (props: UseControllerReturn) => React.ReactElement;
+  children: React.ReactNode;
 }
 
-export interface FormControlRenderState {
-  onChange: (value: any) => void;
-  value: any;
-  forId: string;
-  error: { message: string } | undefined;
-  inlineLabel: string | undefined;
-  disabled?: boolean;
-}
-
-const isLabelTooLong = (label: string | undefined): label is string => {
-  if (typeof label === "string") {
-    if (label.length > MAX_INLINE_LABEL_LENGTH) {
-      return true;
-    }
-  }
-  return false;
-};
-
-// as forms are weird, we need to ensure we have the correct default value for each control type
-const getControlDefault = (type: string) => {
-  switch (type) {
-    case "boolean":
-      return undefined; // use undefined as we support indeterminate state
-    case "currency":
-      return 0;
-    case "text":
-    case "number_of_instances":
-    // case "date":
-    // case "datetime":
-    case "time":
-      return "";
-    default:
-      return undefined;
-  }
+// !!IMPORTANT!! the default value is very important
+// we must respect the following precedence:
+// 1. value set on the control (for pre-filled values)
+// 2. default set on the control (for static defaults)
+// 3. undefined (so RHF knows it's empty)
+// The different between undefined and null is also very important
+// undefined = unknown, ie the user ask not been asked yet
+// null = uncertain, ie the user has been asked and explicitly did not provide a value
+// Setting an empty string or 0 would be actual values, and not what the user actually provided
+// The legacy system would only send null if the user gave empty string, which is technically incorrect
+// We want to change to null if on screen, as that indicates the user has seen the question.
+// Undefined is when the control gets hidden, either through a container or soeme else. Meaning they did not see it.
+// This is risky however, as everything has been built using the legacy method.
+// For now, we will make this experimental and opt-in.
+const getDefaultValue = (control: any, strict: boolean = false) => {
+  // we want fallback order of: value, default, undefined (or null if strict)
+  // but value and default can be null as a valid value, so ?? won't work
+  if (control.value !== undefined) return control.value;
+  if (control.default !== undefined) return control.default;
+  if (strict) return null;
+  return undefined;
 };
 
 export const InterviewControl = ({ control, children }: InterviewControlProps) => {
   // @ts-ignore
   const { attribute, hidden } = control;
-  const { inlineErrors } = useOptions();
+  const { inlineErrors, _experimental_strictMode } = useOptions();
   const { unregister, ...form } = useFormContext();
   // take a local copy
   // TODO why do some of the controls have booleans listed as type 'true'?
@@ -65,17 +52,14 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   } = useMemo(() => {
     const readOnly = isReadOnly(control);
     // parse the control here, so the later defaultValue uses the updated values
-    return parseControl({ ...control, readOnly, disabled: readOnly });
+    // do NOT assign disabled as readOnly, as disabled will omit the value from submission
+    // let the underlying control handle disabling with readonly as needed
+    return parseControl({ ...control, readOnly });
   }, [control]);
   // @ts-ignore
   const name: string = useAttributeToFieldName(attribute) ?? control.entity;
 
-  const defaultValue =
-    // @ts-ignore
-    resolvedControl.value ??
-    // @ts-ignore
-    resolvedControl.default ??
-    getControlDefault(resolvedControl.type);
+  const defaultValue = getDefaultValue(resolvedControl, _experimental_strictMode);
 
   const rules: RegisterOptions = useMemo(
     () => ({
@@ -126,13 +110,8 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
       disabled={resolvedControl.disabled ?? false}
       rules={rules}
       shouldUnregister={true}
-      render={(props) => (
-        <>
-          <FormItem>
-            {children(props)}
-          </FormItem>
-        </>
-      )}
-    />
+    >
+      {children}
+    </FormField>
   );
 };

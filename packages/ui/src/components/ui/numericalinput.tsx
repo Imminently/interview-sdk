@@ -103,7 +103,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     const handleInputChange = React.useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {
         const inputValue = event.target.value;
-        
+
         // Allow empty input
         if (inputValue === "") {
           onChange?.(undefined);
@@ -113,7 +113,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
         // Parse the input value
         const numericValue = Number.parseFloat(inputValue);
-        
+
         // Check if it's a valid number
         if (Number.isNaN(numericValue)) {
           return; // Don't update if invalid
@@ -153,7 +153,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         if (allowDecimals && typeof maxDp === "number" && event.data) {
           const currentValue = (event.target as HTMLInputElement).value;
           const decimalIndex = currentValue.indexOf(".");
-          
+
           if (decimalIndex !== -1) {
             const currentDecimalPlaces = currentValue.length - decimalIndex - 1;
             if (currentDecimalPlaces >= maxDp) {
@@ -177,7 +177,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           if (event.key === "." || event.key === "," || event.key.toLowerCase() === "e") {
             const currentValue = (event.target as HTMLInputElement).value;
             const decimalIndex = currentValue.indexOf(".");
-            
+
             if (decimalIndex !== -1) {
               const currentDecimalPlaces = currentValue.length - decimalIndex - 1;
               if (currentDecimalPlaces >= maxDp) {
@@ -208,7 +208,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
     return (
       <NumberField.Root
-        value={value}
+        value={value ?? null}
         defaultValue={defaultValue}
         onValueChange={handleValueChange}
         min={min}
@@ -224,7 +224,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           >
             <ChevronDown className="h-4 w-4" />
           </NumberField.Decrement>
-          
+
           <NumberField.Input
             ref={ref}
             className={cn(
@@ -238,7 +238,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
           />
-          
+
           <NumberField.Increment
             className={cn(buttonVariants(), "absolute right-1 top-1/2 -translate-y-1/2")}
           >

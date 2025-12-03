@@ -3,7 +3,6 @@ import get from "lodash-es/get";
 import isEmpty from "lodash-es/isEmpty";
 import isEqual from "lodash-es/isEqual";
 import set from "lodash-es/set";
-import pako from "pako";
 import { ApiManager, type ApiManagerOptions } from "./api-manager";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, type UnknownValues, buildDynamicReplacementQueries } from "./dynamic";
@@ -32,6 +31,8 @@ import {
   transformResponse,
 } from "./util";
 import { replaceTemplatedText } from "./helpers";
+import { decompressGraph, graphFromJSON } from "./graphUtil";
+import { produce } from "immer";
 
 const BOOKMARK_KEY = "immi_cg_bookmark_3";
 
@@ -42,6 +43,7 @@ const BOOKMARK_KEY = "immi_cg_bookmark_3";
  * @param preProcessedState - The preprocessed state containing entity structure and nodes
  * @param data - The session data containing parent information
  * @param userValues - The current user input values
+ * @param existingData - Optional existing data to merge into. It should come from the backend and contain information we might need.
  * @returns The constructed input object for rules engine evaluation
  */
 export const constructInputFromPreProcessed = (
@@ -50,33 +52,35 @@ export const constructInputFromPreProcessed = (
   userValues: AttributeValues,
   existingData?: any,
 ): any => {
-  // reconstruct the entity structure from the preprocessed state
-  const input = existingData ?? preProcessedState?.entityStructure ?? {};
-  const parent = data["@parent"];
-
-  // Apply previous values from preprocessed nodes
-  if (preProcessedState?.nodes) {
-    for (const [key, value] of Object.entries(preProcessedState.nodes)) {
-      const prev = (value as any)?.previousValue;
-      if (prev !== undefined) {
-        const nestedPath = pathToNested(key, input, true).split(".");
-        set(input, nestedPath, prev);
+  // reconstruct the entity structure from the existing data or preprocessed state
+  // IMPORANT make sure we do NOT mutate existingData or preProcessedState, or we are going to have a bad time
+  // this took forever to find
+  const input = produce(existingData ?? preProcessedState?.entityStructure ?? {}, (draft: any) => {
+    // Apply previous values from preprocessed nodes
+    if (preProcessedState?.nodes) {
+      for (const [key, value] of Object.entries(preProcessedState.nodes)) {
+        const prev = (value as any)?.previousValue;
+        if (prev !== undefined) {
+          const nestedPath = pathToNested(key, draft, true).split(".");
+          set(draft, nestedPath, prev);
+        }
       }
     }
-  }
 
-  // Apply user values to the appropriate parent context
-  if (parent) {
-    const nestedPath = pathToNested(parent, input, true).split(".");
-    const existing = get(input, nestedPath);
+    // Apply user values to the appropriate parent context
+    const parent = data["@parent"];
+    if (parent) {
+      const nestedPath = pathToNested(parent, draft, true);
+      const existing = get(draft, nestedPath.split("."));
 
-    set(input, pathToNested(parent, input, true), {
-      ...existing,
-      ...userValues,
-    });
-  } else {
-    Object.assign(input, userValues);
-  }
+      set(draft, nestedPath, {
+        ...existing,
+        ...userValues,
+      });
+    } else {
+      Object.assign(draft, userValues);
+    }
+  });
 
   return input;
 };
@@ -172,9 +176,18 @@ export interface ManagerOptions {
    * Note requires an initial sessionConfig to be provided.
    */
   preCacheClient?: boolean;
+  /** Enable experimental strict mode, which enforces null (uncertain) for values on screen */
+  _experimental_strictMode?: boolean;
   apiManager: ApiManager | ApiManagerOptions;
   fileManager: FileManager | FileManagerOptions;
-  /** Initial session config. If provided, will automatically start an interview on creation */
+  init?: (manager: SessionManager) => void | Promise<void>;
+  /**
+   * @deprecated Use init instead. If init provided, this will be ignored.
+   * 
+   * Will be removed in v1.0.0
+   * 
+   * Legacy: Initial session config. If provided, will automatically start an interview on creation
+   */
   sessionConfig?: SessionConfig;
   /** EXPERIMENTAL: trying out adding support to load/store sessions */
   sessionStore?: Storage;
@@ -250,11 +263,7 @@ const getClientGraphForSession = (session: Session) => {
   }
 
   if (!session.decompressedClientGraph) {
-    const decompressed = JSON.parse(
-      // @ts-ignore string should work
-      pako.inflate(session.clientGraph, { to: "string" }),
-    );
-    session.decompressedClientGraph = decompressed;
+    session.decompressedClientGraph = decompressGraph(session.clientGraph);
   }
 
   return session.decompressedClientGraph;
@@ -330,14 +339,25 @@ export class SessionManager {
       }
     }
 
-    // auto start a session if sessionConfig is provided
-    if (options.sessionConfig && this.sessions.length === 0) {
-      const { sessionConfig } = options;
-      this.log("Initializing session with config:", sessionConfig);
-      this.create(sessionConfig).catch((error) => {
-        console.error(LogGroup, "Error creating initial session:", error);
-        this.setState("error", error as Error);
-      });
+    if (options.init) {
+      try {
+        options.init(this);
+      } catch (error: any) {
+        console.error(LogGroup, "Error during SessionManager init:", error);
+        this.setState("error", error.response ?? error);
+      };
+    } else {
+      // deprecated in favor of `init` which is given this instance
+      // allows the consumer to create or load with whatever they want
+      // auto start a session if sessionConfig is provided
+      if (options.sessionConfig && this.sessions.length === 0) {
+        const { sessionConfig } = options;
+        this.log("Initializing session with config:", sessionConfig);
+        this.create(sessionConfig).catch((error) => {
+          console.error(LogGroup, "Error creating initial session:", error);
+          this.setState("error", error.response ?? error);
+        });
+      }
     }
 
     // @ts-ignore
@@ -478,7 +498,7 @@ export class SessionManager {
   private handleClientGraphBookmark(session: Session) {
     if (session.clientGraphBookmark) {
       if (!session.clientGraph) {
-        const bookmarkRaw = localStorage.getItem(BOOKMARK_KEY);
+        const bookmarkRaw = sessionStorage.getItem(BOOKMARK_KEY);
         if (!bookmarkRaw) {
           return;
         }
@@ -494,7 +514,7 @@ export class SessionManager {
         this.log("Saved client graph bookmark", {
           id: session.clientGraphBookmark,
         });
-        localStorage.setItem(
+        sessionStorage.setItem(
           BOOKMARK_KEY,
           JSON.stringify({
             clientGraph: session.clientGraph,
@@ -506,38 +526,50 @@ export class SessionManager {
   }
 
   create = async (config: SessionConfig): Promise<Session> => {
-    this.log("Creating session:", config);
-    this.setState("loading");
-    const session = await this.apiManager.create({
-      config: {
+    try {
+      this.log("Creating session:", config);
+      this.setState("loading");
+      const session = await this.apiManager.create({
         ...config,
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
-      },
-    });
-    this.log("Session created successfully:", session);
-    this.setState("success");
-    this.push(session);
-    this.updateSession(session);
-    // if we successfully created a session, try to pre-cache the client-side dynamic runtime
-    this.preCacheClient();
-    return session;
+      });
+      this.log("Session created successfully:", session);
+      this.setState("success");
+      this.push(session);
+      this.updateSession(session);
+      // if we successfully created a session, try to pre-cache the client-side dynamic runtime
+      this.preCacheClient();
+      return session;
+    } catch (error: any) {
+      console.error(LogGroup, "Error creating session:", error);
+      this.setState("error", error.response ?? error);
+      // re-throw to allow caller to handle and respect promise interface
+      throw error;
+    }
   };
 
   load = async (config: SessionConfig): Promise<Session> => {
-    this.log("Loading session:", config);
-    this.setState("loading");
-    const session = await this.apiManager.load({
-      ...config,
-      clientGraphBookmark: this.getClientGraphBookmark(),
-    });
-    this.log("Session loaded successfully:", session);
-    this.setState("success");
-    this.push(session);
-    this.updateSession(session);
-    // if we successfully created a session, try to pre-cache the client-side dynamic runtime
-    this.preCacheClient();
-    return session;
+    try {
+      this.log("Loading session:", config);
+      this.setState("loading");
+      const session = await this.apiManager.load({
+        ...config,
+        clientGraphBookmark: this.getClientGraphBookmark(),
+      });
+      this.log("Session loaded successfully:", session);
+      this.setState("success");
+      this.push(session);
+      this.updateSession(session);
+      // if we successfully created a session, try to pre-cache the client-side dynamic runtime
+      this.preCacheClient();
+      return session;
+    } catch (error: any) {
+      console.error(LogGroup, "Error loading session:", error);
+      this.setState("error", error.response ?? error);
+      // re-throw to allow caller to handle and respect promise interface
+      throw error;
+    }
   };
 
   createSubInterview = async (control: InterviewContainerControl) => {
@@ -569,9 +601,9 @@ export class SessionManager {
       const subSession = await this.create(createOpts);
       this.log("Sub-interview created successfully:", subSession);
       return subSession;
-    } catch (error) {
+    } catch (error: any) {
       console.error(LogGroup, "Error creating sub-interview:", createOpts, error);
-      this.setState("error", error as Error);
+      this.setState("error", error.response ?? error);
     }
   };
 
@@ -629,6 +661,17 @@ export class SessionManager {
       return null;
     }
     return getClientGraphForSession(this.activeSession);
+  }
+
+  get parsedGraph() {
+    if (!this.activeSession) {
+      return null;
+    }
+    const raw = this.clientGraph;
+    if (!raw) {
+      return null;
+    }
+    return graphFromJSON(raw);
   }
 
   get canProgress() {
@@ -834,11 +877,22 @@ export class SessionManager {
 
               //if (result.result !== undefined) {
               // Update replacements with solved values
-              Object.assign(this.internals.replacements, replacements);
+              // Object.assign(this.internals.replacements, replacements);
+              this.internals.replacements = replacements;
 
+              // make sure we update the newScreen, as thats our working copy
               this.activeSession.validations = result.validations;
             } catch (error) {
               console.error(`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`, error);
+              // surface error under validations, so the user knows something went wrong
+              // this ideally blocks progress until resolved
+              this.activeSession.validations = [{
+                id: this.activeSession.goal,
+                attributes: [],
+                severity: "error",
+                message: "An error occurred while processing your input. Please refresh and try again.",
+                shown: true,
+              }];
             }
 
             // Update screen with new values
@@ -1049,7 +1103,7 @@ export class SessionManager {
   };
 
   private getClientGraphBookmark() {
-    const bookmarkRaw = localStorage.getItem(BOOKMARK_KEY);
+    const bookmarkRaw = sessionStorage.getItem(BOOKMARK_KEY);
     if (bookmarkRaw) {
       return (JSON.parse(bookmarkRaw) as ClientGraphBookmarkData).id;
     }
@@ -1064,21 +1118,27 @@ export class SessionManager {
       return Promise.resolve(null);
     }
     this.triggerUpdate({ externalLoading: true });
-
-    const session = await this.apiManager.submit({
-      session: this.activeSession,
-      data: transformResponse(this.activeSession, data as any),
-      navigate,
-      overrides: {
-        // response: this.options.responseElements,
-        ...overrides,
-      },
-      clientGraphBookmark: this.getClientGraphBookmark(),
-      readOnly: this.options.readOnly,
-    });
-    this.updateSession(session);
-    this.triggerUpdate({ externalLoading: false });
-    return this;
+    try {
+      const session = await this.apiManager.submit({
+        session: this.activeSession,
+        data: transformResponse(this.activeSession, data as any),
+        navigate,
+        overrides: {
+          // response: this.options.responseElements,
+          ...overrides,
+        },
+        clientGraphBookmark: this.getClientGraphBookmark(),
+        readOnly: this.options.readOnly,
+      });
+      this.updateSession(session);
+    } catch (error: any) {
+      console.error(LogGroup, "Error submitting data:", error);
+      this.setState("error", error.response ?? error);
+      throw error;
+    } finally {
+      this.triggerUpdate({ externalLoading: false });
+      return this;
+    }
   };
 
   chat = async (
@@ -1114,15 +1174,22 @@ export class SessionManager {
       throw new Error("No active session to navigate from");
     }
     this.triggerUpdate({ externalLoading: true });
-    this.updateSession(
-      await this.apiManager.navigate({
-        session: this.activeSession,
-        step,
-        readOnly: this.options.readOnly,
-      }),
-    );
-    this.triggerUpdate({ externalLoading: false });
-    return this;
+    try {
+      this.updateSession(
+        await this.apiManager.navigate({
+          session: this.activeSession,
+          step,
+          readOnly: this.options.readOnly,
+        }),
+      );
+    } catch (error: any) {
+      console.error(LogGroup, "Error navigating to step:", error);
+      this.setState("error", error.response ?? error);
+      throw error;
+    } finally {
+      this.triggerUpdate({ externalLoading: false });
+      return this;
+    }
   };
 
   back = async () => {
@@ -1131,18 +1198,25 @@ export class SessionManager {
       throw new Error("No active session to go back from");
     }
     this.triggerUpdate({ externalLoading: true });
-    if (this.isSubInterview && isFirstStep(this.activeSession.steps, this.activeSession.screen.id)) {
-      // pop the session, then we will invoke back on the parent
-      this.pop();
+    try {
+      if (this.isSubInterview && isFirstStep(this.activeSession.steps, this.activeSession.screen.id)) {
+        // pop the session, then we will invoke back on the parent
+        this.pop();
+      }
+      this.updateSession(
+        await this.apiManager.back({
+          session: this.activeSession,
+          readOnly: this.options.readOnly,
+        }),
+      );
+    } catch (error: any) {
+      console.error(LogGroup, "Error going back:", error);
+      this.setState("error", error.response ?? error);
+      throw error;
+    } finally {
+      this.triggerUpdate({ externalLoading: false });
+      return this;
     }
-    this.updateSession(
-      await this.apiManager.back({
-        session: this.activeSession,
-        readOnly: this.options.readOnly,
-      }),
-    );
-    this.triggerUpdate({ externalLoading: false });
-    return this;
   };
 
   next = async (data: AttributeValues) => {
@@ -1151,24 +1225,31 @@ export class SessionManager {
       throw new Error("No active session to next data");
     }
     this.triggerUpdate({ externalLoading: true });
-    if (this.isSubInterview && isComplete(this.activeSession)) {
-      // pop the session, then we will invoke next on the parent
-      this.pop();
+    try {
+      if (this.isSubInterview && isComplete(this.activeSession)) {
+        // pop the session, then we will invoke next on the parent
+        this.pop();
+      }
+      this.updateSession(
+        await this.apiManager.submit({
+          session: this.activeSession,
+          data: transformResponse(this.activeSession, data as any),
+          navigate: false,
+          overrides: {
+            // response: this.options.responseElements,
+          },
+          clientGraphBookmark: this.getClientGraphBookmark(),
+          readOnly: this.options.readOnly,
+        }),
+      );
+    } catch (error: any) {
+      console.error(LogGroup, "Error submitting data on next:", error);
+      this.setState("error", error.response ?? error);
+      throw error;
+    } finally {
+      this.triggerUpdate({ externalLoading: false });
+      return this;
     }
-    this.updateSession(
-      await this.apiManager.submit({
-        session: this.activeSession,
-        data: transformResponse(this.activeSession, data as any),
-        navigate: false,
-        overrides: {
-          // response: this.options.responseElements,
-        },
-        clientGraphBookmark: this.getClientGraphBookmark(),
-        readOnly: this.options.readOnly,
-      }),
-    );
-    this.triggerUpdate({ externalLoading: false });
-    return this;
   };
 
   exportTimeline = () => {

@@ -1,34 +1,43 @@
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuItem,
+  SidebarGroup
 } from "@/components/ui/sidebar";
 import { useTheme } from "@/providers";
 import { useFormContext } from "react-hook-form";
-import { Badge } from "../components/ui/badge";
+import { useInterview } from "./InterviewContext";
+import { useMemo } from "react";
+import { getAttributeText } from "@imminently/interview-sdk";
 
-const stringValue = (value: any) => {
-  // support null -> null, undefined -> undefined, boolean -> true/false, number -> string
-  if (typeof value === "string") {
-    return (value as string).length == 0 ? "\"\"" : value;
-  } else if (typeof value === "object") {
-    return JSON.stringify(value);
-  } else if (value === null) {
-    return "null";
-  } else if (value === undefined) {
-    return "undefined";
-  } else {
-    return String(value);
-  }
-};
 
-export const InterviewDebugPanel = () => {
+export const InterviewDebugForm = () => {
   const { t } = useTheme();
+  const context = useInterview();
   const { watch } = useFormContext();
   const values = watch();
+
+  const graph = useMemo(() => {
+    const { manager } = context;
+    console.log("manager.parsedGraph", manager.clientGraph, manager.parsedGraph);
+    return manager.parsedGraph;
+  }, [context])
+
+  // map values to use node labels
+  const data = Object.keys(values).reduce((acc, curr, index) => {
+    const label = graph ? getAttributeText(curr, graph) : curr;
+    acc[label] = values[curr];
+    return acc;
+  }, {} as Record<string, any>);
+
+  return (
+    <div className="p-4">
+      <h2 className="mb-4 text-lg font-bold">{t("debug.form_values")}</h2>
+      <pre><code>{JSON.stringify(data, null, 2)}</code></pre>
+    </div>
+  );
+}
+
+export const InterviewDebugPanel = () => {
   return (
     <Sidebar
       collapsible="offcanvas"
@@ -36,19 +45,7 @@ export const InterviewDebugPanel = () => {
     >
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="p-0 text-lg font-bold">{t("debug.form_values")}</SidebarGroupLabel>
-          {/* <SidebarMenu>
-            {Object.entries(values).map(([key, value]) => (
-              <SidebarMenuItem
-                key={key}
-                className="flex items-center justify-between py-1"
-              >
-                <span className="text-sm font-mono text-muted-foreground">{key}</span>
-                <Badge className="rounded-full text-sm font-mono">{stringValue(value)}</Badge>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu> */}
-          <pre><code>{JSON.stringify(values, null, 2)}</code></pre>
+          <InterviewDebugForm />
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
