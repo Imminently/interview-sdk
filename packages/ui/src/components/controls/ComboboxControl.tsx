@@ -25,6 +25,8 @@ export type ConnectedDataResponse = {
 
 // Hook to fetch async data for the combobox
 // it should handle initial data load, search input, debouncing the input, and loading based on the search input
+// NOTE: Validation for asyncOptions is handled in validation.ts via yup async test
+// The validator uses the same logic as fetchLabel to ensure the selected value exists on the backend
 export const useCombobox = (control: OptionsControl, debounceMs: number = 300) => {
   const { manager } = useInterview();
   const { name } = useFormField();

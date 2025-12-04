@@ -1,4 +1,4 @@
-import {useInterview} from "@/interview/InterviewContext";
+import { useInterview } from "@/interview/InterviewContext";
 import {
   DATE_FORMAT,
   formatDate,
@@ -6,7 +6,6 @@ import {
   TIME_FORMAT_12,
   TIME_FORMAT_24,
   Validation,
-  formatDate,
   // isFileAttributeValue,
 } from "@imminently/interview-sdk";
 import {
@@ -21,7 +20,7 @@ import {
   set,
 } from "react-hook-form";
 import * as yup from "yup";
-import {deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate} from "./index";
+import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate } from "./index";
 import { useMemo } from "react";
 import { useTheme } from "@/providers/ThemeProvider";
 
@@ -121,10 +120,17 @@ export const toNestErrors = <TFieldValues extends FieldValues>(
 const isNameInFieldArray = (names: InternalFieldName[], name: InternalFieldName) =>
   names.some((n) => n.startsWith(`${name}.`));
 
-export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema | undefined => {
+/**
+ * Generates a yup validator schema for a control.
+ * This is a pure function that can be called with or without a manager.
+ * @param c The control to generate a validator for
+ * @param manager Optional manager instance for async validation (e.g., for async options)
+ * @returns A yup schema or undefined if no validation is needed
+ */
+export const generateValidatorForControl = (c: RenderableControl, manager?: any): yup.AnySchema | undefined => {
   switch (c.type) {
     case "boolean": {
-      const {required} = c;
+      const { required } = c;
 
       const schema = yup.boolean().nullable();
       const maybeDefined: typeof schema =
@@ -138,7 +144,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return maybeDefined;
     }
     case "currency": {
-      const {max, min, required} = c;
+      const { max, min, required } = c;
 
       const schema = yup.number().typeError("Please specify a valid number. E.g. 5.50").nullable();
       const withRequired: typeof schema =
@@ -167,7 +173,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return afterMin;
     }
     case "date": {
-      const {max, min, required} = c;
+      const { max, min, required } = c;
       /** a.k.a YYYY-MM-DD */
       const DATE_FORMAT_REGEX = /^\d\d\d\d-\d\d-\d\d$/;
 
@@ -212,7 +218,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return finalSchema;
     }
     case "time": {
-      const {max, min, required, amPmFormat} = c;
+      const { max, min, required, amPmFormat } = c;
 
       // for easy comparison, we will convert time to seconds since midnight
       const minSeconds = min === undefined ? undefined : timeToSeconds(min);
@@ -252,7 +258,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return withMin;
     }
     case "datetime": {
-      const {required, time_max, time_min, date_max, date_min, amPmFormat} = c;
+      const { required, time_max, time_min, date_max, date_min, amPmFormat } = c;
 
       const nowLessDateMax = resolveNowInDate(date_max);
       const nowLessDateMin = resolveNowInDate(date_min);
@@ -308,7 +314,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return withTimeMin;
     }
     case "number_of_instances": {
-      const {max, min} = c;
+      const { max, min } = c;
 
       const schema = yup.number().typeError("Please specify a valid positive integer. E.g. 5").nullable();
 
@@ -326,7 +332,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return withMin;
     }
     case "text": {
-      const {required, max, variation} = c;
+      const { required, max, variation } = c;
 
       const schema = yup.string().nullable();
       const maybeRequired: typeof schema =
@@ -355,7 +361,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
       return nextSchema;
     }
     case "options": {
-      const {required} = c;
+      const { required, asyncOptions } = c;
 
       const schema = yup.mixed().nullable();
 
@@ -371,10 +377,44 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
           typeof v === "string" || typeof v === "number" || typeof v === "boolean" || v === null || v === undefined,
       );
 
-      return withType;
+      // Add async validation for asyncOptions to verify the value exists on the backend
+      const withAsyncValidation: typeof withType =
+        asyncOptions && manager
+          ? withType.test({
+            name: "asyncOptionExists",
+            message: "The selected value does not exist",
+            test: async (value) => {
+              // Skip validation if value is empty and not required
+              if (value === undefined || value === null || value === "") {
+                return required === undefined ? true : false;
+              }
+
+              try {
+                const { query, ...options } = asyncOptions;
+                const templated = manager.templateText(query, { search: value });
+                const res = await manager.getConnectedData({
+                  ...options,
+                  query: templated
+                });
+
+                // Find the item that matches the value
+                const match = (res.data as any[]).find(
+                  item => item.value === value || item.key === value || item.id === value
+                );
+
+                return Boolean(match);
+              } catch (error) {
+                console.error("Error validating combobox value:", error);
+                return false;
+              }
+            },
+          })
+          : withType;
+
+      return withAsyncValidation;
     }
     case "file": {
-      const {required} = c;
+      const { required } = c;
 
       if (required !== true) return undefined;
 
@@ -403,6 +443,23 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
 };
 
 /**
+ * Hook to generate a memoized yup validator for a control.
+ * This hook accesses the interview manager for async validation support.
+ * The result is memoized based on the control, as manager methods are stable.
+ * 
+ * @param control The control to generate a validator for
+ * @returns A memoized yup schema or undefined if no validation is needed
+ */
+export const useValidatorForControl = (control: RenderableControl): yup.AnySchema | undefined => {
+  const { manager } = useInterview();
+
+  return useMemo(
+    () => generateValidatorForControl(control, manager),
+    [control]
+  );
+};
+
+/**
  * A utility hook to retrieve validation errors for a specific attribute.
  * This hook filters the session's validations to find those that are shown
  * and include the specified attribute, returning them sorted by the number of attributes.
@@ -411,7 +468,7 @@ export const generateValidatorForControl = (c: RenderableControl): yup.AnySchema
  * @returns An array of validation errors for the given attribute. Validations are translated.
  */
 export const useAttributeValidationErrors = (attribute: string | undefined, severity: string | undefined = "error") => {
-  const {session} = useInterview();
+  const { session } = useInterview();
   const { t } = useTheme();
 
   // split regex based on / or .

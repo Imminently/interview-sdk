@@ -5,7 +5,7 @@ import { useEffect, useMemo } from "react";
 import { type RegisterOptions, useFormContext } from "react-hook-form";
 import { FormField } from "../components/ui/form";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
-import { generateValidatorForControl, useAttributeValidationErrors } from "../util/validation";
+import { useValidatorForControl, useAttributeValidationErrors } from "../util/validation";
 import { useOptions } from "@/providers";
 // import directly to avoid circular dependency
 import { parseControl } from "@/components/parseControl";
@@ -61,22 +61,24 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
 
   const defaultValue = getDefaultValue(resolvedControl, _experimental_strictMode);
 
+  // Get the validator schema for this control (memoized based on control)
+  const schema = useValidatorForControl(resolvedControl as RenderableControl);
+
   const rules: RegisterOptions = useMemo(
     () => ({
-      validate: (value) => {
-        const schema = generateValidatorForControl(resolvedControl as RenderableControl);
+      validate: async (value) => {
         if (!schema) {
           return true;
         }
         try {
-          schema.validateSync(value);
+          await schema.validate(value);
           return true;
         } catch (e: any) {
           return e.errors.join(", ");
         }
       },
     }),
-    [resolvedControl],
+    [schema],
   );
 
   // set validation errors from the session object
