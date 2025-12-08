@@ -1,9 +1,8 @@
-import { useInterview } from "@/interview";
 import { AttributeNestingProvider, useTheme } from "@/providers";
 import { cn } from "@/util";
 import { type Control, type RenderableEntityControl, uuid } from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 import { useAttributeToFieldName } from "../../util/attribute-to-field-name";
 import { RenderControl } from "../RenderControl";
@@ -103,21 +102,22 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
   });
 
   // Initialize fields from control.instances if they exist and fields array is empty
-  const [initialized, setInitialized] = React.useState(false);
+  // use a ref to ensure this only runs once and updates immediately
+  // as for some reason the useEffect fired twice and the useState did not update
+  const initialized = useRef(false);
 
   useEffect(() => {
-    if (!initialized && fields.length === 0 && control.instances && control.instances.length > 0) {
-      const initialValues = control.instances.map((instance) => ({
-        "@id": instance.id || uuid(),
-      }));
+    if (!initialized.current && fields.length === 0 && control.instances && control.instances.length > 0) {
+      // immediately set to true to avoid double initialization
+      initialized.current = true;
 
-      initialValues.forEach((item) => {
-        append(item);
-      });
-
-      setInitialized(true);
+      for (const instance of control.instances) {
+        append({
+          "@id": instance.id || uuid(),
+        });
+      }
     }
-  }, [control.instances, fields.length, append, initialized]);
+  }, [control.instances, fields.length, initialized]);
 
   const canAddMore = !readOnly && (control.max === undefined || control.max > fields.length);
   const canDelete = !readOnly && (control.min === undefined || fields.length > control.min);
