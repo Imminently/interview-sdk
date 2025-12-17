@@ -49,9 +49,9 @@ The stateful interaction between your application and the API. Each session:
 
 ### Interaction
 
-Each session can have multiple interactions, representing distinct attempts or conversations within the same session context. Each interaction is identified by a unique `interactionId`. The interaction ID is required when loading an existing interaction.
+Each session can have multiple interactions, representing distinct attempts or conversations within the same session context. An interview is one interaction, regardless of the number of pages, data updates etc to an interview interaction. Each interaction is identified by a unique `interactionId`. The interaction ID is required when loading an existing interaction.
 
-Within the context of using the SDK, most of this is abstracted away. You typically only need to provide an `interactionId` when resuming a previous interaction.
+Within the context of using the SDK, most of this is abstracted away. You typically only need to provide an `interactionId` when resuming a previous interaction (eg: interview).
 
 ### Screens & Controls
 
@@ -75,16 +75,16 @@ import { SessionManager } from '@imminently/interview-sdk';
 const manager = new SessionManager({
   // Required: API configuration
   apiManager: {
-    host: 'https://api.example.com',
+    host: 'https://api.decisively.io', // Or your proxy to our servers (recommended) 
     auth: async () => ({
       // Return your latest auth token
       headers: {
-        Authorization: `Bearer ${getLatestToken()}`
+        Authorization: `Bearer ${getLatestToken()}` // This is the auth token to our API or your own if you use a proxy
       }
     })
   },
 
-  // Required: File management configuration
+  // Required if using file uploads: File management configuration
   fileManager: {
     host: 'https://api.example.com',
     auth: async () => ({
@@ -101,8 +101,8 @@ const manager = new SessionManager({
   init: async (manager) => {
     // Option 1: Create a new session
     await manager.create({
-      project: 'my-project',
-      release: 'v1.0',
+      project: 'my-project', // Name or GUID of the project/model in Decisively
+      release: 'GUID', 
       initialData: { /* optional pre-filled data */ }
     });
 
@@ -136,6 +136,87 @@ const manager = new SessionManager({
 | `preCacheClient` | `boolean` | Pre-loads client-side dynamic runtime for faster interactions. Default: `false` |
 | `sessionStore` | `Storage` | Optional storage interface for persisting sessions across page reloads. |
 | `readOnly` | `boolean` | Enables read-only mode where no data is submitted to the server. Default: `false` |
+
+
+## Using a Proxy (Recommended)
+
+In most production scenarios, you **should not call the Decisively APIs directly from client-side code** (e.g. browser, mobile app). While this is technically possible, it is rarely appropriate from a security or governance perspective.
+
+### Why direct client-side calls are discouraged
+
+The Decisively API is intentionally powerful. A single authenticated client can:
+
+- Access and manipulate decision sessions
+- Control interview behaviour and navigation
+- Request expanded response payloads (e.g. full graphs, rules, explanations)
+- Perform actions well beyond a single interview flow
+
+To authenticate with Decisively, you will typically use a **high-privilege API key or service credential** (often equivalent to a “power user”). Exposing this credential in client-side code would allow an end user to:
+- Extract or reuse the token
+- Call APIs you never intended to expose
+- Access internal rules, logic, or sensitive metadata
+
+This is both a **security risk** and a **data leakage risk**.
+
+### Recommended architecture: backend proxy
+
+Best practice is to stand up **your own backend service** (API, serverless function, BFF, etc.) that acts as a proxy between your client and Decisively.
+
+Client UI → Your Backend Proxy → Decisively API
+
+This approach allows you to:
+
+- **Keep Decisively credentials private**  
+  Authentication happens server-side only and is never exposed to the client.
+
+- **Control and validate requests**  
+  Your backend can strictly limit:
+  - Which endpoints are callable
+  - Which parameters are allowed
+  - Which options are forcibly removed or defaulted
+
+- **Prevent data over-exposure**  
+  For example, when calling the interview API, Decisively supports response options that can return:
+  - The full rule graph
+  - Derived attributes
+  - Internal metadata and explanations  
+
+  These may be inappropriate (or dangerous) to expose to end users. A proxy ensures those options are **never sent**, regardless of what the client attempts.
+
+- **Apply your own security and business rules**  
+  Such as:
+  - User authorisation
+  - Rate limiting
+  - Request shaping
+  - Auditing and logging
+
+### SDK support for proxies
+
+The Interview SDK is designed to work seamlessly with a proxy. You simply point the SDK at your backend instead of directly at Decisively:
+
+```ts
+apiManager: {
+  host: 'https://api.yourcompany.com', // Your proxy
+  auth: async () => ({
+    headers: {
+      Authorization: `Bearer ${yourAppToken}`
+    }
+  })
+}
+```
+
+Your backend then maps these requests to the appropriate Decisively endpoints using its own secure credentials.
+
+Summary
+	•	Direct client → Decisively calls are strongly discouraged
+	•	Decisively credentials should be treated as server-only secrets
+	•	A proxy:
+	•	Protects authentication
+	•	Limits API surface area
+	•	Prevents accidental or malicious data leakage
+	•	This pattern is considered best practice for all production deployments
+
+If you are unsure what your proxy should allow or block, contact us and we can help you design a minimal, safe API surface for your use case.
 
 ### Using the Session
 
@@ -271,8 +352,8 @@ The `ApiManager` handles all HTTP communication with the Decisively API. You typ
 ```typescript
 {
   apiManager: {
-    host: 'https://api.example.com',
-    path: ['decisionapi', 'session'], // Optional: custom path
+    host: 'https://api.decisively.io',
+    path: ['decisionapi', 'session'], // Optional: custom path - you'd usually only override if using a proxy and your paths are different
     
     // Auth function should return latest token
     auth: async () => ({
@@ -297,7 +378,7 @@ You can override default API endpoints using `apiGetters`:
 ```typescript
 {
   apiManager: {
-    host: 'https://api.example.com',
+    host: 'https://api.decisively,io',
     auth: getAuth,
     
     apiGetters: {
