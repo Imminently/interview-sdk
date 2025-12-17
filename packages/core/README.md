@@ -31,9 +31,12 @@ bun add @imminently/interview-sdk
 
 ## Core Concepts
 
+It's important to first understand some key concepts used throughout the SDK. This will help with terminology and overall architecture.
+
 ### Interview
 
-A form or questionnaire designed to collect information from a user to fulfill a specific goal. Interviews can be built within the Decisively system or auto-generated.
+A form or questionnaire designed to collect information from a user to fulfill a specific goal.
+Interviews can be built within the Decisively system or auto-generated.
 
 ### Session
 
@@ -44,9 +47,21 @@ The stateful interaction between your application and the API. Each session:
 - Can be persisted and resumed later using the `load()` function
 - Contains all the current state, controls, and user data
 
-### Controls
+### Interaction
 
-The form elements (inputs, dropdowns, date pickers, etc.) that are dynamically presented to users based on the interview flow and their responses.
+Each session can have multiple interactions, representing distinct attempts or conversations within the same session context. Each interaction is identified by a unique `interactionId`. The interaction ID is required when loading an existing interaction.
+
+Within the context of using the SDK, most of this is abstracted away. You typically only need to provide an `interactionId` when resuming a previous interaction.
+
+### Screens & Controls
+
+The form is presented to users as a series of screens, each containing multiple controls. We provide a list of `steps` representing the entire interview flow, and the current `screen` representing the active step. Within each screen are `controls`.
+
+These controls (form elements, such as inputs, dropdowns, date pickers, etc.) are dynamically presented to users based on the interview flow and their responses.
+
+### Client and Server-side Dynamic
+
+In order to have a responsive interview, we support both client-side and server-side dynamic updates. These all us to process user input and update the form in real-time. By default we will fallback to server-side dynamic updates, but you can enable client-side dynamic processing for an even faster experience (recommended).
 
 ## Quick Start
 
@@ -99,7 +114,7 @@ const manager = new SessionManager({
     // });
   },
 
-  // Optional: Session persistence
+  // [COMING SOON] Optional: Session persistence
   sessionStore: {
     get: () => JSON.parse(localStorage.getItem('interview-session') || '{}'),
     set: (value) => localStorage.setItem('interview-session', JSON.stringify(value))
@@ -236,7 +251,7 @@ manager.isLastStep;               // Is this the last step?
 manager.canProgress;              // Can user proceed?
 ```
 
-### Chat Interactions
+### Chat Interactions [Experimental]
 
 ```typescript
 // Send a generative chat message
