@@ -19,6 +19,7 @@ export const Interview = Object.assign(BasicInterview, {
   Form: Slots.InterviewForm,
   Next: Slots.InterviewNext,
   Back: Slots.InterviewBack,
+  Save: Slots.InterviewSave,
   Progress: Slots.InterviewProgress,
   Processing: Slots.InterviewProcessing,
   Validations: Slots.InterviewValidations,

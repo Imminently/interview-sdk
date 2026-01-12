@@ -730,6 +730,8 @@ export class SessionManager {
     return replaceTemplatedText(text, { ...this.internals.replacements, ...inputData }, data, state, locale);
   }
 
+  // #region dynamic
+
   private triggerUpdate = (update: Partial<{ externalLoading: boolean; screen: Screen }>) => {
     const { externalLoading, screen } = update;
 
@@ -1110,8 +1112,11 @@ export class SessionManager {
     return undefined;
   }
 
+  // #endregion
+
   // public methods
 
+  /** Submit data and optionally navigate to a different screen */
   submit = async (data: AttributeValues, navigate?: any, overrides: Overrides = {}) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to submit data");
@@ -1141,6 +1146,14 @@ export class SessionManager {
     }
   };
 
+  /** Save the current session data, without navigating */
+  save = async (data: AttributeValues, overrides: Overrides = {}) => {
+    // this is just submit, with navigate set to the current screen
+    // so just invoke submit with navigate set to current screen id
+    return this.submit(data, this.activeSession?.screen.id, overrides);
+  }
+
+  /** @experimental Generative AI chat is in exploration phase */
   chat = async (
     goal: string,
     message: string,
@@ -1168,6 +1181,7 @@ export class SessionManager {
     }
   };
 
+  /** Navigate to a specific step */
   navigate = async (step: StepId) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to navigate from");
@@ -1192,6 +1206,7 @@ export class SessionManager {
     }
   };
 
+  /** Navigate back to the previous step */
   back = async () => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to go back from");
@@ -1219,6 +1234,7 @@ export class SessionManager {
     }
   };
 
+  /** Navigate to the next step with the provided data */
   next = async (data: AttributeValues) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to next data");
@@ -1234,7 +1250,6 @@ export class SessionManager {
         await this.apiManager.submit({
           session: this.activeSession,
           data: transformResponse(this.activeSession, data as any),
-          navigate: false,
           overrides: {
             // response: this.options.responseElements,
           },
