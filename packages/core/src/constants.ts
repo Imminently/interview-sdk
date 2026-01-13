@@ -38,6 +38,10 @@ export const CONTROL_TYPES = {
     id: "text",
     name: "Text",
   },
+  NUMBER: {
+    id: "number",
+    name: "Number",
+  },
 
   NUMBER_OF_INSTANCES: {
     id: "number_of_instances",

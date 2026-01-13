@@ -1,0 +1,39 @@
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/providers";
+import { cn } from "@/util";
+import { Slot } from "@radix-ui/react-slot";
+import type * as React from "react";
+import { useInterview } from "../InterviewContext";
+
+export interface InterviewBackProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  asChild?: boolean;
+  children?: React.ReactNode;
+  className?: string;
+}
+
+const InterviewBack = ({ asChild, children, className, ...props }: InterviewBackProps) => {
+  const { t } = useTheme();
+  const { manager, state, backDisabled } = useInterview();
+  // do not display back if interview is finished
+  const hide = manager.numberOfSessions > 1 && !manager.isSubInterview; // && manager.isLastStep && manager.isComplete;
+  if (state !== "success" || hide) {
+    return null; // Don't render if not in success state
+  }
+  const Comp = asChild ? Slot : Button;
+  return (
+    <Comp
+      className={cn(className)}
+      data-slot="back"
+      slot-back=""
+      type="button"
+      variant="outline"
+      disabled={backDisabled}
+      onClick={manager.back} // Call back function on button click
+      {...props}
+    >
+      {children ?? t("form.back")}
+    </Comp>
+  );
+};
+
+export { InterviewBack };

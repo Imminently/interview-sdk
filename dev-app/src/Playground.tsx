@@ -5,7 +5,7 @@ import { highlight, languages } from 'prismjs';
 import 'prismjs/components/prism-json';
 import 'prismjs/themes/prism.css';
 import { convertDefinitionToResponse } from './interview.util';
-import { InterviewActions, InterviewForm, InterviewAlert, InterviewProvider, InterviewSidebar, InterviewSteps, InterviewTitle, ThemeProvider } from '@imminently/interview-sdk-ui';
+import { InterviewActions, InterviewForm, InterviewAlert, InterviewProvider, InterviewSidebar, InterviewSteps, InterviewTitle, ThemeProvider } from '@imminently/interview-ui';
 import * as defaultTheme from '@imminently/interview-sdk-theme-default';
 import { InterviewValuesViewer } from './InterviewValuesViewer';
 
@@ -62,20 +62,20 @@ const getSafePayload = (jsonString: string) => {
 const allInterviews = [simpleInterview] as Interview[];
 export const Playground = (props: any) => {
   const { setCurrentPage } = props;
-// Theme selection state
-const [themeIdx, setThemeIdx] = useState(() => {
-  const stored = sessionStorage.getItem('playground-selected-theme');
-  return stored ? Number(stored) : 1; // default to 'Default'
-});
+  // Theme selection state
+  const [themeIdx, setThemeIdx] = useState(() => {
+    const stored = sessionStorage.getItem('playground-selected-theme');
+    return stored ? Number(stored) : 1; // default to 'Default'
+  });
 
-useEffect(() => {
-  sessionStorage.setItem('playground-selected-theme', String(themeIdx));
-}, [themeIdx]);
+  useEffect(() => {
+    sessionStorage.setItem('playground-selected-theme', String(themeIdx));
+  }, [themeIdx]);
   const [selectedInterview, setSelectedInterview] = useState<Interview>(() => {
     const stored = sessionStorage.getItem('selectedInterview');
     return stored ? JSON.parse(stored) : allInterviews[0];
   });
-  
+
   const [selectedStep, setSelectedStep] = useState<Step | null>(() => {
     const stored = sessionStorage.getItem('selectedStep');
     return stored ? JSON.parse(stored) : null;
@@ -184,12 +184,12 @@ useEffect(() => {
             ))}
           </select>
         </div>
-        
+
       </div>
       <div className="flex-1 p-8 overflow-auto">
         <div className="flex flex-col gap-4">
           <div className="font-semibold text-lg">Config</div>
-          
+
           <div className="flex justify-between items-center">
             <div className="flex gap-4">
               <select
@@ -243,13 +243,13 @@ useEffect(() => {
             </div>
 
             <div className="flex gap-2">
-              <button 
+              <button
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                 onClick={handleReset}
               >
                 Reset
               </button>
-              <button 
+              <button
                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
                 onClick={handleBeautify}
               >
@@ -292,20 +292,19 @@ useEffect(() => {
   )
 };
 
-const Interview = ({jsonPayload}: {jsonPayload: any}) => {
-
+const Interview = ({ jsonPayload }: { jsonPayload: any }) => {
   return (
     <div className="flex w-full h-full">
-      <InterviewSteps steps={getSafePayload(jsonPayload).steps || []} className="w-1/5 min-w-[180px] max-w-[300px] border-r bg-gray-50 p-4 flex-shrink-0 dcsvly-interview-steps-col"/>
-    <div className="flex flex-col flex-1 min-w-0 max-w-[60%] h-full dcsvly-interview-main-col">
-      <div className="flex-1 overflow-auto p-4 dcsvly-interview-main-scroll">
-        <InterviewTitle className="text-2xl font-bold"/>
-        <InterviewAlert className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded-md shadow-sm"/>
-        <InterviewForm />
+      <InterviewSteps steps={getSafePayload(jsonPayload).steps || []} className="w-1/5 min-w-[180px] max-w-[300px] border-r bg-gray-50 p-4 flex-shrink-0 dcsvly-interview-steps-col" />
+      <div className="flex flex-col flex-1 min-w-0 max-w-[60%] h-full dcsvly-interview-main-col">
+        <div className="flex-1 overflow-auto p-4 dcsvly-interview-main-scroll">
+          <InterviewTitle className="text-2xl font-bold" />
+          <InterviewAlert className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded-md shadow-sm" />
+          <InterviewForm />
+        </div>
+        <InterviewActions className="sticky bottom-0 left-0 w-full bg-white border-t flex justify-end gap-2 p-4 z-10 dcsvly-interview-actions-bar" />
       </div>
-      <InterviewActions className="sticky bottom-0 left-0 w-full bg-white border-t flex justify-end gap-2 p-4 z-10 dcsvly-interview-actions-bar" />
+      <InterviewSidebar className="w-1/5 min-w-[180px] max-w-[300px] border-l bg-gray-50 p-4 flex-shrink-0 dcsvly-interview-sidebar-col" />
     </div>
-    <InterviewSidebar className="w-1/5 min-w-[180px] max-w-[300px] border-l bg-gray-50 p-4 flex-shrink-0 dcsvly-interview-sidebar-col"/>
-  </div>
   )
 }

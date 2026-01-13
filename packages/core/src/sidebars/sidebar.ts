@@ -141,7 +141,6 @@ export type ConversationSidebar = BaseSidebar<
   }
 >;
 
-// biome-ignore lint: we don't need anything in the data for now but we may need it in future
 export type RenderableConversationSidebar = RenderableSidebarOf<ConversationSidebar, {}>;
 
 // interview sidebar
@@ -157,7 +156,6 @@ export type InterviewSidebar = BaseSidebar<
   }
 >;
 
-// biome-ignore lint: we don't need anything in the data for now but we may need it in future
 export type RenderableInterviewSidebar = RenderableSidebarOf<InterviewSidebar, {}>;
 
 // ---

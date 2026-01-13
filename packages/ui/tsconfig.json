@@ -3,7 +3,12 @@
   "compilerOptions": {
     "outDir": "./dist",
     "declaration": true,
-    "declarationDir": "./dist"
+    "declarationDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src"]
-} 
+  "include": ["src"],
+  "exclude": ["_deprecated"]
+}

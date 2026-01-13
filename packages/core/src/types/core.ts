@@ -1,4 +1,4 @@
-import type { RenderableSidebar, Sidebar } from "../sidebars/sidebar";
+import type { RenderableSidebar, Sidebar } from "../sidebars";
 import type { RenderableControl } from "./controls";
 
 export type StepId = string;
@@ -7,6 +7,38 @@ export type ProjectId = string;
 export type SessionId = string;
 export type InterviewId = string;
 export type AttributeId = string;
+
+// copied from decisively repo commons
+export interface PreProcessedState {
+  nodes: Record<string, { previousValue: any }>;
+  entityStructure?: any;
+}
+
+// copied from decisively repo commons
+/** A relationship between 2 entites */
+export interface Relationship {
+  containment: boolean;
+  /** **NOT THE ENTITY ID** The relationship id, mostly unused */
+  id: string;
+  invisibleIfKnown: boolean;
+  isComputed: boolean;
+  /** The entity name. Only exists if this also defines an entity */
+  name?: string;
+  nameSingular: string;
+  reverseId: string;
+  reversePublicId: string;
+  silentIfKnown: boolean;
+  /** The source (parent) entity. Global if "global" otherwise references entity id. */
+  source: string;
+  /** The target (child) entity. Also used as the entity id */
+  target: string;
+  text: string;
+  textSingular: string;
+  type: string;
+  reverseText?: string;
+  contactEntity?: boolean;
+  contactId?: string;
+}
 
 //# region FileAttributeValue
 
@@ -72,7 +104,7 @@ export interface Parent {
   "@parent": string | undefined;
 }
 
-export type ResponseData = AttributeValues & Parent;
+export type ResponseData = AttributeValues & Partial<Parent>;
 
 export interface EntityInstance {
   "@id": string;
@@ -142,6 +174,10 @@ export interface Step {
 
   sameAsPreviousSidebar?: boolean;
   sidebars?: Sidebar[] | null;
+  special?: {
+    // TODO what other values can this have?
+    type: "complete";
+  };
 }
 
 export interface DynamicNextButton {
@@ -182,6 +218,16 @@ export interface Session {
   sessionId: string;
   /** Unique ID of the interaction */
   interactionId: string;
+  /** Unique ID of the interview */
+  interviewId: string;
+  /** Unique ID of the interview goal */
+  goal: string;
+  /** Unique ID of the project */
+  model: string;
+  /** Unique ID of the release */
+  release: string;
+  /** Unique ID of the report */
+  reportId: string;
   status: "in-progress" | "complete" | "error";
   context: Context;
   data: Record<AttributeId, AttributeData> & Parent;
@@ -193,6 +239,17 @@ export interface Session {
   explanations?: Record<AttributeId, string>;
   locale?: string;
   validations?: Validation[];
+  clientGraph?: string;
+  clientGraphBookmark?: string;
+  /** The client graph, decompressed, as a graph object */
+  decompressedClientGraph?: any;
+  relationships?: Relationship[];
+  preProcessedState?: PreProcessedState;
+  rulesEngineChecksum?: string;
+  // data index
+  index?: string;
+  reporting?: any;
+  inferredOrder?: string[];
 }
 
 export interface SessionConfig {
@@ -202,6 +259,10 @@ export interface SessionConfig {
   interview?: InterviewId;
   /** existing session (to create an interaction) */
   sessionId?: SessionId;
+  /** Id of the interaction, if this is a continuation of an existing session */
+  interactionId?: string;
+  /** The project to use for the session */
+  project?: string;
   /** Specific release, for testing purposes */
   release?: ReleaseId;
   /** response elements for next/submit */
@@ -212,6 +273,8 @@ export interface SessionConfig {
   goal?: string;
   /** the session goal */
   sessionGoal?: string;
+  clientGraphBookmark?: string;
+  readOnly?: boolean;
 }
 
 export type Overrides = Record<string, any>;
@@ -245,6 +308,53 @@ export interface ChatResponse {
   processed: ChatProcessed;
 }
 
+// ApiManager options object types
+export interface SubmitOptions {
+  session: Session;
+  data: AttributeValues;
+  navigate?: Navigate;
+  overrides?: Overrides;
+  clientGraphBookmark?: string;
+  /** If true, do not mutate state server-side */
+  readOnly?: boolean;
+}
+
+export interface ChatOptions {
+  session: Session;
+  message: string;
+  goal: string;
+  overrides?: Overrides;
+  interactionId?: string | null;
+}
+
+export interface NavigateOptions {
+  session: Session;
+  step: StepId;
+  overrides?: Overrides;
+  /** If true, do not mutate state server-side */
+  readOnly?: boolean;
+}
+
+export interface BackOptions {
+  session: Session;
+  overrides?: Overrides;
+  readOnly?: boolean;
+}
+
+export interface SimulateOptions {
+  session: Session;
+  /** Payload passed through to simulation API. Can be Simulate or partial additional fields */
+  payload: Partial<Simulate> | Record<string, any>;
+}
+
+export interface ExportTimelineOptions {
+  session: Session;
+}
+
+export interface GetRulesEngineOptions {
+  checksum?: string;
+}
+
 export interface ChatMessage {
   content: string;
   self: boolean;
@@ -258,6 +368,19 @@ export interface Validation {
   parent?: string;
   severity: "error" | "warning";
   attributes: string[];
-  conditions: any;
   shown?: boolean;
+}
+
+export interface AuthConfig {
+  /** The full auth token, including type, ie `Bearer ...` */
+  token: string;
+  /** The X-Tenancy id if required */
+  tenancy?: string;
+}
+
+/** A getter function that should return the latest auth value. Will run on each query */
+export type AuthConfigGetter = () => AuthConfig;
+
+export interface RulesEngine {
+  solve(options: any, releaseHash: string, externalData: any, state: any): Promise<any>;
 }

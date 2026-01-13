@@ -4,24 +4,20 @@ import type {
   ChatResponse,
   Navigate,
   Overrides,
-  ProjectId,
   Session,
   SessionConfig,
   Simulate,
   StepId,
 } from "./types";
-import type { SessionInstance } from "./init";
 import { buildUrl } from "./util";
 
-export const create = async (api: AxiosInstance, project: ProjectId, options: SessionConfig = {}) => {
-  const { initialData, release, responseElements, sessionId, ...rest } = options;
-  // const config: AxiosRequestConfig = {
-  //   params: {
-  //     interview
-  //   }
-  // };
+/** @deprecated use ApiManger instead */
+export const create = async (api: AxiosInstance, options: SessionConfig = {}) => {
+  const { initialData, project, release, responseElements, sessionId, ...rest } = options;
 
-  const postConfig = sessionId ? { params: { session: sessionId } } : undefined;
+  if (!project) {
+    throw new Error("Project ID is required to create a session.");
+  }
 
   const res = await api.post<Session>(
     buildUrl(project, release),
@@ -30,13 +26,26 @@ export const create = async (api: AxiosInstance, project: ProjectId, options: Se
       response: responseElements,
       ...rest,
     },
-    postConfig,
+    sessionId ? { params: { session: sessionId } } : undefined,
   );
   return res.data;
 };
 
-export const load = async (api: AxiosInstance, project: string, sessionId: string, interactionId?: string) => {
-  const res = await api.patch<Session>(project, {}, { params: { session: sessionId, interaction: interactionId } });
+/** @deprecated use ApiManger instead */
+export const load = async (api: AxiosInstance, options: SessionConfig) => {
+  const { project, sessionId, interactionId, initialData } = options;
+
+  if (!project) {
+    throw new Error("Project ID is required to load a session.");
+  }
+
+  const res = await api.patch<Session>(
+    project,
+    { data: initialData ?? {} },
+    {
+      params: { session: sessionId, interaction: interactionId },
+    },
+  );
   return res.data;
 };
 
@@ -46,29 +55,41 @@ export const load = async (api: AxiosInstance, project: string, sessionId: strin
  * @param data The data for the current step to submit
  * @param navigate The desired navigation after update, defaults to next
  * @param overrides Other params to pass through to payload
+ * @deprecated use ApiManger instead
  */
 export const submit = async (
   api: AxiosInstance,
-  session: SessionInstance,
+  session: Session,
   data: AttributeValues,
   navigate: Navigate,
   overrides?: Overrides,
 ) => {
-  const url = session.release === undefined ? session.project : buildUrl(session.project, session.release);
+  const url = session.release === undefined ? session.model : buildUrl(session.model, session.release);
   const res = await api.patch<Session>(
     url,
-    { data, navigate: navigate || undefined, index: session.index, ...overrides },
-    { params: { session: session.sessionId, interaction: session.interactionId } },
+    {
+      data,
+      navigate: navigate || undefined,
+      index: session.index,
+      ...overrides,
+    },
+    {
+      params: {
+        session: session.sessionId,
+        interaction: session.interactionId,
+      },
+    },
   );
   return res.data;
 };
 
 /**
  * Send a generative chat message
+ * @deprecated use ApiManger instead
  */
 export const chat = async (
   api: AxiosInstance,
-  session: SessionInstance,
+  session: Session,
   message: string,
   goal: string,
   overrides?: Overrides,
@@ -76,7 +97,7 @@ export const chat = async (
 ): Promise<ChatResponse> => {
   const resolvedInteractionId = interactionId !== undefined ? interactionId : session.interactionId;
   const res = await api[resolvedInteractionId ? "patch" : "post"]<ChatResponse>(
-    session.project,
+    session.model,
     {
       prompt: message,
       turbo: false,
@@ -85,7 +106,12 @@ export const chat = async (
       goal,
       ...overrides,
     },
-    { params: { session: session.sessionId, interaction: resolvedInteractionId || undefined } },
+    {
+      params: {
+        session: session.sessionId,
+        interaction: resolvedInteractionId || undefined,
+      },
+    },
   );
   return res.data;
 };
@@ -94,49 +120,69 @@ export const chat = async (
  * Navigate to a specific step.
  *
  * @param step The desired step ID
+ * @deprecated use ApiManger instead
  */
-export const navigate = async (api: AxiosInstance, session: SessionInstance, step: StepId, overrides?: Overrides) => {
+export const navigate = async (api: AxiosInstance, session: Session, step: StepId, overrides?: Overrides) => {
   const res = await api.patch<Session>(
-    session.project,
+    session.model,
     { navigate: step, ...overrides },
-    { params: { session: session.sessionId, interaction: session.interactionId } },
+    {
+      params: {
+        session: session.sessionId,
+        interaction: session.interactionId,
+      },
+    },
   );
   return res.data;
 };
 
-export const back = async (api: AxiosInstance, session: SessionInstance, overrides?: Overrides) => {
+/** @deprecated use ApiManger instead */
+export const back = async (api: AxiosInstance, session: Session, overrides?: Overrides) => {
   const res = await api.patch<Session>(
-    session.project,
+    session.model,
     { navigate: "@back", ...overrides },
-    { params: { session: session.sessionId, interaction: session.interactionId } },
+    {
+      params: {
+        session: session.sessionId,
+        interaction: session.interactionId,
+      },
+    },
   );
   return res.data;
 };
 
-export const postSimulate = async (api: AxiosInstance, session: SessionInstance, data: Partial<Simulate>) => {
+/** @deprecated use ApiManger instead */
+export const postSimulate = async (api: AxiosInstance, session: Session, data: Partial<Simulate>) => {
   // Dynamic interactions are now on a post (due to new interaction behaviour in backend)
   const res = await api.post<AttributeValues>(
-    buildUrl(session.project, session.release),
+    buildUrl(session.model, session.release),
     {
       mode: "api",
       save: false,
       ...data,
     },
     {
-      params: { session: session.sessionId, interaction: session.interactionId },
+      params: {
+        session: session.sessionId,
+        interaction: session.interactionId,
+      },
     },
   );
   return res.data;
 };
 
-export const exportTimeline = async (api: AxiosInstance, session: SessionInstance) => {
+/** @deprecated use ApiManger instead */
+export const exportTimeline = async (api: AxiosInstance, session: Session) => {
   const res = await api.post<string>(
-    session.project,
+    session.model,
     {
       exportTimeline: true,
     },
     {
-      params: { session: session.sessionId, interaction: session.interactionId },
+      params: {
+        session: session.sessionId,
+        interaction: session.interactionId,
+      },
     },
   );
   return res.data;

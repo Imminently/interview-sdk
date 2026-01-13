@@ -1,10 +1,18 @@
-import { format, parseISO } from "date-fns";
+import { UTCDate } from "@date-fns/utc";
+import axios, { type AxiosRequestConfig, type AxiosRequestTransformer } from "axios";
+import { format } from "date-fns";
 import { v4 as baseUuid } from "uuid";
+import { produce } from "immer";
+import { replaceTemplatedText } from "./helpers";
 import type {
   AttributeValues,
+  AuthConfigGetter,
   Control,
   EntityControlInstance,
+  RenderableCertaintyContainerControl,
   RenderableEntityControl,
+  RenderableSwitchContainerControl,
+  ResponseData,
   Session,
   State,
 } from "./types";
@@ -19,19 +27,114 @@ export const range = (size: number, startAt = 0) => {
   return [...Array(size).keys()].map((i) => i + startAt);
 };
 
-export const stateToData = (state: State[]): AttributeValues => {
-  return Object.keys(state).reduce((acc: AttributeValues, key) => {
-    acc[key] = state.find((s) => s.id === key)?.value;
-    return acc;
-  }, {});
-};
-
 export const isStrNotNullOrBlank = (str: any): boolean => !/^\s*$/.test(str || "");
 export const isStrNullOrBlank = (str: any): boolean => !isStrNotNullOrBlank(str);
 
+export const createApiInstance = (baseURL: string, auth?: AuthConfigGetter, overrides: AxiosRequestConfig = {}) => {
+  const { transformRequest = [], ...rest } = overrides;
+  return axios.create({
+    baseURL,
+    timeout: 30000,
+    headers: { "Content-Type": "application/json" },
+    transformRequest: [
+      (data, headers) => {
+        // default auth transformer
+        if (headers && auth) {
+          const { token, tenancy } = auth();
+          headers.Authorization = token;
+          headers["X-TENANCY"] = tenancy ?? undefined;
+        }
+        return JSON.stringify(data);
+      },
+      ...(transformRequest as AxiosRequestTransformer[]),
+      ...(axios.defaults.transformRequest as AxiosRequestTransformer[]),
+    ],
+    ...rest,
+  });
+};
+
+export const deepClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));
+
+/**
+ * An immer produce function that iterates over data and converts the following:
+ * - "" (empty strings) to null
+ * - "null" (string) to null
+ * - "true"/"false" (string) to boolean
+ *
+ * It should iterate sub arrays and objects using a frontier approach
+ */
+export const normalizeInputData = (data: Record<string, any>): Record<string, any> => {
+  return produce(data, (draft) => {
+    const frontier: any[] = [draft];
+    // console.log("Normalizing data:", draft, frontier);
+    while (frontier.length > 0) {
+      const current = frontier.pop();
+      if (typeof current === "object" && current !== null) {
+        for (const key of Object.keys(current)) {
+          const value = current[key];
+          if (value === "") {
+            current[key] = null;
+          } else if (value === "null") {
+            current[key] = null;
+          } else if (value === "true") {
+            current[key] = true;
+          } else if (value === "false") {
+            current[key] = false;
+          } else if (typeof value === "object" && value !== null) {
+            if(Array.isArray(value)) {
+              frontier.push(...value);
+            } else {
+              frontier.push(value);
+            }
+          }
+        }
+      }
+    }
+  });
+};
+
+export const transformResponse = (session: Session, data: AttributeValues): ResponseData => {
+  const newData = normalizeInputData(data);
+  console.log("normalised", JSON.parse(JSON.stringify(newData, null, 2)));
+  if (session.data["@parent"]) {
+    newData["@parent"] = session.data["@parent"];
+  }
+
+  // TODO legacy, we should check this works if its within containers
+  for (const control of session.screen.controls) {
+    if (control.type === "number_of_instances") {
+      const value = newData[control.entity];
+      newData[control.entity] = range(Number(value)).map((i) => ({
+        "@id": uuid(),
+      }));
+    }
+  }
+  return newData;
+};
+
+// transform an object into a flat object with . delimited keys
+export const flattenObject = (obj: any, delimiter = ".", parentKey = "", result: any = {}) => {
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      flattenObject(obj[i], delimiter, parentKey ? `${parentKey}${delimiter}${i}` : `${i}`, result);
+    }
+  } else {
+    if (typeof obj !== "object" || obj === null) {
+      result[parentKey] = obj;
+      return result;
+    }
+
+    for (const [key, value] of Object.entries(obj)) {
+      flattenObject(value, delimiter, parentKey ? `${parentKey}${delimiter}${key}` : key, result);
+    }
+  }
+
+  return result;
+};
+
 export const getEntityIds = (entity: string, values: AttributeValues): string[] => {
   const regex = new RegExp(`${entity}\\.(.*)\\.@id`);
-  return Object.entries(values).reduce((ids, [key, value]) => {
+  return Object.entries(flattenObject(values)).reduce((ids, [key, value]) => {
     if (typeof value === "string" && regex.test(key)) {
       ids.push(value);
     }
@@ -39,30 +142,47 @@ export const getEntityIds = (entity: string, values: AttributeValues): string[] 
   }, [] as string[]);
 };
 
-export const iterateControls = (controls: Control[], func: (control: Control) => void, template?: boolean) => {
+export const iterateControls = (
+  controls: Control[],
+  func: (control: Control) => void,
+  /** if true, will only interate valid / on screen controls */
+  filtered?: boolean,
+  template?: boolean,
+) => {
   for (const control of controls) {
     func(control);
     if (control.type === "repeating_container") {
       const ctrl = control;
-
       if (ctrl.controls) {
-        iterateControls(ctrl.controls, func, template);
+        iterateControls(ctrl.controls, func, filtered, template);
       }
     } else if (control.type === "switch_container") {
-      const ctrl = control;
+      const ctrl = control as RenderableSwitchContainerControl;
+      const outcome = ctrl.branch === "true";
+      if (filtered) {
+        const ctrls = outcome ? ctrl.outcome_true : ctrl.outcome_false;
+        iterateControls(ctrls ?? [], func, filtered, template);
+        continue;
+      }
       if (ctrl.outcome_false) {
-        iterateControls(ctrl.outcome_false, func, template);
+        iterateControls(ctrl.outcome_false, func, filtered, template);
       }
       if (ctrl.outcome_true) {
-        iterateControls(ctrl.outcome_true, func, template);
+        iterateControls(ctrl.outcome_true, func, filtered, template);
       }
     } else if (control.type === "certainty_container") {
-      const ctrl = control;
+      const ctrl = control as RenderableCertaintyContainerControl;
+      const outcome = ctrl.branch === "certain";
+      if (filtered) {
+        const ctrls = outcome ? ctrl.certain : ctrl.uncertain;
+        iterateControls(ctrls ?? [], func, filtered, template);
+        continue;
+      }
       if (ctrl.certain) {
-        iterateControls(ctrl.certain, func, template);
+        iterateControls(ctrl.certain, func, filtered, template);
       }
       if (ctrl.uncertain) {
-        iterateControls(ctrl.uncertain, func, template);
+        iterateControls(ctrl.uncertain, func, filtered, template);
       }
     } else if (control.type === "entity") {
       const ctrl = control as RenderableEntityControl;
@@ -70,15 +190,15 @@ export const iterateControls = (controls: Control[], func: (control: Control) =>
       if (ctrl.instances && !template) {
         // @ts-ignore
         for (const instance of ctrl.instances) {
-          iterateControls(instance.controls, func, template);
+          iterateControls(instance.controls, func, filtered, template);
         }
       } else if (ctrl.template) {
-        iterateControls(ctrl.template, func, template);
+        iterateControls(ctrl.template, func, filtered, template);
       }
     } else if (control.type === "data_container") {
       const ctrl = control;
       if (ctrl.controls) {
-        iterateControls(ctrl.controls, func, template);
+        iterateControls(ctrl.controls, func, filtered, template);
       }
     }
   }
@@ -129,12 +249,8 @@ export const applyInstancesToEntityControl = (control: RenderableEntityControl, 
   });
 };
 
-export const formatDate = (
-  argument: string | Date | number,
-  dateFormat: string,
-  options?: Parameters<typeof format>[2],
-) => {
-  return format(typeof argument === "string" ? parseISO(argument) : argument, dateFormat, options);
+export const formatDate = (argument: string | Date | number, dateFormat: string, options?: any): string => {
+  return format(argument, dateFormat, options);
 };
 
 export const createEntityPathedData = (data: AttributeValues): AttributeValues => {
@@ -145,7 +261,7 @@ export const createEntityPathedData = (data: AttributeValues): AttributeValues =
   }> = [];
 
   for (const [key, value] of Object.entries(data)) {
-    if (value === undefined) {
+    if (value === undefined || value === null) {
       continue;
     }
 
@@ -160,10 +276,11 @@ export const createEntityPathedData = (data: AttributeValues): AttributeValues =
     result[parent.join("/")] = entities;
     for (let i = 0; i < entities.length; i++) {
       const entity = entities[i];
+      if (entity === undefined || entity === null) continue;
       const id = entity["@id"] || i + 1;
       const entityPath = [...parent, id];
       for (const [key, value] of Object.entries(entity)) {
-        if (value === undefined) {
+        if (value === undefined || value === null) {
           continue;
         }
 
@@ -203,6 +320,10 @@ export const attributeToPath = <S extends string | undefined>(
     return basePath as S;
   }
 
+  return pathToNested(basePath, values, nested) as S;
+};
+
+export const pathToNested = (basePath: string, values: AttributeValues, nested: boolean): string => {
   const wasNested = basePath.includes(".");
   const parts = basePath.split(/[./]/);
 
@@ -216,42 +337,88 @@ export const attributeToPath = <S extends string | undefined>(
       result.push(part);
       flatResult.push(part);
     } else {
-      if (i === parts.length - 1) {
-        result.push(part);
-        flatResult.push(part);
-      } else {
-        // this is an entity ID
-        const entities: any = flatValues[flatResult.join("/")];
+      let id: string | number = part;
 
-        if (Array.isArray(entities)) {
-          if (wasNested) {
-            const index = Number.parseInt(part, 10);
-            flatResult.push(entities[index]["@id"]);
+      if (!Number.isNaN(id)) {
+        id = Number.parseInt(id) - 1;
+      }
 
-            if (!nested) {
-              result.push(entities[index]["@id"]);
-              continue;
-            } else {
-              result.push(index.toString());
-              continue;
+      // this is an entity ID
+      let entities: any = flatValues[flatResult.join("/")];
+
+      if (Array.isArray(entities)) {
+        // ensure we only have valid entities
+        entities = entities.filter((e) => e && typeof e === "object" && "@id" in e);
+        if (wasNested) {
+          const index = Number.parseInt(part, 10) - 1;
+          flatResult.push(entities[index]["@id"]);
+
+          if (!nested) {
+            id = entities[index]["@id"];
+            if (!Number.isNaN(id)) {
+              // @ts-ignore
+              id = Number.parseInt(id) - 1;
             }
-          }
-
-          const index = entities.findIndex((entity: any) => entity["@id"] === part);
-          if (index >= 0) {
-            result.push(index.toString());
-            flatResult.push(part);
+            result.push(id.toString());
+            continue;
           } else {
-            result.push(part);
-            flatResult.push(part);
+            result.push(index.toString());
+            continue;
           }
+        }
+
+        const index = entities.findIndex((entity: any) => entity["@id"] === part);
+
+        if (index >= 0) {
+          result.push(index.toString());
+          flatResult.push(part);
         } else {
-          result.push(part);
+          result.push(id.toString());
           flatResult.push(part);
         }
+      } else {
+        result.push(id.toString());
+        flatResult.push(part);
       }
     }
   }
 
-  return result.join(nested ? "." : "/") as S;
+  return result.join(nested ? "." : "/");
+};
+
+export const parseBoolean = (value: any): boolean => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    return value.toLowerCase() === "true";
+  }
+  return false;
+}
+
+export const postProcessControl = (
+  control: any,
+  replacements: any,
+  data: Session["data"],
+  state: State[] | undefined,
+  locale: Session["locale"],
+) => {
+  if (control.templateText) {
+    control.text = replaceTemplatedText(control.templateText, replacements, data, state, locale);
+  }
+  if (control.templateLabel) {
+    control.label = replaceTemplatedText(control.templateLabel, replacements, data, state, locale);
+  }
+  if (control.type === "switch_container" && control.kind === "dynamic" && control.attribute) {
+    const update = replacements[control.attribute];
+    // if (update !== undefined) {
+    control.branch = parseBoolean(update) ? "true" : "false";
+    // }
+  }
+  if (control.type === "certainty_container") {
+    const update = replacements[control.attribute];
+    const certain = update !== null && update !== undefined;
+    control.branch = certain ? "certain" : "uncertain";
+    // if (update !== undefined) {
+    // control.branch = replacements[control.attribute] === null ? "uncertain" : "certain";
+    // }
+  }
 };

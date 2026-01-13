@@ -1,5 +1,5 @@
-import type { AttributeId, AttributeValues, Session, State, Step } from "./types";
 import { formatValue } from "./formatting";
+import type { AttributeId, AttributeValues, Session, State, Step } from "./types";
 
 // -- step helpers
 
@@ -29,10 +29,10 @@ export const replaceTemplatedText = (
       .split("|")
       .map((s) => s.trim());
     const parentScopedAttribute = data?.["@parent"] ? attribute.replace(`${data["@parent"]}/`, "") : attribute;
-    const value = replacements[parentScopedAttribute] || replacements[attribute];
-    const type = state?.find((state) => state.id === parentScopedAttribute || state.id === attribute)?.type;
+    const stateItem = state?.find((state) => state.id === parentScopedAttribute || state.id === attribute);
+    const value = replacements[parentScopedAttribute] ?? replacements[attribute] ?? stateItem?.value;
 
-    return formatValue(value, { formatters, type, locale }) ?? "...";
+    return formatValue(value, { formatters, type: stateItem?.type, locale }) ?? "...";
   });
 };
 

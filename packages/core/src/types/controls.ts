@@ -86,6 +86,39 @@ export interface CurrencyControl extends BaseControl {
   readOnly?: boolean;
 }
 
+/** Collects or displays a numeric value from/to the user. */
+export interface NumberControl extends BaseControl {
+  /** unique id of the control */
+  id: string;
+  type: "number";
+  label?: string;
+  labelDisplay?: LabelDisplay;
+  customClassName?: string;
+  sxForSeparateLabel?: Record<string, unknown>;
+  labelLength?: number;
+  required?: true;
+  disabled?: true;
+  /** uuid */
+  attribute: string;
+  /** current numeric value */
+  value?: number | null;
+  /** numeric default */
+  default?: number;
+  /** Numeric-only configuration */
+  numericalOptions?: {
+    /** The minimum numeric value allowed */
+    min?: number;
+    /** The maximum numeric value allowed */
+    max?: number;
+    /** Whether decimal values are allowed (false means integers only) */
+    allowDecimals?: boolean;
+    /** If decimals are allowed, restrict to this many decimal places */
+    maxDecimalPlaces?: number;
+  };
+  showExplanation?: boolean;
+  readOnly?: boolean;
+}
+
 /**
  * @deprecated Use `CurrencyControl` instead
  */
@@ -251,7 +284,25 @@ export const DATE_TIME_FORMAT_12 = `${DATE_FORMAT} ${TIME_FORMAT_12}`;
 
 export interface Option {
   label?: string;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   value: any;
+}
+
+export interface AsyncOptions {
+  /** The connection GUID */
+  connection: string;
+  /** the mapping GUID */
+  responseMapping: string;
+  path: string;
+  /** ie GET, POST */
+  method?: string;
+  /** Defaults to application/json */
+  contentType?: string;
+  /** Query string that requires templating */
+  query: string;
+  body?: string;
+  /** The minimum length of the search input string before running the query */
+  minInput?: number;
 }
 
 /**
@@ -288,7 +339,7 @@ export interface OptionsControl extends BaseControl {
   required?: true;
   disabled?: true;
   value?: string | boolean | null;
-  default?: string | boolean;
+  default?: string | boolean | null;
   /** uuid */
   attribute: string;
   /** design and runtime */
@@ -299,6 +350,8 @@ export interface OptionsControl extends BaseControl {
   enum_id?: string;
   showExplanation?: boolean;
   readOnly?: boolean;
+  /** async option control fields, ie requires async request to get data */
+  asyncOptions?: AsyncOptions;
 }
 
 /**
@@ -462,6 +515,7 @@ export interface TypographyControl extends BaseControl {
   id: string;
   type: "typography";
   text: string;
+  label?: string;
   customClassName?: string;
   style:
     | "h1"
@@ -663,6 +717,7 @@ export interface ConditionExpression {
 export type RenderableControl = (
   | BooleanControl
   | CurrencyControl
+  | NumberControl
   | DateControl
   | TimeControl
   | DateTimeControl
@@ -689,6 +744,7 @@ export type RenderableControlType = RenderableControl["type"];
 export type Control =
   | BooleanControl
   | CurrencyControl
+  | NumberControl
   | DateControl
   | TimeControl
   | DateTimeControl
@@ -709,6 +765,7 @@ export type Control =
 export type ControlType = Control["type"];
 
 export interface ControlsValue {
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   [controlUUID: string]: any;
 }
 
