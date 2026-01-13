@@ -12,6 +12,9 @@ export interface InterviewSaveProps extends React.ButtonHTMLAttributes<HTMLButto
   className?: string;
 }
 
+/**
+ * @EXPERIMENTAL Save button for the interview form.
+ */
 const InterviewSave = ({ asChild, children, className, ...props }: InterviewSaveProps) => {
   const { handleSubmit, trigger, getValues } = useFormContext();
   const { t } = useTheme();
