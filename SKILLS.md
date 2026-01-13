@@ -12,7 +12,7 @@ This document provides essential knowledge for AI assistants to effectively impl
 You must install and use **both** packages:
 
 ```bash
-npm install @imminently/interview-sdk @imminently/interview-ui
+bun add @imminently/interview-sdk @imminently/interview-ui
 # or
 yarn add @imminently/interview-sdk @imminently/interview-ui
 ```

@@ -35,11 +35,11 @@
   "scripts": {
     "generate:safelist": "node generate-safelist.js",
     "build:css": "tailwindcss -c tailwind.config.js -i ./src/theme.css -o ./dist/theme.css --minify",
-    "build": "tsup src/index.ts && npm run build:css",
+    "build": "tsup src/index.ts && bun run build:css",
     "dev": "tsup src/index.ts --format esm,cjs --watch",
     "clean": "rm -rf dist",
-    "bump:patch": "npm version patch --no-git-tag-version",
-    "publish:patch": "npm run build && npm run bump:patch && npm publish"
+    "bump:patch": "node ../../scripts/bump-patch.js",
+    "publish:patch": "bun run build && bun run bump:patch && bun publish"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",

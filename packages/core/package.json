@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-sdk",
-  "version": "0.5.11",
+  "version": "3.0.0",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -30,8 +30,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "bump:patch": "npm run build && npm version patch --no-git-tag-version",
-    "deploy": "bun run bump:patch && npm publish"
+    "bump:patch": "bun run build && node ../../scripts/bump-patch.js",
+    "deploy": "bun run bump:patch && bun publish"
   },
   "dependencies": {
     "@dagrejs/graphlib": "^2.2.4",

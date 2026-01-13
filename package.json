@@ -12,7 +12,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean",
-    "install:all": "npm install && npm run build",
+    "install:all": "bun install && bun run build",
     "publish:patch": "turbo run publish:patch --concurrency=1"
   },
   "devDependencies": {
