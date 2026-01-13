@@ -1,6 +1,25 @@
 {
   "name": "interview-sdk",
+  "version": "3.0.0",
+  "description": "A TypeScript monorepo SDK for building interactive interview and questionnaire applications.",
   "private": true,
+  "license": "MIT",
+  "author": "Imminently",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Imminently/interview-sdk.git"
+  },
+  "keywords": [
+    "interview",
+    "sdk",
+    "questionnaire",
+    "form",
+    "typescript",
+    "react",
+    "tailwind",
+    "vite",
+    "monorepo"
+  ],
   "workspaces": [
     "packages/core",
     "packages/ui",
