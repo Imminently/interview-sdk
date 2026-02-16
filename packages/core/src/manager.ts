@@ -556,6 +556,7 @@ export class SessionManager {
       const session = await this.apiManager.load({
         ...config,
         clientGraphBookmark: this.getClientGraphBookmark(),
+        readOnly: this.options.readOnly,
       });
       this.log("Session loaded successfully:", session);
       this.setState("success");
