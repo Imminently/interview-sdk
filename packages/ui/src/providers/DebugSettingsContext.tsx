@@ -8,6 +8,14 @@ type DebugSettings = {
   setadvancedDebugEnabled: (enabled: boolean) => void;
 };
 
+const DEFAULT_FALLBACK: DebugSettings = {
+  debugEnabled: false,
+  advancedDebugEnabled: false,
+  // do nothing for the default fallback
+  setDebugEnabled: () => {},
+  setadvancedDebugEnabled: () => {},
+};
+
 const DebugSettingsContext = createContext<DebugSettings | undefined>(undefined);
 
 export function DebugSettingsProvider({
@@ -83,7 +91,8 @@ export function DebugSettingsProvider({
 export function useDebugSettings(fallback?: Partial<DebugSettings>): DebugSettings {
   const context = useContext(DebugSettingsContext);
   if (!context) {
-    throw new Error("useDebugSettings must be used within a DebugSettingsProvider");
+    if (fallback) return fallback as DebugSettings;
+    return DEFAULT_FALLBACK;
   }
   return context;
 }
