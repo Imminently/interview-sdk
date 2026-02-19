@@ -70,14 +70,9 @@ export interface TypographyControlProps {
   control: TypographyControl;
 }
 
-export const TypographyDebug = ({ name, control }: { name: string; control: TypographyControl }) => {
-  const { debugEnabled } = useDebugSettings();
+const TypographyDebug = ({ name, control }: { name: string; control: TypographyControl }) => {
   const context = useInterview();
   const graph = useMemo(() => context.manager.parsedGraph, [context]);
-
-  if (!debugEnabled) {
-    return null;
-  }
 
   const node = graph ? graph.node(name) : { description: "No graph", entity: "N/A" };
   // console.log("TypographyDebug", { name, node });
@@ -109,6 +104,7 @@ export const TypographyDebug = ({ name, control }: { name: string; control: Typo
 export const Typography = ({ control }: TypographyControlProps) => {
   // merge is a bit weird here, as we actually would want to merge the cva variants
   // const { merge } = useTheme();
+  const { debugEnabled } = useDebugSettings();
   const { debug } = useOptions({ debug: true });
   const { t } = useTheme();
   const variant: TextVariant = control.style || "body1";
@@ -138,7 +134,7 @@ export const Typography = ({ control }: TypographyControlProps) => {
   if (control.label) {
     return (
       <>
-        <TypographyDebug name={control.attribute ?? control.id} control={control} />
+        {debugEnabled ? <TypographyDebug name={control.attribute ?? control.id} control={control} /> : null}
         <FormField
           name={control.attribute ?? control.id}
           data={control}
@@ -154,7 +150,7 @@ export const Typography = ({ control }: TypographyControlProps) => {
 
   return (
     <>
-      <TypographyDebug name={control.attribute ?? control.id} control={control} />
+      {debugEnabled ? <TypographyDebug name={control.attribute ?? control.id} control={control} /> : null}
       {component}
     </>
   );
