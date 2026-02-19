@@ -1,8 +1,8 @@
-import debounce from "lodash-es/debounce";
-import get from "lodash-es/get";
-import isEmpty from "lodash-es/isEmpty";
-import isEqual from "lodash-es/isEqual";
-import set from "lodash-es/set";
+import debounce from "lodash/debounce";
+import get from "lodash/get";
+import isEmpty from "lodash/isEmpty";
+import isEqual from "lodash/isEqual";
+import set from "lodash/set";
 import { ApiManager, type ApiManagerOptions } from "./api-manager";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, type UnknownValues, buildDynamicReplacementQueries } from "./dynamic";
@@ -183,9 +183,9 @@ export interface ManagerOptions {
   init?: (manager: SessionManager) => void | Promise<void>;
   /**
    * @deprecated Use init instead. If init provided, this will be ignored.
-   * 
+   *
    * Will be removed in v1.0.0
-   * 
+   *
    * Legacy: Initial session config. If provided, will automatically start an interview on creation
    */
   sessionConfig?: SessionConfig;
