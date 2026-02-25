@@ -196,7 +196,6 @@ export interface ManagerOptions {
 
 export const updateReportingWithReplacements = (reporting: any, replacements: any, parent?: string) => {
   if (!reporting) return;
-  const result = structuredClone(reporting);
 
   // Step 1: Normalize all arrays in replacements to objects keyed by @id or index
   const normalizeIdBasedObject = (object: any) => {
@@ -221,6 +220,8 @@ export const updateReportingWithReplacements = (reporting: any, replacements: an
     return result;
   };
 
+  // clone and normalise, to make sure we are using the same path system
+  const result = normalizeIdBasedObject(structuredClone(reporting));
   const normalized = normalizeIdBasedObject(replacements);
 
   // Step 2: For any keys in the normalized object that contain '/', split and use lodash set to build a flat newValues object
