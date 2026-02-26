@@ -8,7 +8,7 @@ export const InterviewContainer = ({
 }: {
   control: RenderableInterviewContainerControl;
 }) => {
-  const { session, manager } = useInterview();
+  const { manager } = useInterview();
 
   // TODO this needs to create a new session if it doesn't exist already
   // if we have the session, we effectively want to render the Controls component
@@ -19,7 +19,7 @@ export const InterviewContainer = ({
   // TODO modify the container to instead get an id back and render the session screen using that id
   // this would then support n nested interviews
   const isSubInterview = manager.isSubInterview;
-  console.log("[interview container]", { isSubInterview, session, control });
+  console.log("[interview container]", { isSubInterview, control });
   // no dependencies here, we only want to run this once
   useEffect(() => {
     // if the session interivewId does not match, we need to create the new one
@@ -31,7 +31,7 @@ export const InterviewContainer = ({
     }
   }, []);
 
-  if (!isSubInterview) {
+  if (!isSubInterview || !manager.activeSession) {
     // render loading component
     return (
       <div
@@ -43,8 +43,20 @@ export const InterviewContainer = ({
     );
   }
 
-  const { steps, screen } = session;
+  const { steps, screen } = manager.activeSession;
   const { controls, title } = screen;
+
+  // ensure we are in the sub interview, error if not
+  if(manager.activeSession.screen.id === manager.session?.screen.id) {
+    return (
+      <div
+        data-slot={"sub-controls"}
+        className="flex flex-col gap-4"
+      >
+        <p>Error: Failed to load sub interview</p>
+      </div>
+    );
+  }
 
   // we want to convert steps into a 1 of x progress indicator
   // const current = steps.find(step => step.id === activeSession.screen.id);

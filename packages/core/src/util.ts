@@ -95,7 +95,6 @@ export const normalizeInputData = (data: Record<string, any>): Record<string, an
 
 export const transformResponse = (session: Session, data: AttributeValues): ResponseData => {
   const newData = normalizeInputData(data);
-  console.log("normalised", JSON.parse(JSON.stringify(newData, null, 2)));
   if (session.data["@parent"]) {
     newData["@parent"] = session.data["@parent"];
   }

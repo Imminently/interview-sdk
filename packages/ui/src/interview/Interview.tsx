@@ -24,8 +24,8 @@ export const Interview = ({ options, children, readOnly, ...props }: InterviewPr
       {...props}
     >
       <DebugSettingsProvider>
-        <InterviewDebugIndicator />
         {children ? children : <InterviewLayout key={manager.session?.screen.id} />}
+        <InterviewDebugIndicator />
       </DebugSettingsProvider>
     </InterviewProvider>
   );

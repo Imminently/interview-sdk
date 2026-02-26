@@ -734,19 +734,15 @@ export class SessionManager {
 
   // #region dynamic
 
-  private triggerUpdate = (update: Partial<{ externalLoading: boolean; screen: Screen }>) => {
-    const { externalLoading, screen } = update;
-
-    if (typeof externalLoading === "boolean") {
-      this.externalLoading = externalLoading;
-    }
+  private triggerUpdate = (externalLoading: boolean) => {
+    this.externalLoading = externalLoading;
     this.renderAt = Date.now();
     // update store
     this.options.sessionStore?.set({
       sessions: this.sessions,
       active: this.active,
     });
-    this.log("Triggering update", update);
+    this.log("Triggering update", { externalLoading });
     this.notifyListeners();
   };
 
@@ -944,16 +940,10 @@ export class SessionManager {
 
         // Handle any remaining unknowns that require server-side simulation
         if (requiresServiceDynamic) {
-          this.triggerUpdate({
-            externalLoading: true,
-            screen: newScreen,
-          });
+          this.triggerUpdate(true);
           this.serverSideDynamic();
         } else {
-          this.triggerUpdate({
-            externalLoading: false,
-            screen: newScreen,
-          });
+          this.triggerUpdate(false);
         }
       }
     }
@@ -1041,10 +1031,7 @@ export class SessionManager {
     }
 
     if (newScreen) {
-      this.triggerUpdate({
-        externalLoading: false,
-        screen: newScreen,
-      });
+      this.triggerUpdate(false);
     }
   };
 
@@ -1100,9 +1087,7 @@ export class SessionManager {
 
     // hasn't updated, force it
     if (currentRenderAt === this.renderAt) {
-      this.triggerUpdate({
-        screen: session.screen,
-      });
+      this.triggerUpdate(false);
     }
   };
 
@@ -1124,7 +1109,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to submit data");
       return Promise.resolve(null);
     }
-    this.triggerUpdate({ externalLoading: true });
+    this.triggerUpdate(true);
     try {
       const session = await this.apiManager.submit({
         session: this.activeSession,
@@ -1143,7 +1128,7 @@ export class SessionManager {
       this.setState("error", error.response ?? error);
       throw error;
     } finally {
-      this.triggerUpdate({ externalLoading: false });
+      this.triggerUpdate(false);
       return this;
     }
   };
@@ -1167,7 +1152,7 @@ export class SessionManager {
       throw new Error("No active session to chat with");
     }
     try {
-      this.triggerUpdate({ externalLoading: true });
+      this.triggerUpdate(true);
       const payload = await this.apiManager.chat({
         session: this.activeSession,
         message,
@@ -1175,10 +1160,10 @@ export class SessionManager {
         overrides,
         interactionId,
       });
-      this.triggerUpdate({ externalLoading: false });
+      this.triggerUpdate(false);
       return payload;
     } catch (error) {
-      this.triggerUpdate({ externalLoading: false });
+      this.triggerUpdate(false);
       throw error;
     }
   };
@@ -1189,7 +1174,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to navigate from");
       throw new Error("No active session to navigate from");
     }
-    this.triggerUpdate({ externalLoading: true });
+    this.triggerUpdate(true);
     try {
       this.updateSession(
         await this.apiManager.navigate({
@@ -1203,7 +1188,7 @@ export class SessionManager {
       this.setState("error", error.response ?? error);
       throw error;
     } finally {
-      this.triggerUpdate({ externalLoading: false });
+      this.triggerUpdate(false);
       return this;
     }
   };
@@ -1214,7 +1199,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to go back from");
       throw new Error("No active session to go back from");
     }
-    this.triggerUpdate({ externalLoading: true });
+    this.triggerUpdate(true);
     try {
       if (this.isSubInterview && isFirstStep(this.activeSession.steps, this.activeSession.screen.id)) {
         // pop the session, then we will invoke back on the parent
@@ -1231,7 +1216,7 @@ export class SessionManager {
       this.setState("error", error.response ?? error);
       throw error;
     } finally {
-      this.triggerUpdate({ externalLoading: false });
+      this.triggerUpdate(false);
       return this;
     }
   };
@@ -1242,7 +1227,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to next data");
       throw new Error("No active session to next data");
     }
-    this.triggerUpdate({ externalLoading: true });
+    this.triggerUpdate(true);
     try {
       if (this.isSubInterview && isComplete(this.activeSession)) {
         // pop the session, then we will invoke next on the parent
@@ -1264,7 +1249,7 @@ export class SessionManager {
       this.setState("error", error.response ?? error);
       throw error;
     } finally {
-      this.triggerUpdate({ externalLoading: false });
+      this.triggerUpdate(false);
       return this;
     }
   };

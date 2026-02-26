@@ -9,11 +9,11 @@ export const useAttributeToFieldName = (attribute: string | undefined): string |
 
   const nested = useAttributeNestingContext();
 
-  const { session } = useInterview();
-  if (!session) {
-    throw new Error("useAttributeToFieldName: session is undefined");
+  const { manager } = useInterview();
+  if (!manager.activeSession) {
+    throw new Error("useAttributeToFieldName: active session is undefined");
   }
 
   useWatch();
-  return attributeToPath(attribute, session?.data, values, nested);
+  return attributeToPath(attribute, manager.activeSession.data, values, nested);
 };
