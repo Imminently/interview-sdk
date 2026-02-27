@@ -473,9 +473,11 @@ export const useAttributeValidationErrors = (attribute: string | undefined, seve
 
   // split regex based on / or .
   const baseAttribute = attribute?.split(/[\/\.]/).pop() as string;
+  // session may not exist, so default to empty array
+  const validationData = session?.validations ?? [];
 
   const validations = useMemo(() => {
-    return (session.validations ?? [])
+    return validationData
       // only want those that apply to this attribute and are shown
       .filter((v) => v.shown && (baseAttribute ? v.attributes.findIndex((a: string) => a.includes(baseAttribute)) > -1 : true))
       // only want errors
@@ -491,7 +493,7 @@ export const useAttributeValidationErrors = (attribute: string | undefined, seve
       .map((v) => ({ ...v, message: t(v.message) }))
       // sort by number of attributes (fewer attributes = more specific)
       .sort((a, b) => a.attributes.length - b.attributes.length);
-  }, [session.validations, baseAttribute]);
+  }, [validationData, baseAttribute]);
 
   return validations;
 };
