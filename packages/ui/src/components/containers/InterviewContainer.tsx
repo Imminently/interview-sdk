@@ -19,7 +19,7 @@ export const InterviewContainer = ({
   // TODO modify the container to instead get an id back and render the session screen using that id
   // this would then support n nested interviews
   const isSubInterview = manager.isSubInterview;
-  console.log("[interview container]", { isSubInterview, control });
+  // console.log("[interview container]", { isSubInterview, control });
   // no dependencies here, we only want to run this once
   useEffect(() => {
     // if the session interivewId does not match, we need to create the new one
@@ -68,13 +68,13 @@ export const InterviewContainer = ({
 
   return (
     <>
-      <div>
+      <div data-slot={"sub-progress"}>
         <p>
           {progress.current} of {progress.total} questions in this section
         </p>
       </div>
       <h5
-        data-slot={"heading"}
+        data-slot={"sub-heading"}
         className="text-xl font-semibold"
       >
         {title}

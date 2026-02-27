@@ -968,6 +968,8 @@ export class SessionManager {
   private serverSideDynamic = async () => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to process server-side dynamic values");
+      // ensure we set this back to false either way, so the loading state doesn't get stuck
+      this.triggerUpdate(false);
       return;
     }
     let newScreen: Screen | undefined;
@@ -1030,9 +1032,8 @@ export class SessionManager {
       }
     }
 
-    if (newScreen) {
-      this.triggerUpdate(false);
-    }
+    // ensure we set this back to false either way, so the loading state doesn't get stuck
+    this.triggerUpdate(false);
   };
 
   /** NOTE Will run notifyListeners if changes occured */
@@ -1160,11 +1161,11 @@ export class SessionManager {
         overrides,
         interactionId,
       });
-      this.triggerUpdate(false);
       return payload;
     } catch (error) {
-      this.triggerUpdate(false);
       throw error;
+    } finally {
+      this.triggerUpdate(false);
     }
   };
 
