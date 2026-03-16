@@ -155,11 +155,10 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+  const { error, formItemId, formDescriptionId, formMessageId, control } = useFormField();
 
   const { debugEnabled } = useDebugSettings();
   const interview = useInterview();
-  const control = useFormField().control;
 
   const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (debugEnabled && e.shiftKey) {
@@ -169,6 +168,14 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
     }
   };
 
+  // Only reference IDs that will actually be present in the DOM, as per WCAG 4.1.1.
+  // aria-describedby pointing to a non-existent element is an accessibility violation.
+  const hasDescription = "longDescription" in control && !!control.longDescription?.length;
+  const ariaDescribedBy = [
+    hasDescription ? formDescriptionId : null,
+    error ? formMessageId : null,
+  ].filter(Boolean).join(" ") || undefined;
+
   // disabled other debug click events as they may be overriding standard control click behaviour
   // also only enable if debugEnabled is true
   return (
@@ -176,7 +183,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
       data-slot="form-control"
       id={formItemId}
       onMouseUp={debugEnabled ? handleDebugClick : undefined}
-      aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
+      aria-describedby={ariaDescribedBy}
       aria-invalid={!!error}
       {...props}
     />

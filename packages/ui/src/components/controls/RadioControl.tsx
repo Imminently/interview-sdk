@@ -47,6 +47,7 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
           value={field.value !== undefined ? String(field.value) : ""}
           onValueChange={handleChange}
           className="flex flex-col"
+          aria-label={t(control.label)}
         >
           {options.map((option) => {
             // generate a unique id for each option, as we need to ensure it doesn't conflict with other controls
