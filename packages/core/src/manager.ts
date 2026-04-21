@@ -857,59 +857,59 @@ export class SessionManager {
         this.log("Calculated replacement queries:", replacementQueries);
 
         const newScreen = this.makeScreenCopy();
-        if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0) {
-          // Get all goals that need to be solved
-          const goalsToSolveSet = new Set(Object.keys(this.internals.unknownsRequiringSimulate));
+        const hasUnknownsRequiringSimulate = Object.keys(this.internals.unknownsRequiringSimulate).length > 0;
 
-          const goalsToSolve = Array.from(goalsToSolveSet);
-
-          // Handle client-side calculations first
-          if (goalsToSolve.length > 0 && this.clientGraph) {
-            try {
-              const result = await this.runRulesEngine();
-
+        // If client-side dynamic runtime is available, always solve all dynamic goals.
+        // unknownsRequiringSimulate is treated as a server-side queue only.
+        if (this.clientGraph) {
+          try {
+            const result = await this.runRulesEngine();
+            if (result?.reporting) {
               const replacements = createEntityPathedData({
                 ...result.reporting.global,
                 ...result.reporting,
                 global: undefined,
               });
               this.log(`[${LogGroup}] Replacements':`, replacements);
-
-              //if (result.result !== undefined) {
-              // Update replacements with solved values
-              // Object.assign(this.internals.replacements, replacements);
               this.internals.replacements = replacements;
 
-              // make sure we update the newScreen, as thats our working copy
-              this.activeSession.validations = result.validations;
-            } catch (error) {
-              console.error(`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`, error);
-              // surface error under validations, so the user knows something went wrong
-              // this ideally blocks progress until resolved
-              this.activeSession.validations = [{
-                id: this.activeSession.goal,
-                attributes: [],
-                severity: "error",
-                message: "An error occurred while processing your input. Please refresh and try again.",
-                shown: true,
-              }];
+              // Keep server-side queue only for goals not solved client-side.
+              for (const goal of Object.keys(this.internals.unknownsRequiringSimulate)) {
+                if (this.internals.replacements[goal] !== undefined) {
+                  delete this.internals.unknownsRequiringSimulate[goal];
+                }
+              }
             }
 
-            // Update screen with new values
-            if (newScreen?.controls) {
-              iterateControls(newScreen.controls, (control: any) => {
-                control.loading = undefined;
-                postProcessControl(control, this.internals.replacements, data, state, locale);
-              });
-            }
+            // make sure we update the newScreen, as thats our working copy
+            this.activeSession.validations = result?.validations;
+          } catch (error) {
+            console.error(`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`, error);
+            // surface error under validations, so the user knows something went wrong
+            // this ideally blocks progress until resolved
+            this.activeSession.validations = [{
+              id: this.activeSession.goal,
+              attributes: [],
+              severity: "error",
+              message: "An error occurred while processing your input. Please refresh and try again.",
+              shown: true,
+            }];
+          }
 
-            // Update progress state
-            const nextButton = screen.buttons?.next;
-            if (nextButton && typeof nextButton === "object") {
-              this.internals.canProgress = nextButton.dependencies.every(
-                (attr) => (this.internals.userValues[attr] || this.internals.replacements[attr]) === true,
-              );
-            }
+          // Update screen with new values
+          if (newScreen?.controls) {
+            iterateControls(newScreen.controls, (control: any) => {
+              control.loading = undefined;
+              postProcessControl(control, this.internals.replacements, data, state, locale);
+            });
+          }
+
+          // Update progress state
+          const nextButton = screen.buttons?.next;
+          if (nextButton && typeof nextButton === "object") {
+            this.internals.canProgress = nextButton.dependencies.every(
+              (attr) => (this.internals.userValues[attr] || this.internals.replacements[attr]) === true,
+            );
           }
         }
 
@@ -931,8 +931,7 @@ export class SessionManager {
 
         const requiresServiceDynamic = Boolean(
           !this.clientGraph &&
-          (Object.keys(this.internals.unknownsRequiringSimulate).length > 0 ||
-            replacementQueries.sidebarSimulate?.ids?.length),
+          (hasUnknownsRequiringSimulate || replacementQueries.sidebarSimulate?.ids?.length),
         );
 
         this.activeSession.screen = newScreen;
