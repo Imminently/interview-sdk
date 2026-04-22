@@ -412,7 +412,8 @@ export const postProcessControl = (
     control.branch = parseBoolean(update) ? "true" : "false";
     // }
   }
-  if (control.type === "certainty_container") {
+  // certainty containers don't have a 'kind' value for some reason
+  if (control.type === "certainty_container" && control.attribute) {
     const update = replacements[control.attribute];
     const certain = update !== null && update !== undefined;
     control.branch = certain ? "certain" : "uncertain";
