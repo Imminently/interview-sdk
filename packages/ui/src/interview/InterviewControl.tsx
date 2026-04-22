@@ -22,12 +22,12 @@ export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDiv
 // 2. default set on the control (for static defaults)
 // 3. undefined (so RHF knows it's empty)
 // The different between undefined and null is also very important
-// undefined = unknown, ie the user ask not been asked yet
+// undefined = unknown, ie the user has not been asked yet
 // null = uncertain, ie the user has been asked and explicitly did not provide a value
 // Setting an empty string or 0 would be actual values, and not what the user actually provided
 // The legacy system would only send null if the user gave empty string, which is technically incorrect
 // We want to change to null if on screen, as that indicates the user has seen the question.
-// Undefined is when the control gets hidden, either through a container or soeme else. Meaning they did not see it.
+// Undefined is when the control gets hidden, either through a container or something else. Meaning they did not see it.
 // This is risky however, as everything has been built using the legacy method.
 // For now, we will make this experimental and opt-in.
 const getDefaultValue = (control: any, strict: boolean = false) => {
