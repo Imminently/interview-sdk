@@ -28,6 +28,7 @@ type FormFieldContextValue<
 > = {
   name: TName;
   control: Control;
+  fieldRef: React.Ref<HTMLElement>;
 };
 
 const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
@@ -41,13 +42,13 @@ const FormField = <
   ...props
 }: Omit<ControllerProps<TFieldValues, TName>, 'render'> & React.PropsWithChildren<{ data: Control }>) => {
   return (
-    <FormFieldContext.Provider value={{ name: props.name, control: data }}>
-      <Controller {...props} render={(p) => (
+    <Controller {...props} render={(p) => (
+      <FormFieldContext.Provider value={{ name: props.name, control: data, fieldRef: p.field.ref }}>
         <FormItem>
           <Slot children={children} {...p} />
         </FormItem>
-      )} />
-    </FormFieldContext.Provider>
+      </FormFieldContext.Provider>
+    )} />
   );
 };
 
@@ -69,6 +70,7 @@ const useFormField = <C extends Control>() => {
     id,
     name: fieldContext.name,
     control: fieldContext.control as C,
+    fieldRef: fieldContext.fieldRef,
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
@@ -150,12 +152,17 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
       htmlFor={formItemId}
       onClick={debugControl}
       {...props}
-    />
+    >
+      {props.children}
+      {"required" in control && control.required && (
+        <span data-required aria-hidden="true">*</span>
+      )}
+    </Label>
   );
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId, control } = useFormField();
+  const { error, formItemId, formDescriptionId, formMessageId, control, fieldRef } = useFormField();
 
   const { debugEnabled } = useDebugSettings();
   const interview = useInterview();
@@ -180,6 +187,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
   // also only enable if debugEnabled is true
   return (
     <Slot
+      ref={fieldRef}
       data-slot="form-control"
       id={formItemId}
       onMouseUp={debugEnabled ? handleDebugClick : undefined}

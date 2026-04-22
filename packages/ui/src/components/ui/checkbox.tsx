@@ -6,7 +6,6 @@ import { cn } from "@/util";
 
 function Checkbox({ className, ...props }: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
   const indeterminate = props.checked === "indeterminate" ? true : undefined;
-  console.log("Checkbox render", { ...props, indeterminate });
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"

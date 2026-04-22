@@ -13,6 +13,7 @@ interface DatePickerProps {
   disabled?: boolean;
   minDate?: Date;
   maxDate?: Date;
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
 // Helper function to parse YYYY-MM-DD as local time
@@ -27,7 +28,7 @@ function parseLocalDate(dateString: string): Date | null {
   return new Date(year, month, day);
 }
 
-function DatePicker({ value, onChange, disabled, minDate, maxDate, ...props }: DatePickerProps) {
+function DatePicker({ value, onChange, disabled, minDate, maxDate, ref, ...props }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(() => {
     // if undefined or null, return as is, ie respect whats given
     if (value === undefined || value === null) return value;
@@ -82,7 +83,8 @@ function DatePicker({ value, onChange, disabled, minDate, maxDate, ...props }: D
         <Button
           // make sure we pass the props from the form control through
           {...props}
-          variant={"outline"}
+          ref={ref}
+          variant={"input"}
           className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
           disabled={disabled}
         >
