@@ -13,7 +13,9 @@
     "test": "turbo run test",
     "clean": "turbo run clean",
     "install:all": "bun install && bun run build",
-    "publish:patch": "turbo run publish:patch --concurrency=1"
+    "publish:patch": "turbo run publish:patch --concurrency=1",
+    "publish:minor": "bun ./scripts/release-major.js minor",
+    "publish:major": "bun ./scripts/release-major.js major"
   },
   "devDependencies": {
     "@imminently/interview-sdk": "workspace:*",

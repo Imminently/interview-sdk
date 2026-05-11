@@ -112,6 +112,12 @@ bun run clean
 
 # Publish patch versions
 bun run publish:patch
+
+# Publish aligned minor versions for core and ui
+bun run publish:minor
+
+# Publish aligned major versions for core and ui
+bun run publish:major
 ```
 
 ## Architecture
