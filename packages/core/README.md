@@ -308,7 +308,33 @@ await manager.submit(
   { attribute: 'value' },
   false // navigate = false
 );
+
+// Reset the current session using the last create/load config
+await manager.reset();
+
+// Reset using an explicit config override
+await manager.reset({
+  project: 'my-project',
+  release: 'v1.0'
+});
 ```
+
+`manager.reset()` removes the active session and creates a new one. If you do not pass a config, it reuses a cloned copy of the most recent config used for `create()` or `load()` for that session.
+
+### Timeline Export
+
+```typescript
+// Get the raw exported timeline payload
+const timeline = await manager.exportTimeline();
+
+// Trigger a browser download using the default file name
+await manager.downloadTimeline();
+
+// Or provide your own file name
+await manager.downloadTimeline('Sequence Export.json');
+```
+
+`manager.downloadTimeline()` is intended for browser environments. It throws if there is no active session or if the runtime cannot perform a browser download.
 
 ### State Management
 

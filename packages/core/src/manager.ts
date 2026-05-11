@@ -258,6 +258,8 @@ interface ClientGraphBookmarkData {
   clientGraph: any;
 }
 
+type StoredSessionConfig = SessionConfig;
+
 const getClientGraphForSession = (session: Session) => {
   if (!session?.clientGraph && !session?.decompressedClientGraph) {
     return undefined;
@@ -285,6 +287,7 @@ export class SessionManager {
   private apiManager: ApiManager;
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
+  private sessionConfigs: Record<string, StoredSessionConfig>;
 
   private debugEnabled: boolean;
   private advancedDebugEnabled;
@@ -314,6 +317,7 @@ export class SessionManager {
     this.listeners = new Set();
     this.debugEnabled = Boolean(options.debug);
     this.advancedDebugEnabled = false;
+    this.sessionConfigs = {};
 
     // create the API manager
     this.apiManager =
@@ -472,6 +476,9 @@ export class SessionManager {
   pop = () => {
     if (this.sessions.length === 0) return null;
     const session = this.sessions.pop();
+    if (session) {
+      this.deleteSessionConfig(session.sessionId);
+    }
     this.active = this.sessions.length - 1; // set active to the last session
     if (this.options.sessionStore) {
       this.options.sessionStore.set({
@@ -480,6 +487,27 @@ export class SessionManager {
       });
     }
     return session;
+  };
+
+  /**
+   * Store an isolated copy of the session config so later caller mutations do not
+   * change the reset baseline for this session.
+   */
+  private setSessionConfig = (sessionId: string, config: SessionConfig) => {
+    this.sessionConfigs[sessionId] = deepClone(config);
+  };
+
+  /**
+   * Return a fresh copy of the stored session config so reset callers cannot mutate
+   * the cached baseline that future resets depend on.
+   */
+  private getSessionConfig = (sessionId: string) => {
+    const config = this.sessionConfigs[sessionId];
+    return config ? deepClone(config) : undefined;
+  };
+
+  private deleteSessionConfig = (sessionId: string) => {
+    delete this.sessionConfigs[sessionId];
   };
 
   setActive = (index: number) => {
@@ -535,6 +563,7 @@ export class SessionManager {
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
       });
+      this.setSessionConfig(session.sessionId, config);
       this.log("Session created successfully:", session);
       this.setState("success");
       this.push(session);
@@ -559,6 +588,7 @@ export class SessionManager {
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
       });
+      this.setSessionConfig(session.sessionId, config);
       this.log("Session loaded successfully:", session);
       this.setState("success");
       this.push(session);
@@ -1260,6 +1290,47 @@ export class SessionManager {
       throw new Error("No active session to export timeline from");
     }
     return this.apiManager.exportTimeline({ session: this.activeSession });
+  };
+
+  downloadTimeline = async (fileName?: string) => {
+    const timeline = await this.exportTimeline();
+    if (!timeline) {
+      throw new Error("No active session to export timeline from");
+    }
+
+    if (typeof document === "undefined") {
+      throw new Error("Timeline download requires a browser environment");
+    }
+
+    const blob = new Blob([timeline], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const element = document.createElement("a");
+
+    try {
+      element.href = url;
+      element.download = fileName ?? `Sequence - ${this.activeSession?.interviewId || "Interview"} (${new Date().toISOString()}).json`;
+      document.body.appendChild(element);
+      element.click();
+    } catch (error) {
+      throw error;
+    } finally {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  reset = async (config?: SessionConfig) => {
+    const session = this.activeSession;
+    const resetConfig = config ?? (session ? this.getSessionConfig(session.sessionId) : undefined);
+
+    if (!resetConfig) {
+      throw new Error("No session config available to reset");
+    }
+
+    this.pop();
+    return this.create(resetConfig);
   };
 
   get getConnectedData() {

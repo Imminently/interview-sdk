@@ -144,6 +144,7 @@ function App() {
         
         <footer className="flex gap-2 p-4 border-t">
           <Interview.Back />
+          <Interview.Reset />
           <Interview.Progress />
           <Interview.Next />
         </footer>
@@ -204,14 +205,17 @@ Displays the interview step navigation/breadcrumbs.
 <Interview.Steps />
 ```
 
-### Interview.Next / Interview.Back
+### Interview.Next / Interview.Back / Interview.Reset
 
-Navigation buttons for moving through the interview.
+Navigation buttons for moving through the interview or restarting it.
 
 ```tsx
 <Interview.Back className="custom-class" />
+<Interview.Reset className="custom-class" />
 <Interview.Next className="custom-class" />
 ```
+
+`Interview.Reset` calls `manager.reset()` and is useful when you want to restart the current interview from the same create/load config.
 
 ### Interview.Progress
 
@@ -494,6 +498,12 @@ function CustomInterviewLayout() {
             Previous
           </button>
         </Interview.Back>
+
+        <Interview.Reset asChild>
+          <button className="btn btn-secondary">
+            Start Over
+          </button>
+        </Interview.Reset>
         
         <Interview.Progress />
         
@@ -516,7 +526,7 @@ function App() {
 }
 ```
 
-> **Tip**: Use the `asChild` prop on `Interview.Back` and `Interview.Next` to inject onClick handlers and disabled state into your own button components automatically.
+> **Tip**: Use the `asChild` prop on `Interview.Back`, `Interview.Reset`, and `Interview.Next` to inject onClick handlers and disabled state into your own button components automatically.
 
 ## TypeScript
 
