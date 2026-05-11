@@ -7,6 +7,14 @@ import { ApiManager, type ApiManagerOptions } from "./api-manager";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, type UnknownValues, buildDynamicReplacementQueries } from "./dynamic";
 import { FileManager, type FileManagerOptions } from "./file-manager";
+import {
+  ManagerLifecycle,
+  type ManagerLifecycleActiveSessionChangeSource,
+  type ManagerLifecycleErrorSource,
+  type ManagerLifecycleOptions,
+  type ManagerLifecycleSessionStartSource,
+  type ManagerLifecycleSessionUpdateSource,
+} from "./manager-events";
 import { SIDEBAR_DYNAMIC_DATA_INFO } from "./sidebars/sidebar";
 import type {
   AttributeValues,
@@ -191,6 +199,7 @@ export interface ManagerOptions {
   sessionConfig?: SessionConfig;
   /** EXPERIMENTAL: trying out adding support to load/store sessions */
   sessionStore?: Storage;
+  lifecycle?: ManagerLifecycleOptions;
   readOnly?: boolean;
 }
 
@@ -288,6 +297,7 @@ export class SessionManager {
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
   private sessionConfigs: Record<string, StoredSessionConfig>;
+  readonly events: ManagerLifecycle;
 
   private debugEnabled: boolean;
   private advancedDebugEnabled;
@@ -318,6 +328,7 @@ export class SessionManager {
     this.debugEnabled = Boolean(options.debug);
     this.advancedDebugEnabled = false;
     this.sessionConfigs = {};
+    this.events = new ManagerLifecycle(options.lifecycle);
 
     // create the API manager
     this.apiManager =
@@ -375,10 +386,20 @@ export class SessionManager {
     }
   };
 
-  private setState = (state: ManagerState, error?: Error) => {
+  private setState = (state: ManagerState, error?: Error, source: ManagerLifecycleErrorSource = "init") => {
     this.state = state;
     this.error = error || undefined;
     this.log("State updated:", this.state, this.error);
+
+    if (state === "error" && this.error) {
+      this.events.emitError({
+        manager: this,
+        error: this.error,
+        state: "error",
+        source,
+      });
+    }
+
     this.notifyListeners();
   };
 
@@ -462,7 +483,8 @@ export class SessionManager {
     return isOnScreen;
   };
 
-  push = (session: Session) => {
+  push = (session: Session, source: ManagerLifecycleActiveSessionChangeSource = "push") => {
+    const previousActiveSession = this.activeSession;
     this.sessions.push(session);
     this.active = this.sessions.length - 1; // always set active to the last session
     if (this.options.sessionStore) {
@@ -471,10 +493,19 @@ export class SessionManager {
         active: this.active,
       });
     }
+
+    this.events.emitActiveSessionChange({
+      manager: this,
+      activeSession: this.activeSession,
+      previousActiveSession,
+      activeIndex: this.active,
+      source,
+    });
   };
 
-  pop = () => {
+  pop = (source: ManagerLifecycleActiveSessionChangeSource = "pop") => {
     if (this.sessions.length === 0) return null;
+    const previousActiveSession = this.activeSession;
     const session = this.sessions.pop();
     if (session) {
       this.deleteSessionConfig(session.sessionId);
@@ -486,6 +517,15 @@ export class SessionManager {
         active: this.active,
       });
     }
+
+    this.events.emitActiveSessionChange({
+      manager: this,
+      activeSession: this.activeSession,
+      previousActiveSession,
+      activeIndex: this.active,
+      source,
+    });
+
     return session;
   };
 
@@ -515,6 +555,8 @@ export class SessionManager {
       console.warn(LogGroup, `Invalid session index: ${index}. Must be between 0 and ${this.sessions.length - 1}`);
       return;
     }
+
+    const previousActiveSession = this.activeSession;
     this.active = index;
     if (this.options.sessionStore) {
       this.options.sessionStore.set({
@@ -522,6 +564,14 @@ export class SessionManager {
         active: this.active,
       });
     }
+
+    this.events.emitActiveSessionChange({
+      manager: this,
+      activeSession: this.activeSession,
+      previousActiveSession,
+      activeIndex: this.active,
+      source: "setActive",
+    });
   };
 
   private handleClientGraphBookmark(session: Session) {
@@ -554,7 +604,10 @@ export class SessionManager {
     }
   }
 
-  create = async (config: SessionConfig): Promise<Session> => {
+  private createSession = async (
+    config: SessionConfig,
+    source: ManagerLifecycleSessionStartSource = "create",
+  ): Promise<Session> => {
     try {
       this.log("Creating session:", config);
       this.setState("loading");
@@ -566,17 +619,27 @@ export class SessionManager {
       this.setSessionConfig(session.sessionId, config);
       this.log("Session created successfully:", session);
       this.setState("success");
-      this.push(session);
-      this.updateSession(session);
+      this.push(session, source);
+      this.updateSession(session, source);
+      this.events.emitSessionStart({
+        manager: this,
+        session,
+        config: this.getSessionConfig(session.sessionId) ?? deepClone(config),
+        source,
+      });
       // if we successfully created a session, try to pre-cache the client-side dynamic runtime
       this.preCacheClient();
       return session;
     } catch (error: any) {
       console.error(LogGroup, "Error creating session:", error);
-      this.setState("error", error.response ?? error);
+      this.setState("error", error.response ?? error, source);
       // re-throw to allow caller to handle and respect promise interface
       throw error;
     }
+  };
+
+  create = async (config: SessionConfig): Promise<Session> => {
+    return this.createSession(config, "create");
   };
 
   load = async (config: SessionConfig): Promise<Session> => {
@@ -591,14 +654,20 @@ export class SessionManager {
       this.setSessionConfig(session.sessionId, config);
       this.log("Session loaded successfully:", session);
       this.setState("success");
-      this.push(session);
-      this.updateSession(session);
+      this.push(session, "load");
+      this.updateSession(session, "load");
+      this.events.emitSessionStart({
+        manager: this,
+        session,
+        config: this.getSessionConfig(session.sessionId) ?? deepClone(config),
+        source: "load",
+      });
       // if we successfully created a session, try to pre-cache the client-side dynamic runtime
       this.preCacheClient();
       return session;
     } catch (error: any) {
       console.error(LogGroup, "Error loading session:", error);
-      this.setState("error", error.response ?? error);
+      this.setState("error", error.response ?? error, "load");
       // re-throw to allow caller to handle and respect promise interface
       throw error;
     }
@@ -635,7 +704,7 @@ export class SessionManager {
       return subSession;
     } catch (error: any) {
       console.error(LogGroup, "Error creating sub-interview:", createOpts, error);
-      this.setState("error", error.response ?? error);
+      this.setState("error", error.response ?? error, "createSubInterview");
     }
   };
 
@@ -965,7 +1034,7 @@ export class SessionManager {
         );
 
         this.activeSession.screen = newScreen;
-        this.updateSession(this.activeSession);
+        this.updateSession(this.activeSession, "simulate");
 
         // Handle any remaining unknowns that require server-side simulation
         if (requiresServiceDynamic) {
@@ -1020,7 +1089,7 @@ export class SessionManager {
       // are we still the last request?
       if (this.internals.latestRequest === requestId) {
         newScreen = result.screen;
-        this.updateSession(result);
+        this.updateSession(result, "simulate");
 
         this.internals.unknownsAlreadySimulated = {
           ...this.internals.unknownsRequiringSimulate,
@@ -1066,8 +1135,9 @@ export class SessionManager {
   };
 
   /** NOTE Will run notifyListeners if changes occured */
-  private updateSession = (session: Session) => {
+  private updateSession = (session: Session, source: ManagerLifecycleSessionUpdateSource = "simulate") => {
     const prevSession = this.session;
+    const previousActiveSession = this.activeSession;
     const currentRenderAt = this.renderAt;
     // this.session = session;
     this.sessions[this.active] = session; // update the active session in the array
@@ -1114,6 +1184,12 @@ export class SessionManager {
     }
 
     this.handleClientGraphBookmark(session);
+    this.events.emitSessionUpdate({
+      manager: this,
+      session,
+      previousSession: previousActiveSession,
+      source,
+    });
 
     // hasn't updated, force it
     if (currentRenderAt === this.renderAt) {
@@ -1152,10 +1228,10 @@ export class SessionManager {
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
       });
-      this.updateSession(session);
+      this.updateSession(session, "submit");
     } catch (error: any) {
       console.error(LogGroup, "Error submitting data:", error);
-      this.setState("error", error.response ?? error);
+      this.setState("error", error.response ?? error, "submit");
       throw error;
     } finally {
       this.triggerUpdate(false);
@@ -1212,10 +1288,11 @@ export class SessionManager {
           step,
           readOnly: this.options.readOnly,
         }),
+        "navigate",
       );
     } catch (error: any) {
       console.error(LogGroup, "Error navigating to step:", error);
-      this.setState("error", error.response ?? error);
+      this.setState("error", error.response ?? error, "navigate");
       throw error;
     } finally {
       this.triggerUpdate(false);
@@ -1233,17 +1310,18 @@ export class SessionManager {
     try {
       if (this.isSubInterview && isFirstStep(this.activeSession.steps, this.activeSession.screen.id)) {
         // pop the session, then we will invoke back on the parent
-        this.pop();
+        this.pop("pop");
       }
       this.updateSession(
         await this.apiManager.back({
           session: this.activeSession,
           readOnly: this.options.readOnly,
         }),
+        "back",
       );
     } catch (error: any) {
       console.error(LogGroup, "Error going back:", error);
-      this.setState("error", error.response ?? error);
+      this.setState("error", error.response ?? error, "back");
       throw error;
     } finally {
       this.triggerUpdate(false);
@@ -1261,7 +1339,7 @@ export class SessionManager {
     try {
       if (this.isSubInterview && isComplete(this.activeSession)) {
         // pop the session, then we will invoke next on the parent
-        this.pop();
+        this.pop("pop");
       }
       this.updateSession(
         await this.apiManager.submit({
@@ -1273,10 +1351,11 @@ export class SessionManager {
           clientGraphBookmark: this.getClientGraphBookmark(),
           readOnly: this.options.readOnly,
         }),
+        "next",
       );
     } catch (error: any) {
       console.error(LogGroup, "Error submitting data on next:", error);
-      this.setState("error", error.response ?? error);
+      this.setState("error", error.response ?? error, "next");
       throw error;
     } finally {
       this.triggerUpdate(false);
@@ -1329,8 +1408,8 @@ export class SessionManager {
       throw new Error("No session config available to reset");
     }
 
-    this.pop();
-    return this.create(resetConfig);
+    this.pop("reset");
+    return this.createSession(resetConfig, "reset");
   };
 
   get getConnectedData() {

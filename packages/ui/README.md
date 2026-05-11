@@ -250,6 +250,46 @@ Shows when an async operation is in progress.
 <Interview.Processing />
 ```
 
+## Lifecycle Hooks
+
+The UI package exposes React hooks that subscribe to the core lifecycle events for you.
+
+```tsx
+import {
+  useInterviewComplete,
+  useInterviewLifecycleEvent,
+  useInterviewSessionUpdate,
+} from '@imminently/interview-ui';
+
+function InterviewEffects() {
+  useInterviewSessionUpdate(({ session, source }) => {
+    console.log('updated from', source, session.screen.id);
+  });
+
+  useInterviewComplete(({ session }) => {
+    console.log('complete', session.sessionId);
+  });
+
+  useInterviewLifecycleEvent('error', ({ error, source }) => {
+    console.error('manager error', source, error);
+  });
+
+  return null;
+}
+```
+
+Available hooks include:
+
+- `useInterviewLifecycleEvent`
+- `useInterviewSessionStart`
+- `useInterviewCreate`
+- `useInterviewLoad`
+- `useInterviewReset`
+- `useInterviewSessionUpdate`
+- `useInterviewComplete`
+- `useInterviewError`
+- `useInterviewActiveSessionChange`
+
 ## Customization
 
 ### Using Custom Components (Slots)

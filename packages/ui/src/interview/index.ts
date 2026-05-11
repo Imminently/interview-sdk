@@ -8,6 +8,17 @@ export type {
   InterviewProviderProps,
 } from "./InterviewContext";
 export { useInterview } from "./InterviewContext";
+export {
+  useInterviewActiveSessionChange,
+  useInterviewComplete,
+  useInterviewCreate,
+  useInterviewError,
+  useInterviewLifecycleEvent,
+  useInterviewLoad,
+  useInterviewReset,
+  useInterviewSessionStart,
+  useInterviewSessionUpdate,
+} from "./useInterviewLifecycle";
 
 export * from "./slots";
 export const Interview = Object.assign(BasicInterview, {

@@ -4,6 +4,7 @@ export * from "./constants";
 export * from "./file-manager";
 export * from "./formatting";
 export * from "./helpers";
+export * from "./manager-events";
 export * from "./manager";
 export * from "./dynamic";
 // export * from "./init";

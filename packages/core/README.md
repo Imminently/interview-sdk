@@ -135,6 +135,7 @@ const manager = new SessionManager({
 | `debug` | `boolean` | Enables debug logging to console. Default: `false` |
 | `preCacheClient` | `boolean` | Pre-loads client-side dynamic runtime for faster interactions. Default: `false` |
 | `sessionStore` | `Storage` | Optional storage interface for persisting sessions across page reloads. |
+| `lifecycle` | `ManagerLifecycleOptions` | Optional lifecycle callbacks for common side effects like create/load/update/complete events. |
 | `readOnly` | `boolean` | Enables read-only mode where no data is submitted to the server. Default: `false` |
 
 
@@ -357,6 +358,56 @@ manager.isComplete;               // Is interview complete?
 manager.isLastStep;               // Is this the last step?
 manager.canProgress;              // Can user proceed?
 ```
+
+### Lifecycle Events
+
+Use lifecycle callbacks when you want simple side-effect hooks without wiring your own snapshot subscription logic.
+
+```typescript
+const manager = new SessionManager({
+  apiManager,
+  fileManager,
+  lifecycle: {
+    onCreate: ({ session }) => {
+      console.log("Created session", session.sessionId);
+    },
+    onSessionUpdate: ({ session, source }) => {
+      console.log("Session updated from", source, session.screen.id);
+    },
+    onComplete: ({ session }) => {
+      console.log("Interview complete", session.sessionId);
+    },
+    onError: ({ error, source }) => {
+      console.error("Manager error from", source, error);
+    },
+  },
+});
+```
+
+For manual control, subscribe through `manager.events`:
+
+```typescript
+const unsubscribe = manager.events.subscribe("complete", ({ session }) => {
+  analytics.track("interview_complete", {
+    sessionId: session.sessionId,
+  });
+});
+
+const unsubscribeUpdate = manager.events.onSessionUpdate(({ session, source }) => {
+  console.log(source, session.status);
+});
+```
+
+Available event names are:
+
+- `sessionStart`
+- `create`
+- `load`
+- `reset`
+- `sessionUpdate`
+- `complete`
+- `error`
+- `activeSessionChange`
 
 ### Chat Interactions [Experimental]
 
