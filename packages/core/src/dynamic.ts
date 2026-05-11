@@ -209,7 +209,7 @@ export const buildDynamicReplacementQueries = (
         if (hasData) {
           const dataInfo = SIDEBAR_DYNAMIC_DATA_INFO[sidebar.type];
           if (dataInfo) {
-            const responseElements = dataInfo.getResponseElements(sidebar.config);
+            const response = dataInfo.getResponse(sidebar.config);
             if (!sidebarSimulate) {
               sidebarSimulate = {
                 ids: [],
@@ -222,7 +222,7 @@ export const buildDynamicReplacementQueries = (
               };
             }
             sidebarSimulate.ids.push(sidebar.id);
-            sidebarSimulate.simulate.response?.push(...responseElements);
+            sidebarSimulate.simulate.response?.push(...response);
           }
         }
       }

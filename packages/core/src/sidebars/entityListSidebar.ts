@@ -1,7 +1,7 @@
 import type { RenderableEntityListSidebar, SidebarDynamicDataInfo } from "./sidebar";
 
 const ENTITY_LIST_SIDEBAR_DATA_INFO: SidebarDynamicDataInfo<RenderableEntityListSidebar> = {
-  getResponseElements: (config) => [
+  getResponse: (config) => [
     {
       type: "attributes",
       id: `entity_list_${config?.entity}`,

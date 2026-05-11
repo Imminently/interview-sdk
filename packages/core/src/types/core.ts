@@ -265,8 +265,8 @@ export interface SessionConfig {
   project?: string;
   /** Specific release, for testing purposes */
   release?: ReleaseId;
-  /** response elements for next/submit */
-  responseElements?: any[];
+  /** response payload selectors */
+  response?: any[];
   /** which attributes to index */
   index?: string[];
   /** the goal */
@@ -275,9 +275,14 @@ export interface SessionConfig {
   sessionGoal?: string;
   clientGraphBookmark?: string;
   readOnly?: boolean;
+  [key: string]: any;
 }
 
-export type Overrides = Record<string, any>;
+export interface Overrides {
+  /** response payload selectors */
+  response?: SessionConfig["response"];
+  [key: string]: any;
+}
 
 export type DynamicUpdateFunction = (data: AttributeValues) => void;
 

@@ -550,6 +550,22 @@ export class SessionManager {
     delete this.sessionConfigs[sessionId];
   };
 
+  private getSessionOverrides = (sessionId: string, overrides: Overrides = {}) => {
+    const storedConfig = this.getSessionConfig(sessionId);
+    if (Object.prototype.hasOwnProperty.call(overrides, "response")) {
+      return { ...overrides };
+    }
+
+    if (storedConfig?.response === undefined) {
+      return { ...overrides };
+    }
+
+    return {
+      ...overrides,
+      response: deepClone(storedConfig.response),
+    };
+  };
+
   setActive = (index: number) => {
     if (index < 0 || index >= this.sessions.length) {
       console.warn(LogGroup, `Invalid session index: ${index}. Must be between 0 and ${this.sessions.length - 1}`);
@@ -1210,7 +1226,11 @@ export class SessionManager {
   // public methods
 
   /** Submit data and optionally navigate to a different screen */
-  submit = async (data: AttributeValues, navigate?: any, overrides: Overrides = {}) => {
+  submit = async (
+    data: AttributeValues,
+    navigate?: any,
+    overrides: Overrides = {},
+  ) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to submit data");
       return Promise.resolve(null);
@@ -1221,10 +1241,7 @@ export class SessionManager {
         session: this.activeSession,
         data: transformResponse(this.activeSession, data as any),
         navigate,
-        overrides: {
-          // response: this.options.responseElements,
-          ...overrides,
-        },
+        overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
       });
@@ -1263,7 +1280,7 @@ export class SessionManager {
         session: this.activeSession,
         message,
         goal,
-        overrides,
+        overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
         interactionId,
       });
       return payload;
@@ -1275,7 +1292,7 @@ export class SessionManager {
   };
 
   /** Navigate to a specific step */
-  navigate = async (step: StepId) => {
+  navigate = async (step: StepId, overrides: Overrides = {}) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to navigate from");
       throw new Error("No active session to navigate from");
@@ -1286,6 +1303,7 @@ export class SessionManager {
         await this.apiManager.navigate({
           session: this.activeSession,
           step,
+          overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
           readOnly: this.options.readOnly,
         }),
         "navigate",
@@ -1301,7 +1319,7 @@ export class SessionManager {
   };
 
   /** Navigate back to the previous step */
-  back = async () => {
+  back = async (overrides: Overrides = {}) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to go back from");
       throw new Error("No active session to go back from");
@@ -1315,6 +1333,7 @@ export class SessionManager {
       this.updateSession(
         await this.apiManager.back({
           session: this.activeSession,
+          overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
           readOnly: this.options.readOnly,
         }),
         "back",
@@ -1330,7 +1349,7 @@ export class SessionManager {
   };
 
   /** Navigate to the next step with the provided data */
-  next = async (data: AttributeValues) => {
+  next = async (data: AttributeValues, overrides: Overrides = {}) => {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to next data");
       throw new Error("No active session to next data");
@@ -1345,9 +1364,7 @@ export class SessionManager {
         await this.apiManager.submit({
           session: this.activeSession,
           data: transformResponse(this.activeSession, data as any),
-          overrides: {
-            // response: this.options.responseElements,
-          },
+          overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
           clientGraphBookmark: this.getClientGraphBookmark(),
           readOnly: this.options.readOnly,
         }),

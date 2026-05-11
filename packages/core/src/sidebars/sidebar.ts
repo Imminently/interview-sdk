@@ -170,7 +170,7 @@ export type RenderableSidebar =
 export type Sidebar = EntityListSidebar | DataSidebar | ExplanationSidebar | ConversationSidebar | InterviewSidebar;
 
 export interface SidebarDynamicDataInfo<S extends RenderableSidebar> {
-  getResponseElements: (config: S["config"]) => any[];
+  getResponse: (config: S["config"]) => any[];
   type: S["type"];
   generateData: (config: S["config"], response: any) => Partial<S["data"]>;
 }

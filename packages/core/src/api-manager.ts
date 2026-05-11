@@ -50,7 +50,7 @@ export class ApiManager {
   }
 
   create = async (options: SessionConfig) => {
-    const { initialData, project, release, responseElements, sessionId, ...rest } = options;
+    const { initialData, project, release, response, sessionId, ...rest } = options;
 
     const url = this.options.apiGetters?.create ? this.options.apiGetters.create(options) : buildUrl(project, release);
 
@@ -58,7 +58,7 @@ export class ApiManager {
       url,
       {
         data: initialData ?? {},
-        response: responseElements,
+        response,
         ...rest,
       },
       sessionId ? { params: { session: sessionId } } : undefined,
@@ -67,13 +67,13 @@ export class ApiManager {
   };
 
   load = async (options: SessionConfig) => {
-    const { project, sessionId, interactionId, initialData, clientGraphBookmark } = options;
+    const { project, sessionId, interactionId, initialData, response, clientGraphBookmark, ...rest } = options;
 
     const url = this.options.apiGetters?.load ? this.options.apiGetters.load(options) : buildUrl(project);
 
     const res = await this.api.patch<Session>(
       url,
-      { data: initialData ?? {}, clientGraphBookmark },
+      { data: initialData ?? {}, response, clientGraphBookmark, ...rest },
       {
         params: { session: sessionId, interaction: interactionId },
       },

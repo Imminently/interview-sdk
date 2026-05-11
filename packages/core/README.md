@@ -276,8 +276,10 @@ const session = await manager.create({
     user_email: 'john@example.com'
   },
   sessionId: 'custom-guid',      // Optional: Use specific session ID
-  responseElements: ['data', 'screen'] // Optional: Customize response
+  response: ['data', 'screen'] // Optional: Customize response
 });
+
+// response from create/load is reused automatically on submit/save/next/back/navigate/chat
 ```
 
 ### Loading Existing Sessions
@@ -297,6 +299,12 @@ const session = await manager.load({
 ```typescript
 // Submit and move to next screen
 await manager.next({ attribute: 'value' });
+
+// Override response for a single follow-up request
+await manager.next(
+  { attribute: 'value' },
+  { response: ['data', 'screen', 'explanations'] }
+);
 
 // Go back to previous screen
 await manager.back();

@@ -13,7 +13,7 @@ import { buildUrl } from "./util";
 
 /** @deprecated use ApiManger instead */
 export const create = async (api: AxiosInstance, options: SessionConfig = {}) => {
-  const { initialData, project, release, responseElements, sessionId, ...rest } = options;
+  const { initialData, project, release, response, sessionId, ...rest } = options;
 
   if (!project) {
     throw new Error("Project ID is required to create a session.");
@@ -23,7 +23,7 @@ export const create = async (api: AxiosInstance, options: SessionConfig = {}) =>
     buildUrl(project, release),
     {
       data: initialData ?? {},
-      response: responseElements,
+      response,
       ...rest,
     },
     sessionId ? { params: { session: sessionId } } : undefined,
@@ -33,7 +33,7 @@ export const create = async (api: AxiosInstance, options: SessionConfig = {}) =>
 
 /** @deprecated use ApiManger instead */
 export const load = async (api: AxiosInstance, options: SessionConfig) => {
-  const { project, sessionId, interactionId, initialData } = options;
+  const { project, sessionId, interactionId, initialData, response, ...rest } = options;
 
   if (!project) {
     throw new Error("Project ID is required to load a session.");
@@ -41,7 +41,7 @@ export const load = async (api: AxiosInstance, options: SessionConfig) => {
 
   const res = await api.patch<Session>(
     project,
-    { data: initialData ?? {} },
+    { data: initialData ?? {}, response, ...rest },
     {
       params: { session: sessionId, interaction: interactionId },
     },
