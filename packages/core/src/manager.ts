@@ -281,6 +281,17 @@ const getClientGraphForSession = (session: Session) => {
   return session.decompressedClientGraph;
 };
 
+const looksLikeEvent = (value: unknown) => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  return (
+    ("preventDefault" in value || "stopPropagation" in value) &&
+    ("target" in value || "currentTarget" in value || "nativeEvent" in value)
+  );
+};
+
 /**
  * SessionManager is the main class for managing sessions in the interview SDK.
  * It handles creating, loading, and managing multiple sessions,
@@ -1353,6 +1364,11 @@ export class SessionManager {
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to next data");
       throw new Error("No active session to next data");
+    }
+    if (looksLikeEvent(overrides)) {
+      throw new Error(
+        "SessionManager.next received an event as its second argument. This usually happens when passing manager.next directly to react-hook-form handleSubmit. Wrap it instead, for example: handleSubmit((data) => manager.next(data)).",
+      );
     }
     this.triggerUpdate(true);
     try {

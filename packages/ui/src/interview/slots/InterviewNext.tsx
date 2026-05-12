@@ -21,6 +21,7 @@ const InterviewNext = ({ asChild, children, className, ...props }: InterviewNext
   if (state !== "success" || hide) {
     return null; // Don't render if not in success state
   }
+  const handleNext = handleSubmit((data) => manager.next(data));
   const Comp = asChild ? Slot : Button;
   return (
     <Comp
@@ -31,7 +32,7 @@ const InterviewNext = ({ asChild, children, className, ...props }: InterviewNext
       disabled={nextDisabled}
       // @ts-ignore testing
       loading={isLoading}
-      onClick={handleSubmit(manager.next)}
+      onClick={handleNext}
       {...props}
     >
       {children ?? t("form.next")}
