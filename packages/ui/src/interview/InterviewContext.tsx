@@ -1,10 +1,11 @@
 import { AttributeNestingProvider, OptionsProvider } from "@/providers";
 import type { Control, ManagerState, Session, SessionManager } from "@imminently/interview-sdk";
-import { type PropsWithChildren, createContext, useContext, useMemo, useSyncExternalStore } from "react";
+import { type PropsWithChildren, createContext, useContext, useId, useMemo, useSyncExternalStore } from "react";
 import { FormProvider, type UseFormProps, useForm } from "react-hook-form";
 import { type IconMap, type InterviewControls, type Theme, ThemeProvider } from "../providers/ThemeProvider";
 
 export type InterviewContextState = {
+  formId: string;
   manager: SessionManager;
   session: Session;
   callbacks: InterviewCallbacks;
@@ -59,6 +60,8 @@ export interface InterviewProviderProps extends PropsWithChildren, InterviewConf
  */
 export const InterviewProvider = ({ manager, children, ...config }: InterviewProviderProps) => {
   const { form, theme, icons, slots, callbacks } = config;
+  // Generate a unique form ID for this interview instance
+  const formId = useId();
   const methods = useForm(form);
   const snapshot = useSyncExternalStore(manager.subscribe, manager.getSnapshot);
 
@@ -81,6 +84,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
     // console.log("Validations fail:", validationsFail);
     const finished = manager.isLastStep && manager.isComplete;
     return {
+      formId,
       manager,
       callbacks: callbacks ?? {},
       session: session!,
@@ -97,12 +101,15 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
         (!manager.isSubInterview && finished) ||
         loading,
     };
-  }, [snapshot, manager, callbacks]);
+  }, [formId, snapshot, manager, callbacks]);
 
   const options = useMemo(() => ({
     inlineErrors: config.inlineErrors ?? false,
     ...manager.options
   }), [config.inlineErrors, manager.options]);
+
+  // ensure the form is submitted when the user clicks the next button or presses enter
+  const handleNext = methods.handleSubmit((data) => manager.next(data));
 
   return (
     <OptionsProvider value={options}>
@@ -113,7 +120,11 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
       >
         <InterviewContext.Provider value={value}>
           <AttributeNestingProvider value={false}>
-            <FormProvider {...methods}>{children}</FormProvider>
+            <FormProvider {...methods}>
+              <form data-slot={"form"} id={formId} onSubmit={handleNext}>
+                {children}
+              </form>
+            </FormProvider>
           </AttributeNestingProvider>
         </InterviewContext.Provider>
       </ThemeProvider>

@@ -154,6 +154,8 @@ function App() {
 }
 ```
 
+`Interview.Form` owns submission. `Interview.Next` renders a submit button (`type="submit"`), so it should be used with an `Interview.Form` in the same layout rather than calling `manager.next()` itself.
+
 ## Core Components
 
 All components are available under the `Interview.*` namespace:
@@ -191,7 +193,9 @@ Wrapper component that handles loading, error, and success states.
 
 ### Interview.Form
 
-Renders the form controls for the current screen.
+Renders the form controls for the current screen and owns form submission. When the form submits, it calls `manager.next(data)` with the current form values.
+
+`Interview.Next` is designed to work with this component by rendering a submit button, so clicking `Interview.Next` or pressing Enter inside the form submits `Interview.Form`.
 
 ```tsx
 <Interview.Form />
@@ -208,6 +212,8 @@ Displays the interview step navigation/breadcrumbs.
 ### Interview.Next / Interview.Back / Interview.Reset
 
 Navigation buttons for moving through the interview or restarting it.
+
+`Interview.Next` does not advance the interview by itself. It renders a submit button and relies on the surrounding `Interview.Form` submit handler to perform `manager.next(data)`.
 
 ```tsx
 <Interview.Back className="custom-class" />

@@ -4,3 +4,4 @@ export * from "./global";
 export * from "./translate-fn";
 export * from "./try-catch";
 export * from "./use-mobile";
+export * from "./use-form-sync";
