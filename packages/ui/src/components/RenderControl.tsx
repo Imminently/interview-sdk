@@ -62,6 +62,7 @@ const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   time: SlottableFormControl(Controls.Time),
   typography: SlottableControl(Controls.Typography), // typography is a special case, as it is not a form control
   certainty_container: Containers.Certainty, // do not support slottable yet, as containers are complicated
+  data_container: Containers.Data, // do not support slottable yet, as containers are complicated
   interview_container: Containers.Interview, // do not support slottable yet, as containers are complicated
   repeating_container: Containers.Repeating, // do not support slottable yet, as containers are complicated
   switch_container: Containers.Switch, // do not support slottable yet, as containers are complicated
