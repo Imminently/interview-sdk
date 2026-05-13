@@ -15,6 +15,7 @@ import {
   useFormState,
 } from "react-hook-form";
 import { Label } from "./label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const Form = FormProvider;
 
@@ -85,9 +86,10 @@ type FormItemContextValue = {
 const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 
 export const FormItemDebug = () => {
+  const { t } = useTheme();
   const { debugEnabled } = useDebugSettings();
   const context = useInterview();
-  const { control, name } = useFormField();
+  const { control, formItemId, name } = useFormField();
   const { watch } = useFormContext();
   const graph = React.useMemo(() => context.manager.parsedGraph, [context]);
   const val = watch(name);
@@ -96,14 +98,49 @@ export const FormItemDebug = () => {
     return null;
   }
 
+  const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      context.callbacks.onDebugControlClick?.(control, context);
+      return;
+    }
+
+    // default action is just console log the control
+    console.log("FormLabel", {
+      name,
+      formItemId,
+      control,
+    });
+  };
+
   const node = graph ? graph.node(name) : { description: "No graph", entity: "N/A" };
-  // console.log("FormItemDebug", { name, control, val, node });
+  // doing a weird fallback tooltip, as our translation layer fallbacks to the key
+  const defaultTooltip = "Click to log control to console. Shift+Click to trigger debug callback.";
+  const tooltipKey = "form.debugTooltip";
+  const tooltip = t(tooltipKey) !== tooltipKey ? t(tooltipKey) : defaultTooltip;
+
+  // add a tooltip that explains click vs shift+click
   return (
-    <div data-slot="debug-info" className="flex flex-row gap-1 text-xs text-muted-foreground items-center">
-      {node?.entity ? <span>[{node.entity}]</span> : null}
-      <span>{node?.description ?? `Missing node for ${name}`}</span>
-      <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
-    </div>
+    <Tooltip>
+      <TooltipTrigger>
+        <div onClick={handleDebugClick} data-slot="debug-info" className="flex flex-row gap-1 text-xs text-muted-foreground items-center">
+          {node?.entity ? <span>[{node.entity}]</span> : null}
+          <span>{node?.description ?? `Missing node for ${name}`}</span>
+          <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p><strong>Debug Info</strong></p>
+        <p><strong>Name:</strong> {name}</p>
+        <p><strong>Form Item ID:</strong> {formItemId}</p>
+        <p><strong>Control Type:</strong> {control.type}</p>
+        <p><strong>Control ID:</strong> {control.id}</p>
+        <p><strong>Node Entity:</strong> {node?.entity ?? "N/A"}</p>
+        <p><strong>Node Description:</strong> {node?.description ?? "N/A"}</p>
+        <p><em>{tooltip}</em></p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -131,18 +168,7 @@ function FormItem({ className, children, ...props }: React.ComponentProps<"div">
 }
 
 function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
-  const { debugEnabled } = useDebugSettings();
-  const { error, formItemId, name, control } = useFormField();
-
-  const debugControl = debugEnabled
-    ? () => {
-      console.log("FormLabel", {
-        name,
-        formItemId,
-        control,
-      });
-    }
-    : undefined;
+  const { error, formItemId, control } = useFormField();
 
   return (
     <Label
@@ -150,7 +176,6 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
       data-error={!!error}
       className={cn("data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
-      onClick={debugControl}
       {...props}
     >
       {props.children}
@@ -163,17 +188,6 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
   const { error, formItemId, formDescriptionId, formMessageId, control, fieldRef } = useFormField();
-
-  const { debugEnabled } = useDebugSettings();
-  const interview = useInterview();
-
-  const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (debugEnabled && e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      interview.callbacks.onDebugControlClick?.(control, interview);
-    }
-  };
 
   // Only reference IDs that will actually be present in the DOM, as per WCAG 4.1.1.
   // aria-describedby pointing to a non-existent element is an accessibility violation.
@@ -190,7 +204,6 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
       ref={fieldRef}
       data-slot="form-control"
       id={formItemId}
-      onMouseUp={debugEnabled ? handleDebugClick : undefined}
       aria-describedby={ariaDescribedBy}
       aria-invalid={!!error}
       {...props}
