@@ -54,6 +54,18 @@ If you're not using Tailwind, import our pre-built CSS file:
 import '@imminently/interview-ui/dist/index.css';
 ```
 
+### Z-Index Override
+
+Set `--interview-ui-z-index` anywhere in your app to move the library's overlay layers above or below your own UI.
+
+```css
+:root {
+  --interview-ui-z-index: 2000;
+}
+```
+
+Dialogs, sheets, popovers, tooltips, selects, and other internal layered UI derive their stack order from this variable.
+
 ## Quick Start
 
 ### Basic Usage

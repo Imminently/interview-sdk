@@ -16,7 +16,7 @@ const InterviewDebugIndicator = () => {
   const isClientDynamic = Boolean(manager.clientGraph);
 
   return (
-    <div className="absolute backdrop-blur-sm flex flex-col gap-2 top-2 right-2 rounded bg-black/80 text-white p-2 z-100">
+    <div className="absolute backdrop-blur-sm flex flex-col gap-2 top-2 right-2 rounded bg-black/80 text-white p-2 z-ui-debug">
       <div>Debug mode enabled</div>
       <ul className={"text-sm list-inside"}>
         <li>Shift + Click a control to open the debug dialog</li>

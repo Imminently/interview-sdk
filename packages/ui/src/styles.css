@@ -1,6 +1,30 @@
 @import "tailwindcss";
 @source "../node_modules/streamdown/dist/*.js";
 
+:root {
+  --interview-ui-z-index: 50;
+  --interview-ui-z-index-overlay: var(--interview-ui-z-index);
+  --interview-ui-z-index-sidebar: calc(var(--interview-ui-z-index) - 40);
+  --interview-ui-z-index-sidebar-rail: calc(var(--interview-ui-z-index) - 30);
+  --interview-ui-z-index-debug: calc(var(--interview-ui-z-index) + 50);
+}
+
+@utility z-ui-overlay {
+  z-index: var(--interview-ui-z-index-overlay);
+}
+
+@utility z-ui-sidebar {
+  z-index: var(--interview-ui-z-index-sidebar);
+}
+
+@utility z-ui-sidebar-rail {
+  z-index: var(--interview-ui-z-index-sidebar-rail);
+}
+
+@utility z-ui-debug {
+  z-index: var(--interview-ui-z-index-debug);
+}
+
 @theme inline {
   --animate-progress: progress 1s infinite ease-in-out;
 
