@@ -39,7 +39,7 @@ export const InterviewBack = ({ asChild, children, className, ...props }: Interv
       type="button"
       variant="outline"
       disabled={backDisabled}
-      onClick={manager.back} // Call back function on button click
+      onClick={() => manager.back()} // Call back function on button click
       {...props}
     >
       {children ?? t("form.back")}
