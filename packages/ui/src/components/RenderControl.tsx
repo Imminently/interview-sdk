@@ -8,16 +8,25 @@ import Controls from "./controls";
 import { useCallback } from "react";
 
 const MissingControl = ({ control }: { control: Control }) => {
-  const { t } = useTheme();
-  // @ts-ignore TEMP display unsupported control type
-  const label = t(control.label || control.text);
   console.log("Missing control", control);
   return (
-    <span key={control.id}>
-      {control.type}: {label}
-    </span>
+    <div key={control.id} className="p-4 bg-amber-100 border border-amber-400 text-amber-700 rounded-xl">
+      <h2 className="font-bold">Missing control.</h2>
+      <pre className="text-wrap">This control type is not supported.</pre>
+      <pre className="mt-2 text-sm text-wrap">{JSON.stringify(control, null, 2)}</pre>
+    </div>
   );
 };
+
+const ControlFallback = ({ error, control }: FallbackProps & { control: Control }) => {
+  return (
+    <div key={control.id} className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-xl">
+      <h2 className="font-bold">Failed to render control.</h2>
+      <pre className="text-wrap">{error.message}</pre>
+      <pre className="mt-2 text-sm text-wrap">{JSON.stringify(control, null, 2)}</pre>
+    </div>
+  );
+}
 
 // allow type override for controls like select and radio
 const SlottableFormControl =
@@ -83,16 +92,6 @@ const getControlComponent = (control: Control): React.ComponentType<any> => {
   }
   return CONTROL_COMPONENTS[control.type] ?? MissingControl;
 };
-
-const ControlFallback = ({ error, control }: FallbackProps & { control: Control }) => {
-  return (
-    <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-xl">
-      <h2 className="font-bold">Failed to render control.</h2>
-      <pre className="text-wrap">{error.message}</pre>
-      <pre className="mt-2 text-sm text-wrap">{JSON.stringify(control, null, 2)}</pre>
-    </div>
-  );
-}
 
 export const RenderControl = ({ control }: { control: Control }) => {
   const Component = control ? getControlComponent(control) : null;
