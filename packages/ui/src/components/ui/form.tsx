@@ -107,7 +107,7 @@ export const FormItemDebug = () => {
     }
 
     // default action is just console log the control
-    console.log("FormLabel", {
+    console.log("[DEBUG] Form control data", {
       name,
       formItemId,
       control,
@@ -123,22 +123,29 @@ export const FormItemDebug = () => {
   // add a tooltip that explains click vs shift+click
   return (
     <Tooltip>
-      <TooltipTrigger>
-        <div onClick={handleDebugClick} data-slot="debug-info" className="flex flex-row gap-1 text-xs text-muted-foreground items-center">
+      <TooltipTrigger asChild>
+        <div tabIndex={-1} onClick={handleDebugClick} data-slot="debug-info" className="flex flex-row gap-1 text-xs text-muted-foreground items-center cursor-pointer">
           {node?.entity ? <span>[{node.entity}]</span> : null}
           <span>{node?.description ?? `Missing node for ${name}`}</span>
           <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
         </div>
       </TooltipTrigger>
       <TooltipContent>
-        <p><strong>Debug Info</strong></p>
-        <p><strong>Name:</strong> {name}</p>
-        <p><strong>Form Item ID:</strong> {formItemId}</p>
-        <p><strong>Control Type:</strong> {control.type}</p>
-        <p><strong>Control ID:</strong> {control.id}</p>
-        <p><strong>Node Entity:</strong> {node?.entity ?? "N/A"}</p>
-        <p><strong>Node Description:</strong> {node?.description ?? "N/A"}</p>
-        <p><em>{tooltip}</em></p>
+        <dl className="mb-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
+          <dt className="text-muted-foreground">Name</dt>
+          <dd>{name}</dd>
+          <dt className="text-muted-foreground">Form Item ID</dt>
+          <dd>{formItemId}</dd>
+          <dt className="text-muted-foreground">Control Type</dt>
+          <dd>{control.type}</dd>
+          <dt className="text-muted-foreground">Control ID</dt>
+          <dd>{control.id}</dd>
+          <dt className="text-muted-foreground">Node Entity</dt>
+          <dd>{node?.entity ?? "N/A"}</dd>
+          <dt className="text-muted-foreground">Node Description</dt>
+          <dd>{node?.description ?? "N/A"}</dd>
+        </dl>
+        <p>{tooltip}</p>
       </TooltipContent>
     </Tooltip>
   );

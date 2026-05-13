@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { FormControl, FormField, FormItem, FormLabel } from "../ui/form";
 import { useInterview } from "@/interview";
 import { useMemo } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type TextVariant = TypographyControl["style"];
 
@@ -71,6 +72,7 @@ export interface TypographyControlProps {
 }
 
 const TypographyDebug = ({ name, control }: { name: string; control: TypographyControl }) => {
+  const { t } = useTheme();
   const context = useInterview();
   const graph = useMemo(() => context.manager.parsedGraph, [context]);
 
@@ -87,16 +89,40 @@ const TypographyDebug = ({ name, control }: { name: string; control: TypographyC
     }
   }
 
+   const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      context.callbacks.onDebugControlClick?.(control, context);
+      return;
+    }
+
+    // default action is just console log the control
+    console.log("[DEBUG] Form control data", { name, control });
+  };
+
+  // doing a weird fallback tooltip, as our translation layer fallbacks to the key
+  const defaultTooltip = "Click to log control to console. Shift+Click to trigger debug callback.";
+  const tooltipKey = "form.debugTooltip";
+  const tooltip = t(tooltipKey) !== tooltipKey ? t(tooltipKey) : defaultTooltip;
+
   return (
-    <div data-slot="debug-info" className="flex flex-col text-xs text-muted-foreground">
-      <div className="flex flex-row gap-1 items-center">
-        {node?.entity ? <span>[{node.entity}]</span> : null}
-        <span>{node?.description ?? `Missing node for ${name}`}</span>
-      </div>
-      {/* @ts-ignore */}
-      {control.templateText ? <span>Template: {control.templateText}</span> : null}
-      {dynamic.length > 0 ? (<span>Dynamic Attributes: {dynamic.join(", ")}</span>) : null}
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div tabIndex={-1} onClick={handleDebugClick} data-slot="debug-info" className="flex flex-col text-xs text-muted-foreground">
+          <div className="flex flex-row gap-1 items-center">
+            {node?.entity ? <span>[{node.entity}]</span> : null}
+            <span>{node?.description ?? `Missing node for ${name}`}</span>
+          </div>
+          {/* @ts-ignore */}
+          {control.templateText ? <span>Template: {control.templateText}</span> : null}
+          {dynamic.length > 0 ? (<span>Dynamic Attributes: {dynamic.join(", ")}</span>) : null}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -105,23 +131,12 @@ export const Typography = ({ control }: TypographyControlProps) => {
   // merge is a bit weird here, as we actually would want to merge the cva variants
   // const { merge } = useTheme();
   const { debugEnabled } = useDebugSettings();
-  const { debug } = useOptions({ debug: true });
   const { t } = useTheme();
   const variant: TextVariant = control.style || "body1";
   const Comp: React.ElementType = componentMap[variant] ?? "div";
 
-  const debugControl = debug
-    ? () => {
-      console.log("Typography", {
-        variant,
-        control,
-      });
-    }
-    : undefined;
-
   const component = (
     <Comp
-      onClick={debugControl}
       data-type={control.type}
       data-typography={variant}
       className={cn(typographyVariants({ variant }), control.customClassName)}
