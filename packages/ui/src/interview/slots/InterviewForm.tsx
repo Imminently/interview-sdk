@@ -1,45 +1,23 @@
-import { RenderControl } from "@/components/RenderControl";
-import { useTheme } from "@/providers";
-import { cn } from "@/util";
-import { type RenderableControl, type Step, getCurrentStep } from "@imminently/interview-sdk";
-import { Slot } from "@radix-ui/react-slot";
-import debounce from "lodash-es/debounce";
 import type React from "react";
-import { useEffect, useMemo } from "react";
-import { useFormContext } from "react-hook-form";
+import { Slot } from "@radix-ui/react-slot";
+import { RenderControl } from "@/components/RenderControl";
+import { type RenderableControl } from "@imminently/interview-sdk";
+import { useFormSync } from "@/util/use-form-sync";
 import { useInterview } from "../InterviewContext";
 
-// TODO this only exists for getCurrentStep which is a recursive search
-export const DEFAULT_STEP: Step = {
-  complete: false,
-  context: { entity: "" },
-  current: false,
-  id: "",
-  skipped: false,
-  title: "",
-  visitable: true,
-  visited: false,
-  steps: [],
-};
-
-export interface InterviewFormProps extends React.ButtonHTMLAttributes<HTMLFormElement> {
+export interface InterviewFormProps extends React.HTMLAttributes<HTMLDivElement> {
   asChild?: boolean;
   children?: React.ReactNode;
   className?: string;
-  titleClass?: string;
 }
 
 /**
- * Renders the controls for the current screen.
- * This is a simple wrapper around the RenderControl component.
- * It maps over the controls and renders each one.
- * It also adds a key to each control to avoid React warnings about unique keys.
+ * Renders a list of controls for a screen.
+ *
+ * This is primarily useful when you want to render a custom form shell but still rely on
+ * the SDK's built-in control renderer for the current screen controls.
  */
-export const FormControls = ({
-  controls,
-}: {
-  controls: RenderableControl[];
-}) => {
+export const FormControls = ({ controls }: { controls: RenderableControl[] }) => {
   // pre-fixing key with index, as repeat contains will cause multiple controls with the same id
   return (
     <div
@@ -57,60 +35,32 @@ export const FormControls = ({
 };
 
 /**
- * Hook to sync form data with the session manager.
- * Updates internals, dynamic values, and calculates unknowns.
- * This is important to ensure the session updates and re-renders the form.
+ * Renders the controls for the current screen within the shared interview form context.
+ *
+ * `Interview.Form` owns the control rendering for the active screen, while submission is handled
+ * by the surrounding provider form. `Interview.Next` is designed to work with this component by
+ * rendering a submit button for the same form.
  */
-export const useFormSync = (delay = 300) => {
-  const { watch } = useFormContext();
-  const { manager } = useInterview();
-
-  const sync = useMemo(() => debounce((value: any) => manager.onScreenDataChange(value), delay), [manager, delay]);
-
-  useEffect(() => {
-    const subscription = watch((value, { type }) => {
-      // console.log("[FormSync] Watch triggered", type, value);
-      if (type === "change") {
-        sync(value);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, sync]);
-};
-
-const InterviewForm = ({ asChild, children, className, titleClass, ...props }: InterviewFormProps) => {
-  const { t } = useTheme();
+export const InterviewForm = ({ asChild, children, className, ...props }: InterviewFormProps) => {
   const { session } = useInterview();
-  const { steps, screen } = session;
+  const { screen } = session;
 
+  // TODO should this just live in the main context? is there any reason to not just globally register it?
   useFormSync();
 
   if (!screen) return null;
 
-  const step = getCurrentStep({ ...DEFAULT_STEP, steps });
-  const pageTitle = t(screen.title || step?.title || "");
-  const Comp = asChild ? Slot : "form";
+  const Comp = asChild ? Slot : "div";
 
   return (
     <Comp
       {...props}
       className={className}
-      data-slot={"form"}
+      data-slot={"form-content"}
     >
       {children ?? (
-        <div data-slot={"form-content"}>
-          <h4
-            data-slot={"heading"}
-            className={cn("text-2xl font-semibold mb-6", titleClass)}
-          >
-            {pageTitle}
-          </h4>
-          <FormControls controls={screen.controls} />
-        </div>
+        <FormControls controls={screen.controls} />
       )}
     </Comp>
   );
 };
-
-export { InterviewForm };

@@ -1,19 +1,28 @@
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { Slot } from "@radix-ui/react-slot";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/providers";
 import { cn } from "@/util";
-import { Slot } from "@radix-ui/react-slot";
-import type * as React from "react";
-import { useFormContext } from "react-hook-form";
 import { useInterview } from "../InterviewContext";
 
-export interface InterviewNextProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface InterviewNextProps extends ComponentPropsWithoutRef<"button"> {
   asChild?: boolean;
-  children?: React.ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 
-const InterviewNext = ({ asChild, children, className, ...props }: InterviewNextProps) => {
-  const { handleSubmit } = useFormContext();
+/**
+ * Renders the primary submit action for the active interview form.
+ *
+ * This component does not call `manager.next()` directly. Instead it renders a submit button
+ * for the provider-owned form, so it should be used within {@link Interview}.
+ *
+ * @example
+ * <Interview.Next asChild>
+ *   <button className="btn btn-primary">Continue</button>
+ * </Interview.Next>
+ */
+export const InterviewNext = ({ asChild, children, className, ...props }: InterviewNextProps) => {
   const { t } = useTheme();
   const { manager, state, isLoading, nextDisabled } = useInterview();
   // do not display next if interview is finished
@@ -21,23 +30,19 @@ const InterviewNext = ({ asChild, children, className, ...props }: InterviewNext
   if (state !== "success" || hide) {
     return null; // Don't render if not in success state
   }
-  const handleNext = handleSubmit((data) => manager.next(data));
   const Comp = asChild ? Slot : Button;
   return (
     <Comp
       className={cn(className)}
       data-slot="next"
       slot-next=""
-      type="button"
+      type="submit"
       disabled={nextDisabled}
       // @ts-ignore testing
       loading={isLoading}
-      onClick={handleNext}
       {...props}
     >
       {children ?? t("form.next")}
     </Comp>
   );
 };
-
-export { InterviewNext };

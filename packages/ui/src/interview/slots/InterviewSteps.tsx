@@ -63,7 +63,13 @@ const DefaultSteps = ({ className }: InterviewStepsProps) => {
   );
 };
 
-const InterviewSteps = (props: InterviewStepsProps) => {
+/**
+ * Renders the visited and current interview steps in the default sidebar layout.
+ *
+ * This is useful for desktop layouts that need a persistent step list and an embedded
+ * {@link InterviewProgress} summary.
+ */
+export const InterviewSteps = (props: InterviewStepsProps) => {
   const { state, session } = useInterview();
   if (state !== "success" && !session) {
     return null; // Don't render if not in success state
@@ -71,5 +77,3 @@ const InterviewSteps = (props: InterviewStepsProps) => {
   // keep it simple and just render the default steps
   return <DefaultSteps {...props} />;
 };
-
-export { InterviewSteps };

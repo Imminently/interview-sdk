@@ -11,7 +11,18 @@ export interface InterviewBackProps extends React.ButtonHTMLAttributes<HTMLButto
   className?: string;
 }
 
-const InterviewBack = ({ asChild, children, className, ...props }: InterviewBackProps) => {
+/**
+ * Renders a back button wired to the active interview manager.
+ *
+ * Use this anywhere within {@link Interview} when you want the SDK to handle
+ * disabling and navigation state for you.
+ *
+ * @example
+ * <Interview.Back asChild>
+ *   <button className="btn btn-secondary">Previous</button>
+ * </Interview.Back>
+ */
+export const InterviewBack = ({ asChild, children, className, ...props }: InterviewBackProps) => {
   const { t } = useTheme();
   const { manager, state, backDisabled } = useInterview();
   // do not display back if interview is finished
@@ -35,5 +46,3 @@ const InterviewBack = ({ asChild, children, className, ...props }: InterviewBack
     </Comp>
   );
 };
-
-export { InterviewBack };

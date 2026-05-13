@@ -10,7 +10,13 @@ export interface InterviewProcessingProps extends React.HTMLAttributes<HTMLDivEl
   className?: string;
 }
 
-const InterviewProcessing = ({ asChild, children, className, ...props }: InterviewProcessingProps) => {
+/**
+ * Renders an indeterminate progress indicator while the interview is performing an async action.
+ *
+ * This is intended for in-flow operations after a session already exists, such as advancing,
+ * resetting, or saving.
+ */
+export const InterviewProcessing = ({ asChild, children, className, ...props }: InterviewProcessingProps) => {
   const { isLoading } = useInterview();
   if (!isLoading) {
     return null; // Don't render if not in loading state
@@ -27,5 +33,3 @@ const InterviewProcessing = ({ asChild, children, className, ...props }: Intervi
     </Comp>
   );
 };
-
-export { InterviewProcessing };

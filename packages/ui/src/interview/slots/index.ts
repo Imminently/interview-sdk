@@ -1,7 +1,7 @@
 export { InterviewBack } from "./InterviewBack";
 export { InterviewContent } from "./InterviewContent";
 export { InterviewError } from "./InterviewError";
-export { FormControls, InterviewForm, useFormSync } from "./InterviewForm";
+export { FormControls, InterviewForm } from "./InterviewForm";
 export { InterviewLoading } from "./InterviewLoading";
 export { InterviewNext } from "./InterviewNext";
 export { InterviewProcessing } from "./InterviewProcessing";
@@ -9,4 +9,6 @@ export { InterviewReset } from "./InterviewReset";
 export { InterviewSave } from "./InterviewSave";
 export { InterviewProgress } from "./InterviewProgress";
 export { InterviewSteps } from "./InterviewSteps";
+export { InterviewTitle } from "./InterviewTitle";
 export { InterviewValidations } from "./InterviewValidations";
+export { useFormSync } from "../../util/use-form-sync";

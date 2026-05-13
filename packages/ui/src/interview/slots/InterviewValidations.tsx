@@ -9,7 +9,12 @@ export interface InterviewValidationsProps extends React.HTMLAttributes<HTMLDivE
   severity?: "error" | "warning";
 }
 
-const InterviewValidations = ({ asChild, className, severity, ...props }: InterviewValidationsProps) => {
+/**
+ * Renders visible validation messages for the current screen.
+ *
+ * Pass `severity` to limit the output to errors or warnings only.
+ */
+export const InterviewValidations = ({ asChild, className, severity, ...props }: InterviewValidationsProps) => {
   const validations = useAttributeValidationErrors(undefined, severity);
 
   if (validations.length === 0) return null;
@@ -30,7 +35,5 @@ const InterviewValidations = ({ asChild, className, severity, ...props }: Interv
         );
       })}
     </div>
-  )
+  );
 };
-
-export { InterviewValidations };

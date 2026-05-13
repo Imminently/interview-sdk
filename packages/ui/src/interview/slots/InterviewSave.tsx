@@ -13,9 +13,17 @@ export interface InterviewSaveProps extends React.ButtonHTMLAttributes<HTMLButto
 }
 
 /**
- * @EXPERIMENTAL Save button for the interview form.
+ * Renders an experimental save action for the current interview values.
+ *
+ * The component validates the current form values and then calls `manager.save(values)` without
+ * advancing the interview.
+ *
+ * @example
+ * <Interview.Save asChild>
+ *   <button className="btn btn-secondary">Save Draft</button>
+ * </Interview.Save>
  */
-const InterviewSave = ({ asChild, children, className, ...props }: InterviewSaveProps) => {
+export const InterviewSave = ({ asChild, children, className, ...props }: InterviewSaveProps) => {
   const { handleSubmit, trigger, getValues } = useFormContext();
   const { t } = useTheme();
   const { manager, state, isLoading } = useInterview();
@@ -35,7 +43,7 @@ const InterviewSave = ({ asChild, children, className, ...props }: InterviewSave
 
     const values = getValues();
     manager.save(values);
-  }
+  };
 
   const Comp = asChild ? Slot : Button;
   return (
@@ -53,5 +61,3 @@ const InterviewSave = ({ asChild, children, className, ...props }: InterviewSave
     </Comp>
   );
 };
-
-export { InterviewSave };

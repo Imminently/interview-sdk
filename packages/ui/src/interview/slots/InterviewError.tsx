@@ -21,7 +21,13 @@ const DefaultError = ({ children, className }: InterviewErrorProps) => {
   );
 };
 
-const InterviewError = ({ asChild, children, className, ...props }: InterviewErrorProps) => {
+/**
+ * Renders when the interview manager enters the `error` state.
+ *
+ * By default this shows a simple translated error shell and the current error message.
+ * Use `asChild` to supply your own container while keeping the same conditional rendering.
+ */
+export const InterviewError = ({ asChild, children, className, ...props }: InterviewErrorProps) => {
   const { state, error } = useInterview();
   if (state !== "error") {
     return null; // Don't render if not in error state
@@ -38,5 +44,3 @@ const InterviewError = ({ asChild, children, className, ...props }: InterviewErr
     </Comp>
   );
 };
-
-export { InterviewError };

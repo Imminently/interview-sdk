@@ -10,7 +10,15 @@ export interface InterviewResetProps extends React.ButtonHTMLAttributes<HTMLButt
   className?: string;
 }
 
-const InterviewReset = ({ asChild, children, className, ...props }: InterviewResetProps) => {
+/**
+ * Renders a button that restarts the current interview using the existing manager configuration.
+ *
+ * @example
+ * <Interview.Reset asChild>
+ *   <button className="btn btn-secondary">Start Over</button>
+ * </Interview.Reset>
+ */
+export const InterviewReset = ({ asChild, children, className, ...props }: InterviewResetProps) => {
   const { manager, state, isLoading } = useInterview();
 
   if (state !== "success") {
@@ -37,5 +45,3 @@ const InterviewReset = ({ asChild, children, className, ...props }: InterviewRes
     </Comp>
   );
 };
-
-export { InterviewReset };

@@ -20,7 +20,13 @@ const DefaultLoading = ({ className }: InterviewLoadingProps) => {
   );
 };
 
-const InterviewLoading = ({ asChild, className, ...props }: InterviewLoadingProps) => {
+/**
+ * Renders while the interview is performing its initial create or load operation.
+ *
+ * This only appears before a base session is available. Once a session exists, prefer
+ * {@link InterviewProcessing} for in-flow async feedback.
+ */
+export const InterviewLoading = ({ asChild, className, ...props }: InterviewLoadingProps) => {
   const { state, session } = useInterview();
   if (state !== "loading" || !!session) {
     return null; // Don't render if not in loading state or have the base session
@@ -35,5 +41,3 @@ const InterviewLoading = ({ asChild, className, ...props }: InterviewLoadingProp
     />
   );
 };
-
-export { InterviewLoading };

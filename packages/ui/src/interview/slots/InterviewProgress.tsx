@@ -39,7 +39,12 @@ const DefaultProgress = ({ progress }: { progress: ProgressData }) => {
   );
 };
 
-const InterviewProgress = ({ asChild, children, className, ...props }: InterviewProgressProps) => {
+/**
+ * Renders a progress summary for the active session, including percentage complete and ETA when available.
+ *
+ * Use `asChild` to inject the progress props into your own wrapper when you need a custom shell.
+ */
+export const InterviewProgress = ({ asChild, children, className, ...props }: InterviewProgressProps) => {
   const { state, session } = useInterview();
   if (state !== "success" && !session) {
     return null; // Don't render if not in success state
@@ -57,5 +62,3 @@ const InterviewProgress = ({ asChild, children, className, ...props }: Interview
     </Comp>
   );
 };
-
-export { InterviewProgress };
