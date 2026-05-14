@@ -56,6 +56,7 @@ const CONTROL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   file: SlottableFormControl(Controls.File),
   markdown: SlottableControl(Controls.Markdown), // markdown is a special case, as it is not a form control
   number: SlottableFormControl(Controls.Number),
+  number_of_instances: SlottableFormControl(Controls.NumberOfInstances),
   radio: SlottableFormControl(Controls.Radio, "radio"),
   select: SlottableFormControl(Controls.Select, "select"),
   text: SlottableFormControl(Controls.Text),

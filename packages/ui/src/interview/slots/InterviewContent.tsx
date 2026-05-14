@@ -23,7 +23,7 @@ export interface InterviewContentProps extends React.HTMLAttributes<HTMLDivEleme
  */
 export const InterviewContent = ({ asChild, children, className, ...props }: InterviewContentProps) => {
   const { state, session } = useInterview();
-  if (state !== "success" && !session) {
+  if (state !== "success" || !session) {
     return null; // Don't render if not in success state
   }
   const Comp = asChild ? Slot : "div";

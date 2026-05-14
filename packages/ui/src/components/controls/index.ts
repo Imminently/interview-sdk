@@ -7,6 +7,7 @@ import { Explanation } from "./Explanation";
 import { FileFormControl } from "./FileControl";
 import { RadioFormControl } from "./RadioControl";
 import { NumberFormControl } from "./NumberControl";
+import { NumberOfInstancesFormControl } from "./NumberOfInstancesControl";
 import { SelectFormControl } from "./SelectControl";
 import { TextFormControl } from "./TextControl";
 import { TimeFormControl } from "./TimeControl";
@@ -30,6 +31,7 @@ export default Object.assign(
     File: FileFormControl,
     Error: Error,
     Explanation: Explanation,
+    NumberOfInstances: NumberOfInstancesFormControl,
     Radio: RadioFormControl,
     Number: NumberFormControl,
     Select: SelectFormControl,

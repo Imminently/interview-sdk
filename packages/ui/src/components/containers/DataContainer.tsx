@@ -150,13 +150,12 @@ export const DataContainer = ({ control, className }: { control: RenderableDataC
       data-id={control.id}
     >
       {control.label ? <Text variant="h5">{t(control.label)}</Text> : null}
-
       {columns.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 [grid-template-columns:repeat(auto-fit,minmax(18rem,1fr))]">
+        <div className="flex flex-wrap gap-4">
           {columns.map((column, index) => (
             <table
               key={index}
-              className="w-full border-separate border-spacing-y-0"
+              className="border-separate border-spacing-y-0"
             >
               <tbody>
                 {column.map(({ id, label, values }) => (
@@ -164,10 +163,10 @@ export const DataContainer = ({ control, className }: { control: RenderableDataC
                     key={id}
                     className="align-top"
                   >
-                    <th className="w-0 whitespace-nowrap pr-6 py-3 text-left align-top text-sm font-normal text-muted-foreground">
+                    <th className="w-0 whitespace-nowrap pr-6 text-left align-top text-sm font-normal text-muted-foreground">
                       {label}
                     </th>
-                    <td className="py-3 align-top text-sm text-foreground">
+                    <td className="align-top text-sm text-foreground">
                       <div className="flex flex-col items-start gap-2">
                         {values.map((value, valueIndex) =>
                           typeof value === "string" ? (

@@ -94,21 +94,21 @@ export const normalizeInputData = (data: Record<string, any>): Record<string, an
 };
 
 export const transformResponse = (session: Session, data: AttributeValues): ResponseData => {
-  const newData = normalizeInputData(data);
-  if (session.data["@parent"]) {
-    newData["@parent"] = session.data["@parent"];
-  }
-
-  // TODO legacy, we should check this works if its within containers
-  for (const control of session.screen.controls) {
-    if (control.type === "number_of_instances") {
-      const value = newData[control.entity];
-      newData[control.entity] = range(Number(value)).map((i) => ({
-        "@id": uuid(),
-      }));
+  return produce(normalizeInputData(data), (draft) => {
+    if (session.data["@parent"]) {
+      draft["@parent"] = session.data["@parent"];
     }
-  }
-  return newData;
+
+    // TODO legacy, we should check this works if its within containers
+    for (const control of session.screen.controls) {
+      if (control.type === "number_of_instances") {
+        const value = draft[control.entity];
+        draft[control.entity] = range(Number(value)).map(() => ({
+          "@id": uuid(),
+        }));
+      }
+    }
+  });
 };
 
 // transform an object into a flat object with . delimited keys
