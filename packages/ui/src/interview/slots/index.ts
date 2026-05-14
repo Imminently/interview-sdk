@@ -11,4 +11,3 @@ export { InterviewProgress } from "./InterviewProgress";
 export { InterviewSteps } from "./InterviewSteps";
 export { InterviewTitle } from "./InterviewTitle";
 export { InterviewValidations } from "./InterviewValidations";
-export { useFormSync } from "../../util/use-form-sync";

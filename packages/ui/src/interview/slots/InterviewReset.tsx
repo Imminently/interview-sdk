@@ -1,12 +1,12 @@
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/util";
 import { Slot } from "@radix-ui/react-slot";
-import type * as React from "react";
+import type { ReactNode } from "react";
 import { useInterview } from "../InterviewContext";
 
-export interface InterviewResetProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface InterviewResetProps extends ButtonProps {
   asChild?: boolean;
-  children?: React.ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 

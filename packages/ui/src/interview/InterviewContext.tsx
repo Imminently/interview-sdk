@@ -121,7 +121,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
         <InterviewContext.Provider value={value}>
           <AttributeNestingProvider value={false}>
             <FormProvider {...methods}>
-              <form data-slot={"form"} id={formId} onSubmit={handleNext}>
+              <form data-slot={"form"} className="flex flex-1 min-h-0" id={formId} onSubmit={handleNext}>
                 {children}
               </form>
             </FormProvider>

@@ -1,11 +1,11 @@
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { useTheme } from "@/providers";
 import { cn } from "@/util";
 import { useInterview } from "../InterviewContext";
 
-export interface InterviewNextProps extends ComponentPropsWithoutRef<"button"> {
+export interface InterviewNextProps extends ButtonProps {
   asChild?: boolean;
   children?: ReactNode;
   className?: string;
