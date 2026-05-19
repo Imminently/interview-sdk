@@ -22,7 +22,7 @@ const DefaultProgress = ({ progress }: { progress: ProgressData }) => {
         data-slot={"progress-bar"}
         value={progress.percentage}
       />
-      <div data-slot={"progress-info"}>
+      <div data-slot={"progress-info"} className="text-xs">
         <span data-slot={"progress-summary"}>
           {progress.percentage === 100
             ? t("form.complete")

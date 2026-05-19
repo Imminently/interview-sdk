@@ -30,7 +30,7 @@ const getVariant = (step: Step) => {
 
 const DefaultSteps = ({ className }: InterviewStepsProps) => {
   const { t } = useTheme();
-  const { session } = useInterview();
+  const { session, manager } = useInterview();
   return (
     <Sidebar className={className}>
       <SidebarContent>
@@ -40,8 +40,8 @@ const DefaultSteps = ({ className }: InterviewStepsProps) => {
             {session?.steps
               .filter((s) => s.visited || s.current)
               .map((item, index) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton tooltip={t(item.title)}>
+                <SidebarMenuItem key={item.id} onClick={() => manager.navigate(item.id)}>
+                  <SidebarMenuButton className="cursor-pointer" tooltip={t(item.title)}>
                     <Badge
                       variant={getVariant(item)}
                       className="rounded-full"
