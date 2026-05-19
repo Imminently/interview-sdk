@@ -1,4 +1,6 @@
 import { useTheme } from "@/providers";
+import { getNumericalStep, parseNumericOption } from "@/util";
+import type { NumericalOptions } from "@/util";
 import type { TextControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
 import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
@@ -8,16 +10,7 @@ import { Textarea } from "../ui/textarea";
 
 type NewTextControl = Omit<TextControl, "multi"> & {
   rows?: number;
-  numericalOptions?: {
-    /** The minimum numeric value allowed */
-    min?: number;
-    /** The maximum numeric value allowed */
-    max?: number;
-    /** Whether decimal values are allowed (false means integers only) */
-    allowDecimals?: boolean;
-    /** If decimals are allowed, restrict to this many decimal places */
-    maxDecimalPlaces?: number;
-  };
+  numericalOptions?: NumericalOptions;
 };
 
 export const TextFormControl = ({ field }: UseControllerReturn) => {
@@ -27,24 +20,10 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
   const type = control.variation?.type === "number" ? "number" : "text";
   const isNumberType = type === "number";
 
-  const step = (() => {
-    const no = control?.numericalOptions || {};
-    if (no && no.allowDecimals === false) return 1;
-
-    const hasMinMax = typeof no?.min === "number" && typeof no?.max === "number";
-    if (hasMinMax) {
-      const range = (no.max as number) - (no.min as number);
-      if (range < 1) {
-        const mdp = Number(no.maxDecimalPlaces);
-        if (Number.isFinite(mdp)) {
-          return 10 ** -Math.max(0, mdp);
-        }
-        return 0.1;
-      }
-    }
-
-    return 1;
-  })();
+  const minVal = parseNumericOption(control.numericalOptions?.min);
+  const maxVal = parseNumericOption(control.numericalOptions?.max);
+  const maxDecimalPlacesVal = parseNumericOption(control.numericalOptions?.maxDecimalPlaces);
+  const step = getNumericalStep(control.numericalOptions);
 
   const disabled = field.disabled || control.readOnly;
 
@@ -66,10 +45,10 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
             onChange={(value) => field.onChange(value?.toString() ?? "")}
             disabled={disabled}
             placeholder={t("form.text_placeholder")}
-            min={control.numericalOptions?.min}
-            max={control.numericalOptions?.max}
+            min={minVal}
+            max={maxVal}
             allowDecimals={control.numericalOptions?.allowDecimals}
-            maxDecimalPlaces={control.numericalOptions?.maxDecimalPlaces}
+            maxDecimalPlaces={maxDecimalPlacesVal}
             step={step}
           />
         ) : (

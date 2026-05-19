@@ -20,7 +20,7 @@ import {
   set,
 } from "react-hook-form";
 import * as yup from "yup";
-import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate } from "./index";
+import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate, parseNumericOption } from "./index";
 import { useMemo } from "react";
 import { useTheme } from "@/providers/ThemeProvider";
 
@@ -144,7 +144,9 @@ export const generateValidatorForControl = (c: RenderableControl, manager?: any)
       return maybeDefined;
     }
     case "currency": {
-      const { max, min, required } = c;
+      const { required } = c;
+      const max = parseNumericOption(c.max);
+      const min = parseNumericOption(c.min);
 
       const schema = yup.number().typeError("Please specify a valid number. E.g. 5.50").nullable();
       const withRequired: typeof schema =
@@ -314,7 +316,8 @@ export const generateValidatorForControl = (c: RenderableControl, manager?: any)
       return withTimeMin;
     }
     case "number_of_instances": {
-      const { max, min } = c;
+      const max = parseNumericOption(c.max);
+      const min = parseNumericOption(c.min);
 
       const schema = yup.number().typeError("Please specify a valid positive integer. E.g. 5").nullable();
 
@@ -332,7 +335,8 @@ export const generateValidatorForControl = (c: RenderableControl, manager?: any)
       return withMin;
     }
     case "text": {
-      const { required, max, variation } = c;
+      const { required, variation } = c;
+      const max = parseNumericOption(c.max);
 
       const schema = yup.string().nullable();
       const maybeRequired: typeof schema =

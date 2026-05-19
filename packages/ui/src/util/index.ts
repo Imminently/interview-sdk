@@ -1,4 +1,5 @@
 export * from "./attribute-to-field-name";
+export * from "./numerical";
 export * from "./get-color";
 export * from "./global";
 export * from "./translate-fn";

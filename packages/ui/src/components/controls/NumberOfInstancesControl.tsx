@@ -1,4 +1,5 @@
 import { useTheme } from "@/providers";
+import { parseNumericOption } from "@/util";
 import type { NumberOfInstancesControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
 import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
@@ -17,8 +18,8 @@ export const NumberOfInstancesFormControl = ({ field }: UseControllerReturn) => 
           onChange={(value) => field.onChange(value ?? "")}
           disabled={field.disabled || control.readOnly}
           placeholder={t("form.text_placeholder")}
-          min={control.min ?? 0}
-          max={control.max}
+          min={parseNumericOption(control.min) ?? 0}
+          max={parseNumericOption(control.max)}
           allowDecimals={false}
           step={1}
         />
