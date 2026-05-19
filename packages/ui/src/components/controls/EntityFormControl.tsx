@@ -1,5 +1,5 @@
 import { AttributeNestingProvider, useTheme } from "@/providers";
-import { cn } from "@/util";
+import { cn, parseNumericOption } from "@/util";
 import { type Control, type RenderableEntityControl, uuid } from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef } from "react";
@@ -90,6 +90,13 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
   const { t } = useTheme();
   const { control: formControl } = useFormContext();
 
+  // Parse numeric options defensively — backend may send strings or ""
+  const parsedMin = parseNumericOption((control as any).min);
+  const parsedMax = parseNumericOption((control as any).max);
+  const parsedDefault = parseNumericOption((control as any).default);
+  // Effective initial count: at least min, but also respect an explicit default
+  const effectiveDefault = Math.max(parsedMin ?? 0, parsedDefault ?? 0);
+
   const parentPath = useAttributeToFieldName(control.attribute);
   const fieldName = parentPath ?? control.entity;
   // @ts-ignore check control as we will probably add readOnly in future
@@ -107,20 +114,33 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
   const initialized = useRef(false);
 
   useEffect(() => {
-    if (!initialized.current && fields.length === 0 && control.instances && control.instances.length > 0) {
-      // immediately set to true to avoid double initialization
+    if (!initialized.current && fields.length === 0) {
       initialized.current = true;
 
-      for (const instance of control.instances) {
-        append({
-          "@id": instance.id || uuid(),
-        });
+      if (control.instances && control.instances.length > 0) {
+        for (const instance of control.instances) {
+          append({
+            "@id": instance.id || uuid(),
+          });
+        }
+      } else if (effectiveDefault > 0) {
+        for (let i = 0; i < effectiveDefault; i++) {
+          append({ "@id": uuid() });
+        }
       }
     }
-  }, [control.instances, fields.length, initialized]);
+  }, [control.instances, fields.length, initialized, effectiveDefault, append]);
 
-  const canAddMore = !readOnly && (control.max === undefined || control.max > fields.length);
-  const canDelete = !readOnly && (control.min === undefined || fields.length > control.min);
+  // Validate control data — throw so an error boundary can catch it
+  if (parsedMax !== undefined && parsedMin !== undefined && parsedMax < parsedMin) {
+    throw new Error(`EntityFormControl: max (${parsedMax}) must be >= min (${parsedMin})`);
+  }
+  if (parsedMax !== undefined && effectiveDefault > parsedMax) {
+    throw new Error(`EntityFormControl: effective default (${effectiveDefault}) exceeds max (${parsedMax})`);
+  }
+
+  const canAddMore = !readOnly && (parsedMax === undefined || parsedMax > fields.length);
+  const canDelete = !readOnly && (parsedMin === undefined || fields.length > parsedMin);
 
   const handleAdd = React.useCallback(() => {
     if (!canAddMore) return;
@@ -190,7 +210,7 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
           <AttributeNestingProvider value={true}>
             {fields.map((field, index) => {
               const isLastItem = index === fields.length - 1;
-              const showDeleteButton = canDelete && fields.length > (control.min ?? 0);
+              const showDeleteButton = canDelete && fields.length > (parsedMin ?? 0);
 
               return (
                 <div
