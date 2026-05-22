@@ -252,11 +252,12 @@ export const updateReportingWithReplacements = (reporting: any, replacements: an
   const flattened = flattenObject(newValues, "/");
 
   // Step 3: For each key in newValues, if the path exists in reporting, update it
+  // BUGFIX: set the value either way, I don't understand why we wouldn't want a new value
   for (const [key, value] of Object.entries(flattened)) {
     const path = key.split("/");
-    if (get(result, path) !== undefined) {
-      set(result, path, value);
-    }
+    // if (get(result, path) !== undefined) {
+    set(result, path, value);
+    // }
   }
 
   return result;

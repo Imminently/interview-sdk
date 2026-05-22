@@ -9,6 +9,8 @@ import { InterviewLayout } from "./InterviewLayout";
 export interface InterviewProps extends PropsWithChildren, InterviewConfig {
   options: ManagerOptions;
   readOnly?: boolean;
+  /* Optional className to apply to the form element. */
+  className?: string;
 }
 
 /**

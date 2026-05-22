@@ -3,6 +3,7 @@ import type { Control, ManagerState, Session, SessionManager } from "@imminently
 import { type PropsWithChildren, createContext, useContext, useId, useMemo, useSyncExternalStore } from "react";
 import { FormProvider, type UseFormProps, useForm } from "react-hook-form";
 import { type IconMap, type InterviewControls, type Theme, ThemeProvider } from "../providers/ThemeProvider";
+import { cn } from "@/util";
 
 export type InterviewContextState = {
   formId: string;
@@ -52,13 +53,15 @@ export interface InterviewProviderProps extends PropsWithChildren, InterviewConf
    * **IMPORTANT** ensure the instance is not re-created each render
    */
   manager: SessionManager;
+  /* Optional className to apply to the form element. */
+  className?: string;
 }
 
 /**
  * InterviewProvider is a React context provider that manages the state and behavior of an interview session.
  * It provides methods to navigate through the interview steps, manage form values, and handle interactions.
  */
-export const InterviewProvider = ({ manager, children, ...config }: InterviewProviderProps) => {
+export const InterviewProvider = ({ manager, children, className, ...config }: InterviewProviderProps) => {
   const { form, theme, icons, slots, callbacks } = config;
   // Generate a unique form ID for this interview instance
   const formId = useId();
@@ -121,7 +124,7 @@ export const InterviewProvider = ({ manager, children, ...config }: InterviewPro
         <InterviewContext.Provider value={value}>
           <AttributeNestingProvider value={false}>
             <FormProvider {...methods}>
-              <form data-slot={"form"} className="flex flex-1 min-h-0" id={formId} onSubmit={handleNext}>
+              <form data-slot={"form"} className={cn("flex flex-1 min-h-0", className) } id={formId} onSubmit={handleNext}>
                 {children}
               </form>
             </FormProvider>
