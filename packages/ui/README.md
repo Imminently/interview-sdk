@@ -215,11 +215,68 @@ Renders the form controls for the current screen and owns form submission. When 
 
 ### Interview.Steps
 
-Displays the interview step navigation/breadcrumbs.
+Displays the interview step navigation in the default sidebar layout, including a progress bar in the footer.
 
 ```tsx
 <Interview.Steps />
 ```
+
+#### Sub-step support
+
+Steps can be recursive — each step may contain a `steps` array of child steps. Use `showSubSteps` to render them:
+
+```tsx
+// Show all sub-steps at every depth
+<Interview.Steps showSubSteps />
+
+// Show only one level of children
+<Interview.Steps showSubSteps={1} />
+
+// Show up to two levels deep
+<Interview.Steps showSubSteps={2} />
+```
+
+#### Custom item rendering
+
+Use `renderStep` to replace the default sidebar item markup. The function receives:
+- `step` — the step data
+- `index` — 0-based position within its sibling group
+- `depth` — nesting depth (0 = top-level)
+- `navigate` — call to navigate to that step
+- `children` — the pre-rendered sub-step tree (`null` if none)
+
+```tsx
+<Interview.Steps
+  renderStep={({ step, index, navigate, children }) => (
+    <SidebarMenuItem key={step.id}>
+      <SidebarMenuButton onClick={navigate}>
+        {index + 1}. {step.title}
+      </SidebarMenuButton>
+      {children}
+    </SidebarMenuItem>
+  )}
+/>
+```
+
+#### InterviewStepList
+
+For advanced layouts — custom sidebars, drawers, sheets — use `InterviewStepList` directly instead of `Interview.Steps`. It renders only the step menu items without any sidebar chrome:
+
+```tsx
+import { InterviewStepList } from '@imminently/interview-ui';
+
+// Inside a custom sidebar
+<Sidebar>
+  <SidebarContent>
+    <SidebarGroup>
+      <SidebarGroupLabel>Steps</SidebarGroupLabel>
+      <InterviewStepList showSubSteps={2} />
+    </SidebarGroup>
+  </SidebarContent>
+</Sidebar>
+```
+
+`InterviewStepList` accepts the same `showSubSteps` and `renderStep` props as `Interview.Steps`, plus an optional `steps` override to render a custom step subset instead of those from the active session.
 
 ### Interview.Next / Interview.Back / Interview.Reset
 

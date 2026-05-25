@@ -8,6 +8,7 @@ export { InterviewProcessing } from "./InterviewProcessing";
 export { InterviewReset } from "./InterviewReset";
 export { InterviewSave } from "./InterviewSave";
 export { InterviewProgress } from "./InterviewProgress";
-export { InterviewSteps } from "./InterviewSteps";
+export { InterviewStepList, InterviewSteps } from "./InterviewSteps";
+export type { InterviewStepListProps, InterviewStepsProps, StepRenderFn, StepRenderProps } from "./InterviewSteps";
 export { InterviewTitle } from "./InterviewTitle";
 export { InterviewValidations } from "./InterviewValidations";
