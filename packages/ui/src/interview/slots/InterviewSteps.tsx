@@ -99,9 +99,9 @@ export interface InterviewStepListProps {
 export interface InterviewStepsProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Additional CSS class names applied to the {@link Sidebar} root. */
   className?: string;
-  /** @see {@link InterviewStepListProps.showSubSteps} */
+  /** @see InterviewStepListProps.showSubSteps */
   showSubSteps?: boolean | number;
-  /** @see {@link InterviewStepListProps.renderStep} */
+  /** @see InterviewStepListProps.renderStep */
   renderStep?: StepRenderFn;
 }
 
