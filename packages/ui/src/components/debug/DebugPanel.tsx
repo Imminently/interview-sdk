@@ -16,7 +16,9 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const DEFAULT_SIZE = { width: 600, height: 420 };
-const getDefaultPos = () => ({ x: 20, y: 20 });
+const COLLAPSED_W = 98;
+const COLLAPSED_H = 36;
+const getDefaultPos = () => ({ x: 20, y: 20 }); // left, bottom offsets
 
 /**
  * A floating, draggable debug panel with tabs for inspecting interview state.
@@ -36,6 +38,8 @@ export const DebugPanel = () => {
   const [pos, setPos] = useState(getDefaultPos);
   const [size, setSize] = useState(DEFAULT_SIZE);
 
+  const [isInteracting, setIsInteracting] = useState(false);
+
   const posRef = useRef(pos);
   const sizeRef = useRef(size);
   const hasDragged = useRef(false);
@@ -49,6 +53,7 @@ export const DebugPanel = () => {
     const startPosY = posRef.current.y;
 
     document.body.style.userSelect = "none";
+    setIsInteracting(true);
 
     const onMove = (ev: MouseEvent) => {
       const dx = ev.clientX - startX;
@@ -56,13 +61,15 @@ export const DebugPanel = () => {
       if (!hasDragged.current && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
         hasDragged.current = true;
       }
-      const newPos = { x: startPosX + dx, y: startPosY + dy };
+      // Y is inverted because we anchor to bottom
+      const newPos = { x: startPosX + dx, y: startPosY - dy };
       posRef.current = newPos;
       setPos(newPos);
     };
 
     const onUp = () => {
       document.body.style.userSelect = "";
+      setIsInteracting(false);
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
@@ -71,29 +78,42 @@ export const DebugPanel = () => {
     document.addEventListener("mouseup", onUp);
   }, []);
 
-  const startResize = useCallback((e: React.MouseEvent) => {
+  const startResize = useCallback((e: React.MouseEvent, corner: "top-right" | "bottom-right") => {
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
     const startY = e.clientY;
     const startW = sizeRef.current.width;
     const startH = sizeRef.current.height;
+    const startPosY = posRef.current.y;
+    const isBottom = corner === "bottom-right";
 
     document.body.style.userSelect = "none";
-    document.body.style.cursor = "nwse-resize";
+    document.body.style.cursor = isBottom ? "nwse-resize" : "nesw-resize";
+    setIsInteracting(true);
 
     const onMove = (ev: MouseEvent) => {
-      const newSize = {
-        width: Math.max(320, startW + (ev.clientX - startX)),
-        height: Math.max(240, startH + (ev.clientY - startY)),
-      };
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      // top-right: drag up (negative dy) grows height
+      // bottom-right: drag down (positive dy) grows height, pos.y adjusts to keep top edge fixed
+      const newH = isBottom
+        ? Math.max(240, startH + dy)
+        : Math.max(240, startH - dy);
+      const newSize = { width: Math.max(320, startW + dx), height: newH };
       sizeRef.current = newSize;
       setSize(newSize);
+      if (isBottom) {
+        const newPos = { x: posRef.current.x, y: startPosY - (newH - startH) };
+        posRef.current = newPos;
+        setPos(newPos);
+      }
     };
 
     const onUp = () => {
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
+      setIsInteracting(false);
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
@@ -104,98 +124,103 @@ export const DebugPanel = () => {
 
   if (!debugEnabled) return null;
 
-  if (!expanded) {
-    return (
-      <button
-        type="button"
-        style={{
-          position: "fixed",
-          left: pos.x,
-          top: pos.y,
-          zIndex: "var(--interview-ui-z-index-debug)",
-        } as React.CSSProperties}
-        onMouseDown={startDrag}
-        onClick={() => {
-          if (!hasDragged.current) setExpanded(true);
-        }}
-        title="Open Debug Panel"
-        className="flex items-center gap-2 text-sm font-medium cursor-grab active:cursor-grabbing bg-gray-900 text-white rounded-full px-3 py-2 shadow-lg hover:bg-gray-700 transition-colors"
-      >
-        <Bug size={14} />
-        <span>Debug</span>
-      </button>
-    );
-  }
+  const transition = isInteracting ? undefined : "width 200ms ease, height 200ms ease";
 
   return (
     <div
       style={{
         position: "fixed",
         left: pos.x,
-        top: pos.y,
-        width: size.width,
-        height: size.height,
+        bottom: pos.y,
+        width: expanded ? size.width : COLLAPSED_W,
+        height: expanded ? size.height : COLLAPSED_H,
+        borderRadius: 8,
         zIndex: "var(--interview-ui-z-index-debug)" as unknown as number,
+        transition,
       }}
-      className="flex flex-col bg-white border border-gray-200 shadow-xl rounded-lg overflow-hidden"
+      className={`flex flex-col shadow-xl overflow-hidden ${
+        expanded ? "bg-white border border-gray-200" : "bg-gray-900"
+      }`}
     >
-      {/* Drag handle header */}
-      <div
-        onMouseDown={startDrag}
-        className="flex items-center justify-between px-3 py-2 bg-gray-900 text-white cursor-grab active:cursor-grabbing select-none shrink-0 rounded-t-lg"
-      >
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Bug size={14} />
-          <span>Debug panel</span>
-        </div>
+      {!expanded ? (
         <button
           type="button"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => setExpanded(false)}
-          className="hover:bg-white/20 rounded p-0.5 transition-colors"
-          title="Collapse"
+          onMouseDown={startDrag}
+          onClick={() => { if (!hasDragged.current) setExpanded(true); }}
+          title="Open Debug Panel"
+          className="flex items-center gap-2 text-sm font-medium cursor-grab active:cursor-grabbing text-white w-full h-full px-3 hover:bg-gray-700 transition-colors"
         >
-          <ArrowDownLeft size={14} />
+          <Bug size={14} />
+          <span>Debug</span>
         </button>
-      </div>
-
-      {/* Tab bar */}
-      <div className="flex border-b border-gray-200 shrink-0 bg-gray-50">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === tab.id
-                ? "border-gray-900 text-gray-900"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
+      ) : (
+        <>
+          {/* Drag handle header */}
+          <div
+            onMouseDown={startDrag}
+            className="flex items-center justify-between px-3 py-2 bg-gray-900 text-white cursor-grab active:cursor-grabbing select-none shrink-0"
           >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Bug size={14} />
+              <span>Debug panel</span>
+            </div>
+            <button
+              type="button"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => setExpanded(false)}
+              className="hover:bg-white/20 rounded p-0.5 transition-colors"
+              title="Collapse"
+            >
+              <ArrowDownLeft size={14} />
+            </button>
+          </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-auto min-h-0">
-        {activeTab === "overview" && <OverviewTab />}
-        {activeTab === "form" && <FormTab />}
-        {activeTab === "steps" && <StepsTab />}
-        {activeTab === "controls" && <ControlsTab />}
-      </div>
+          {/* Tab bar */}
+          <div className="flex border-b border-gray-200 shrink-0 bg-gray-50">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                  activeTab === tab.id
+                    ? "border-gray-900 text-gray-900"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-      {/* Resize handle */}
-      <div
-        onMouseDown={startResize}
-        style={{ position: "absolute", bottom: 0, right: 0, width: 18, height: 18, cursor: "nwse-resize" }}
-        className="flex items-end justify-end p-1 opacity-40 hover:opacity-90 text-gray-500"
-        title="Resize"
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
-          <path d="M9 5H7V7H9V5ZM9 9H7V7H9V9ZM5 9H3V7H5V9Z" />
-        </svg>
-      </div>
+          {/* Tab content */}
+          <div className="flex-1 overflow-auto min-h-0">
+            {activeTab === "overview" && <OverviewTab />}
+            {activeTab === "form" && <FormTab />}
+            {activeTab === "steps" && <StepsTab />}
+            {activeTab === "controls" && <ControlsTab />}
+          </div>
+
+          {/* Resize handle — top-right (invisible) */}
+          <div
+            onMouseDown={(e) => startResize(e, "top-right")}
+            style={{ position: "absolute", top: 0, right: 0, width: 18, height: 18, cursor: "nesw-resize" }}
+            aria-hidden="true"
+          />
+
+          {/* Resize handle — bottom-right (visible) */}
+          <div
+            onMouseDown={(e) => startResize(e, "bottom-right")}
+            style={{ position: "absolute", bottom: 0, right: 0, width: 18, height: 18, cursor: "nwse-resize" }}
+            className="flex items-end justify-end p-1 opacity-40 hover:opacity-90 text-gray-500"
+            title="Resize"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+              <path d="M9 5H7V7H9V5ZM9 9H7V7H9V9ZM5 9H3V7H5V9Z" />
+            </svg>
+          </div>
+        </>
+      )}
     </div>
   );
 };

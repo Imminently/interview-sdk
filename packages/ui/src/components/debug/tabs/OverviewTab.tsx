@@ -3,6 +3,10 @@ import { useInterview } from "@/interview/InterviewContext";
 import { Computer, Server } from "lucide-react";
 import { useState } from "react";
 
+const Kbd = ({ children }: { children: React.ReactNode }) => (
+  <kbd className="font-mono bg-gray-100 border border-gray-300 rounded px-1">{children}</kbd>
+);
+
 export const OverviewTab = () => {
   const { manager } = useInterview();
   const snapshot = manager.getSnapshot();
@@ -10,14 +14,18 @@ export const OverviewTab = () => {
 
   const [dynamicDisabled, setDynamicDisabled] = useState(manager.isDynamicDisabled());
 
+  const renderAtLocal = snapshot.renderAt
+    ? new Date(snapshot.renderAt).toLocaleTimeString()
+    : null;
+
   return (
     <div className="p-4 flex flex-col gap-4 text-sm">
       <section>
         <h3 className="font-semibold mb-1 text-xs uppercase tracking-wide text-gray-500">Keyboard shortcuts</h3>
         <ul className="list-disc list-inside space-y-0.5 text-gray-700">
           <li>Shift + Click a control to open the debug dialog</li>
-          <li>Toggle debug with Cmd+D or Ctrl+D</li>
-          <li>Press <kbd className="font-mono bg-gray-100 border border-gray-300 rounded px-1">`</kbd> to toggle container debug</li>
+          <li>Toggle debug with <Kbd>Cmd</Kbd>+<Kbd>D</Kbd> or <Kbd>Ctrl</Kbd>+<Kbd>D</Kbd></li>
+          <li>Press <Kbd>`</Kbd> to toggle container debug</li>
         </ul>
       </section>
 
@@ -29,7 +37,12 @@ export const OverviewTab = () => {
           <dt className="text-gray-500">state</dt>
           <dd className="font-mono">{snapshot.state}</dd>
           <dt className="text-gray-500">renderAt</dt>
-          <dd className="font-mono">{snapshot.renderAt}</dd>
+          <dd className="font-mono">
+            {renderAtLocal ?? snapshot.renderAt}
+            {renderAtLocal && (
+              <span className="ml-2 text-gray-400 text-xs">{snapshot.renderAt}</span>
+            )}
+          </dd>
         </dl>
       </section>
 
