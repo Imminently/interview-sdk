@@ -312,7 +312,9 @@ export class SessionManager {
   readonly events: ManagerLifecycle;
 
   private debugEnabled: boolean;
-  private advancedDebugEnabled;
+  private advancedDebugEnabled: boolean;
+  private _disableClientDynamic: boolean = false;
+  private _disableServerDynamic: boolean = false;
 
   private renderAt: number = Date.now();
   private externalLoading = false;
@@ -432,6 +434,17 @@ export class SessionManager {
 
   setAdvancedDebugEnabled = (enabled: boolean) => {
     this.advancedDebugEnabled = enabled;
+  };
+
+  isClientDynamicDisabled = () => this._disableClientDynamic;
+  isServerDynamicDisabled = () => this._disableServerDynamic;
+
+  setDisableClientDynamic = (disabled: boolean) => {
+    this._disableClientDynamic = disabled;
+  };
+
+  setDisableServerDynamic = (disabled: boolean) => {
+    this._disableServerDynamic = disabled;
   };
 
   private preCacheClient = () => {
@@ -988,7 +1001,7 @@ export class SessionManager {
 
         // If client-side dynamic runtime is available, always solve all dynamic goals.
         // unknownsRequiringSimulate is treated as a server-side queue only.
-        if (this.clientGraph) {
+        if (this.clientGraph && !this._disableClientDynamic) {
           try {
             const result = await this.runRulesEngine();
             if (result?.reporting) {
@@ -1092,6 +1105,10 @@ export class SessionManager {
 
   // this function is debounced
   private serverSideDynamic = async () => {
+    if (this._disableServerDynamic) {
+      this.triggerUpdate(false);
+      return;
+    }
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to process server-side dynamic values");
       // ensure we set this back to false either way, so the loading state doesn't get stuck

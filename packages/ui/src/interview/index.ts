@@ -1,6 +1,6 @@
 import { Interview as BasicInterview } from "./Interview";
 import { InterviewProvider } from "./InterviewContext";
-import { InterviewDebugForm, InterviewDebugFloatingPanel } from "./InterviewDebugPanel";
+import { InterviewDebugFloatingPanel } from "./InterviewDebugPanel";
 import {
   InterviewBack,
   InterviewContent,
@@ -152,7 +152,7 @@ type InterviewCompoundComponent = typeof BasicInterview & {
    */
   Validations: typeof InterviewValidations;
   /** Renders the debug form viewer inside an existing interview form context. */
-  Debug: typeof InterviewDebugForm;
+  Debug: typeof InterviewDebugFloatingPanel;
 };
 
 export const Interview: InterviewCompoundComponent = Object.assign(BasicInterview, {
@@ -170,7 +170,7 @@ export const Interview: InterviewCompoundComponent = Object.assign(BasicIntervie
   Processing: InterviewProcessing,
   Title: InterviewTitle,
   Validations: InterviewValidations,
-  Debug: InterviewDebugForm,
+  Debug: InterviewDebugFloatingPanel,
 });
 
 export { InterviewDebugFloatingPanel };

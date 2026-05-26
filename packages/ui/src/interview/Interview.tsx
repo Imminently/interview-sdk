@@ -1,4 +1,4 @@
-import InterviewDebugIndicator from "@/interview/InterviewDebugIndicator";
+import { InterviewDebugFloatingPanel } from "@/interview/InterviewDebugPanel";
 import { DebugSettingsProvider } from "@/providers";
 import type { ManagerOptions } from "@imminently/interview-sdk";
 import { SessionManager } from "@imminently/interview-sdk";
@@ -27,7 +27,7 @@ export const Interview = ({ options, children, readOnly, ...props }: InterviewPr
     >
       <DebugSettingsProvider>
         {children ? children : <InterviewLayout key={manager.session?.screen.id} />}
-        <InterviewDebugIndicator />
+        <InterviewDebugFloatingPanel />
       </DebugSettingsProvider>
     </InterviewProvider>
   );

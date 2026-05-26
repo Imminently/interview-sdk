@@ -1,7 +1,6 @@
-import { useOptions } from "@/providers";
 import { SidebarInset, SidebarProvider } from "../components/ui/sidebar";
 import { useInterview } from "./InterviewContext";
-import { InterviewDebugPanel } from "./InterviewDebugPanel";
+
 import * as Slots from "./slots";
 
 // TEMP disable the idea of slots using slotName as it did not provide the control we wanted.
@@ -50,7 +49,6 @@ Object.entries(slotDefaults).forEach(([slot, element]) => {
  * Default render layout for an interview.
  */
 export const InterviewLayout = () => {
-  const { debug } = useOptions();
   const { state, session } = useInterview();
 
   if (state !== "success" && !session) {
@@ -69,7 +67,7 @@ export const InterviewLayout = () => {
       <SidebarInset>
         <Slots.InterviewContent />
       </SidebarInset>
-      {debug ? <InterviewDebugPanel /> : null}
+
     </SidebarProvider>
   );
 };
