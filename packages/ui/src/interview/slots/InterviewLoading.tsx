@@ -14,7 +14,7 @@ export interface InterviewLoadingProps extends React.HTMLAttributes<HTMLDivEleme
 const DefaultLoading = ({ className }: InterviewLoadingProps) => {
   const { t } = useTheme();
   return (
-    <div className={cn("flex flex-col items-center justify-center h-full", className)}>
+    <div className={cn("flex flex-col items-center justify-center w-full h-full", className)}>
       <p>{t("form.loading")}</p>
     </div>
   );

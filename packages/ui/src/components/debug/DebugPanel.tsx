@@ -16,7 +16,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const DEFAULT_SIZE = { width: 600, height: 420 };
-const DEFAULT_POS = { x: 20, y: 80 };
+const getDefaultPos = () => ({ x: 20, y: 20 });
 
 /**
  * A floating, draggable debug panel with tabs for inspecting interview state.
@@ -33,7 +33,7 @@ export const DebugPanel = () => {
   const { debugEnabled } = useDebugSettings();
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [pos, setPos] = useState(DEFAULT_POS);
+  const [pos, setPos] = useState(getDefaultPos);
   const [size, setSize] = useState(DEFAULT_SIZE);
 
   const posRef = useRef(pos);

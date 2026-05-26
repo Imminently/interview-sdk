@@ -1,16 +1,18 @@
-import { InterviewDebugFloatingPanel } from "@/interview/InterviewDebugPanel";
+
 import { DebugSettingsProvider } from "@/providers";
 import type { ManagerOptions } from "@imminently/interview-sdk";
 import { SessionManager } from "@imminently/interview-sdk";
 import { type PropsWithChildren, useState } from "react";
 import { type InterviewConfig, InterviewProvider } from "./InterviewContext";
 import { InterviewLayout } from "./InterviewLayout";
+import { DebugPanel } from "@/components/debug";
 
 export interface InterviewProps extends PropsWithChildren, InterviewConfig {
   options: ManagerOptions;
   readOnly?: boolean;
   /* Optional className to apply to the form element. */
   className?: string;
+
 }
 
 /**
@@ -20,6 +22,8 @@ export interface InterviewProps extends PropsWithChildren, InterviewConfig {
 export const Interview = ({ options, children, readOnly, ...props }: InterviewProps) => {
   const [manager] = useState(() => new SessionManager({ ...options, readOnly }));
 
+  console.log("Interview render", { options, readOnly });
+
   return (
     <InterviewProvider
       manager={manager}
@@ -27,7 +31,7 @@ export const Interview = ({ options, children, readOnly, ...props }: InterviewPr
     >
       <DebugSettingsProvider>
         {children ? children : <InterviewLayout key={manager.session?.screen.id} />}
-        <InterviewDebugFloatingPanel />
+        {options.debug ? <DebugPanel /> : null}
       </DebugSettingsProvider>
     </InterviewProvider>
   );

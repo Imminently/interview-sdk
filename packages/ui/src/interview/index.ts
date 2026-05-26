@@ -1,6 +1,6 @@
+import { DebugPanel as InterviewDebugFloatingPanel } from "@/components/debug";
 import { Interview as BasicInterview } from "./Interview";
 import { InterviewProvider } from "./InterviewContext";
-import { InterviewDebugFloatingPanel } from "./InterviewDebugPanel";
 import {
   InterviewBack,
   InterviewContent,
@@ -151,7 +151,12 @@ type InterviewCompoundComponent = typeof BasicInterview & {
    * Pass `severity` to limit the output to errors or warnings only.
    */
   Validations: typeof InterviewValidations;
-  /** Renders the debug form viewer inside an existing interview form context. */
+  /**
+   * A draggable, floating debug panel with tabs for session overview, form values,
+   * steps, and controls. Add this anywhere inside {@link Interview} to enable debug tools.
+   *
+   * Debug mode must be toggled on (Cmd+D / Ctrl+D) before the panel appears.
+   */
   Debug: typeof InterviewDebugFloatingPanel;
 };
 
@@ -172,5 +177,3 @@ export const Interview: InterviewCompoundComponent = Object.assign(BasicIntervie
   Validations: InterviewValidations,
   Debug: InterviewDebugFloatingPanel,
 });
-
-export { InterviewDebugFloatingPanel };

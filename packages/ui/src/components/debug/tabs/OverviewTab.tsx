@@ -1,3 +1,4 @@
+import { Switch } from "@/components/ui/switch";
 import { useInterview } from "@/interview/InterviewContext";
 import { Computer, Server } from "lucide-react";
 import { useState } from "react";
@@ -7,20 +8,7 @@ export const OverviewTab = () => {
   const snapshot = manager.getSnapshot();
   const isClientDynamic = Boolean(manager.clientGraph);
 
-  const [clientDisabled, setClientDisabled] = useState(manager.isClientDynamicDisabled());
-  const [serverDisabled, setServerDisabled] = useState(manager.isServerDynamicDisabled());
-
-  const toggleClientDynamic = () => {
-    const next = !clientDisabled;
-    manager.setDisableClientDynamic(next);
-    setClientDisabled(next);
-  };
-
-  const toggleServerDynamic = () => {
-    const next = !serverDisabled;
-    manager.setDisableServerDynamic(next);
-    setServerDisabled(next);
-  };
+  const [dynamicDisabled, setDynamicDisabled] = useState(manager.isDynamicDisabled());
 
   return (
     <div className="p-4 flex flex-col gap-4 text-sm">
@@ -46,38 +34,23 @@ export const OverviewTab = () => {
       </section>
 
       <section>
-        <h3 className="font-semibold mb-1 text-xs uppercase tracking-wide text-gray-500">Dynamic processing</h3>
-        <div className="flex flex-row items-center gap-2 mb-3 text-gray-700">
-          {isClientDynamic ? <Computer size={14} /> : <Server size={14} />}
-          <span>{isClientDynamic ? "Client Side Dynamic" : "Server Side Dynamic"}</span>
+        <label className="flex items-center justify-between gap-4 cursor-pointer select-none">
+          <h3 className="font-semibold text-xs uppercase tracking-wide text-gray-500">Dynamic processing</h3>
+          <Switch
+            checked={!dynamicDisabled}
+            onCheckedChange={(checked) => {
+              manager.setDisableDynamic(!checked);
+              setDynamicDisabled(!checked);
+            }}
+          />
+        </label>
+        <div className="flex flex-row items-center gap-1.5 mt-1.5 text-xs text-gray-500">
+          {isClientDynamic ? <Computer size={12} /> : <Server size={12} />}
+          <span>{isClientDynamic ? "Client side" : "Server side"}</span>
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={clientDisabled}
-              onChange={toggleClientDynamic}
-              className="w-4 h-4 rounded border-gray-300 accent-red-500"
-            />
-            <span className={clientDisabled ? "text-red-600 font-medium" : "text-gray-700"}>
-              Disable client-side processing
-            </span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={serverDisabled}
-              onChange={toggleServerDynamic}
-              className="w-4 h-4 rounded border-gray-300 accent-red-500"
-            />
-            <span className={serverDisabled ? "text-red-600 font-medium" : "text-gray-700"}>
-              Disable server-side processing
-            </span>
-          </label>
-        </div>
-        {(clientDisabled || serverDisabled) && (
+        {dynamicDisabled && (
           <p className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2">
-            Warning: processing is partially disabled. Dynamic updates may not work correctly.
+            Warning: dynamic processing is disabled. Values will not update as you type.
           </p>
         )}
       </section>

@@ -313,8 +313,7 @@ export class SessionManager {
 
   private debugEnabled: boolean;
   private advancedDebugEnabled: boolean;
-  private _disableClientDynamic: boolean = false;
-  private _disableServerDynamic: boolean = false;
+  private _disableDynamic: boolean = false;
 
   private renderAt: number = Date.now();
   private externalLoading = false;
@@ -436,15 +435,10 @@ export class SessionManager {
     this.advancedDebugEnabled = enabled;
   };
 
-  isClientDynamicDisabled = () => this._disableClientDynamic;
-  isServerDynamicDisabled = () => this._disableServerDynamic;
+  isDynamicDisabled = () => this._disableDynamic;
 
-  setDisableClientDynamic = (disabled: boolean) => {
-    this._disableClientDynamic = disabled;
-  };
-
-  setDisableServerDynamic = (disabled: boolean) => {
-    this._disableServerDynamic = disabled;
+  setDisableDynamic = (disabled: boolean) => {
+    this._disableDynamic = disabled;
   };
 
   private preCacheClient = () => {
@@ -792,6 +786,7 @@ export class SessionManager {
 
   onScreenDataChange = (data: AttributeValues) => {
     this.log("Screen data changed:", data);
+    if (this._disableDynamic) return;
     this.internals.userValues = deepClone(data);
     this.clientSideDynamic();
   };
@@ -1001,7 +996,7 @@ export class SessionManager {
 
         // If client-side dynamic runtime is available, always solve all dynamic goals.
         // unknownsRequiringSimulate is treated as a server-side queue only.
-        if (this.clientGraph && !this._disableClientDynamic) {
+        if (this.clientGraph) {
           try {
             const result = await this.runRulesEngine();
             if (result?.reporting) {
@@ -1105,10 +1100,6 @@ export class SessionManager {
 
   // this function is debounced
   private serverSideDynamic = async () => {
-    if (this._disableServerDynamic) {
-      this.triggerUpdate(false);
-      return;
-    }
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to process server-side dynamic values");
       // ensure we set this back to false either way, so the loading state doesn't get stuck
