@@ -1,6 +1,6 @@
 import { Interview as BasicInterview } from "./Interview";
 import { InterviewProvider } from "./InterviewContext";
-import { InterviewDebugForm } from "./InterviewDebugPanel";
+import { InterviewDebugForm, InterviewDebugFloatingPanel } from "./InterviewDebugPanel";
 import {
   InterviewBack,
   InterviewContent,
@@ -172,3 +172,5 @@ export const Interview: InterviewCompoundComponent = Object.assign(BasicIntervie
   Validations: InterviewValidations,
   Debug: InterviewDebugForm,
 });
+
+export { InterviewDebugFloatingPanel };
