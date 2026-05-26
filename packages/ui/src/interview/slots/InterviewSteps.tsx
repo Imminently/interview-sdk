@@ -134,6 +134,7 @@ interface StepTreeProps {
   showSubSteps?: boolean | number;
   renderStep?: StepRenderFn;
   navigate: (id: string) => void;
+  disabled?: boolean;
 }
 
 /**
@@ -147,7 +148,7 @@ interface StepTreeProps {
  * sub-tree passed as `children` is a plain fragment (not wrapped in
  * {@link SidebarMenuSub}), giving the consumer full control over nesting.
  */
-const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate }: StepTreeProps) => {
+const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate, disabled }: StepTreeProps) => {
   const { t } = useTheme();
   const visibleSteps = steps.filter((s) => s.visited || s.current);
 
@@ -156,6 +157,8 @@ const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate }: StepTree
       {visibleSteps.map((step, index) => {
         const visibleSubSteps = step.steps?.filter((s) => s.visited || s.current);
         const showChildren = !!visibleSubSteps?.length && canShowSubStepsAtDepth(showSubSteps, depth);
+
+        const handleClick = (e: React.MouseEvent) => { e.stopPropagation(); if (!disabled) navigate(step.id); };
 
         const subTree = showChildren ? (
           renderStep ? (
@@ -167,16 +170,18 @@ const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate }: StepTree
               showSubSteps={showSubSteps}
               renderStep={renderStep}
               navigate={navigate}
+              disabled={disabled}
             />
           ) : (
             // Default renderer: wrap sub-items in SidebarMenuSub.
-            <SidebarMenuSub>
+            <SidebarMenuSub className="mr-0 pr-0">
               <StepTree
                 steps={visibleSubSteps!}
                 depth={depth + 1}
                 showSubSteps={showSubSteps}
                 renderStep={renderStep}
                 navigate={navigate}
+                disabled={disabled}
               />
             </SidebarMenuSub>
           )
@@ -188,8 +193,8 @@ const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate }: StepTree
 
         if (depth === 0) {
           return (
-            <SidebarMenuItem key={step.id} onClick={() => navigate(step.id)}>
-              <SidebarMenuButton className="cursor-pointer" tooltip={t(step.title)}>
+            <SidebarMenuItem key={step.id} onClick={handleClick}>
+              <SidebarMenuButton disabled={disabled} className="cursor-pointer" tooltip={t(step.title)}>
                 <Badge variant={getVariant(step)} className="rounded-full">
                   {index + 1}
                 </Badge>
@@ -202,8 +207,8 @@ const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate }: StepTree
         }
 
         return (
-          <SidebarMenuSubItem key={step.id} onClick={() => navigate(step.id)}>
-            <SidebarMenuSubButton isActive={step.current} className="cursor-pointer w-full">
+          <SidebarMenuSubItem key={step.id} onClick={handleClick}>
+            <SidebarMenuSubButton isActive={step.current} aria-disabled={disabled} className="cursor-pointer w-full">
               <span className="truncate">{t(step.title)}</span>
               {step.complete ? <CheckIcon className="h-4 w-4 ml-auto" /> : null}
             </SidebarMenuSubButton>
@@ -251,7 +256,7 @@ const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate }: StepTree
  * />
  */
 export const InterviewStepList = ({ className, showSubSteps, renderStep, steps: stepsProp }: InterviewStepListProps) => {
-  const { session, manager } = useInterview();
+  const { session, manager, isLoading } = useInterview();
   const steps = stepsProp ?? session?.steps ?? [];
 
   return (
@@ -262,6 +267,7 @@ export const InterviewStepList = ({ className, showSubSteps, renderStep, steps: 
         showSubSteps={showSubSteps}
         renderStep={renderStep}
         navigate={(id) => manager.navigate(id)}
+        disabled={isLoading}
       />
     </SidebarMenu>
   );

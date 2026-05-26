@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { Bug, X } from "lucide-react";
+import { ArrowDownLeft, Bug } from "lucide-react";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { FormTab } from "./tabs/FormTab";
 import { StepsTab } from "./tabs/StepsTab";
@@ -155,7 +155,7 @@ export const DebugPanel = () => {
           className="hover:bg-white/20 rounded p-0.5 transition-colors"
           title="Collapse"
         >
-          <X size={14} />
+          <ArrowDownLeft size={14} />
         </button>
       </div>
 

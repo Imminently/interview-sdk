@@ -674,6 +674,7 @@ export class SessionManager {
   };
 
   create = async (config: SessionConfig): Promise<Session> => {
+    this.log("create:", config);
     return this.createSession(config, "create");
   };
 
@@ -1251,6 +1252,7 @@ export class SessionManager {
     navigate?: any,
     overrides: Overrides = {},
   ) => {
+    this.log("submit:", data, navigate, overrides);
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to submit data");
       return Promise.resolve(null);
@@ -1313,6 +1315,7 @@ export class SessionManager {
 
   /** Navigate to a specific step */
   navigate = async (step: StepId, overrides: Overrides = {}) => {
+    this.log("navigate:", step, overrides);
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to navigate from");
       throw new Error("No active session to navigate from");
@@ -1340,6 +1343,7 @@ export class SessionManager {
 
   /** Navigate back to the previous step */
   back = async (overrides: Overrides = {}) => {
+    this.log("back:", overrides);
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to go back from");
       throw new Error("No active session to go back from");
@@ -1370,6 +1374,7 @@ export class SessionManager {
 
   /** Navigate to the next step with the provided data */
   next = async (data: AttributeValues, overrides: Overrides = {}) => {
+    this.log("next:", data, overrides);
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to next data");
       throw new Error("No active session to next data");
