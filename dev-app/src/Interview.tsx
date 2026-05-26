@@ -1,5 +1,5 @@
 import { type ManagerOptions, buildUrl } from "@imminently/interview-sdk";
-import { Interview, useInterview } from "@imminently/interview-ui";
+import { Interview, SidebarInset, SidebarProvider, useInterview } from "@imminently/interview-ui";
 
 export const API = {
   baseUrl: "https://api.dev.decisively.imminently.co",
@@ -7,9 +7,14 @@ export const API = {
   /** main brii project */
   // model: "af7715f3-9242-4646-a614-0932b598c5c8",
   // interview: "Award selection interview (embeds rate determination)",
+
   // dev control test
   model: "42d3e876-af7d-4579-b17f-514ee08487b8",
   interview: "Control test",
+  
+  // interview with entities and sub steps
+  // model: "8ee9a418-dfe3-4075-8920-b2d0f4bea399",
+  // interview: "Modern Age Pension New Intake"
 };
 
 export const getInterviewConfig = (token: string, interview?: string) => {
@@ -97,10 +102,12 @@ export const InterviewPage = () => {
     <Interview options={options} inlineErrors>
       <InterviewError />
       <Interview.Loading />
-      <Interview.Content />
-      <div className="fixed top-4 left-4 z-50 max-w-[300px] bg-card shadow-lg border rounded-xl overflow-auto">
-        <Interview.Debug />
-      </div>
+      <SidebarProvider>
+        <Interview.Steps showSubSteps />
+        <SidebarInset>
+          <Interview.Content />
+        </SidebarInset>
+      </SidebarProvider>
     </Interview>
   );
 };
