@@ -928,32 +928,39 @@ export class SessionManager {
       ...input,
     });
 
-    const result = await rulesEngine.solve(
-      {
-        input: input,
-        roots: roots,
-        goal: goal,
-        response_elements: [
-          {
-            type: "attributes",
-            ids: roots.map((path) => path.split("/").pop()),
-          },
-          debug
-            ? {
-              type: "graph",
-              debug: true,
-            }
-            : undefined,
-        ].filter(Boolean) as any,
-      },
-      screen.id,
-      {
-        getRelease: () => {
-          return release;
+    let result: any;
+    try {
+      result = await rulesEngine.solve(
+        {
+          input: input,
+          roots: roots,
+          goal: goal,
+          response_elements: [
+            {
+              type: "attributes",
+              ids: roots.map((path) => path.split("/").pop()),
+            },
+            debug
+              ? {
+                type: "graph",
+                debug: true,
+              }
+              : undefined,
+          ].filter(Boolean) as any,
         },
-      },
-      {},
-    );
+        screen.id,
+        {
+          getRelease: () => {
+            return Promise.resolve(release);
+          },
+        },
+        {},
+      );
+    } catch (error: any) {
+      console.error(LogGroup, "Rules engine failed to load:", error);
+      this.setState("error", new Error("Rules engine failed to load"));
+      return;
+    }
 
     this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
 
@@ -1090,9 +1097,16 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to load rules engine");
       throw new Error("No active session to load rules engine");
     }
-    const engine = await this.apiManager.getRulesEngine({ checksum: this.activeSession.rulesEngineChecksum });
-    // biome-ignore lint: https://esbuild.github.io/content-types/#direct-eval
-    return (0, eval)(engine);
+    try {
+      const engine = await this.apiManager.getRulesEngine({ checksum: this.activeSession.rulesEngineChecksum });
+      // biome-ignore lint: https://esbuild.github.io/content-types/#direct-eval
+      return (0, eval)(engine);
+    } catch (error: any) {
+      console.error(LogGroup, "Rules engine failed to load:", error);
+      const wrappedError = new Error("Rules engine failed to load");
+      this.setState("error", wrappedError);
+      throw wrappedError;
+    }
   };
 
   private makeScreenCopy = (screen?: Screen) => {
