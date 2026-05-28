@@ -4,12 +4,16 @@ import { OverviewTab } from "./tabs/OverviewTab";
 import { FormTab } from "./tabs/FormTab";
 import { StepsTab } from "./tabs/StepsTab";
 import { ControlsTab } from "./tabs/ControlsTab";
+import { SessionTab } from "./tabs/SessionTab";
+import { SessionDataTab } from "./tabs/SessionDataTab";
 import { useDebugSettings } from "@/providers";
 
-type Tab = "overview" | "form" | "steps" | "controls";
+type Tab = "overview" | "form" | "steps" | "controls" | "session" | "session-data";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "session", label: "Session" },
+  { id: "session-data", label: "Session data" },
   { id: "form", label: "Form" },
   { id: "steps", label: "Steps" },
   { id: "controls", label: "Controls" },
@@ -196,6 +200,8 @@ export const DebugPanel = () => {
           {/* Tab content */}
           <div className="flex-1 overflow-auto min-h-0">
             {activeTab === "overview" && <OverviewTab />}
+            {activeTab === "session" && <SessionTab />}
+            {activeTab === "session-data" && <SessionDataTab />}
             {activeTab === "form" && <FormTab />}
             {activeTab === "steps" && <StepsTab />}
             {activeTab === "controls" && <ControlsTab />}
