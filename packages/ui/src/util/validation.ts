@@ -174,6 +174,59 @@ export const generateValidatorForControl = (c: RenderableControl, manager?: any)
 
       return afterMin;
     }
+    case "number": {
+      const { required, numericalOptions } = c;
+      const min = parseNumericOption(numericalOptions?.min);
+      const max = parseNumericOption(numericalOptions?.max);
+      const allowDecimals = numericalOptions?.allowDecimals;
+      const maxDecimalPlaces = parseNumericOption(numericalOptions?.maxDecimalPlaces);
+
+      const schema = yup.number().typeError("Please specify a valid number. E.g. 5").nullable();
+
+      const withRequired: typeof schema =
+        required === undefined
+          ? schema
+          : schema.test("withRequired", requiredErrStr, (v) => v !== undefined && v !== null);
+
+      const withMax: typeof withRequired =
+        max === undefined
+          ? withRequired
+          : withRequired.test(
+            "withMax",
+            `Should be lower or equal to ${max}`,
+            (v) => v !== undefined && v !== null && v <= max,
+          );
+
+      const withMin: typeof withMax =
+        min === undefined
+          ? withMax
+          : withMax.test(
+            "withMin",
+            `Should be bigger or equal to ${min}`,
+            (v) => v !== undefined && v !== null && v >= min,
+          );
+
+      const withDecimals: typeof withMin =
+        allowDecimals === false
+          ? withMin.test(
+            "noDecimals",
+            "Please specify a whole number. E.g. 5",
+            (v) => v === undefined || v === null || Number.isInteger(v),
+          )
+          : maxDecimalPlaces !== undefined
+            ? withMin.test(
+              "maxDecimalPlaces",
+              `Please specify a number with at most ${maxDecimalPlaces} decimal places`,
+              (v) => {
+                if (v === undefined || v === null) return true;
+                const decimalStr = String(v).split(".")[1];
+                return decimalStr === undefined || decimalStr.length <= maxDecimalPlaces;
+              },
+            )
+            : withMin;
+
+      return withDecimals;
+    }
     case "date": {
       const { max, min, required } = c;
       /** a.k.a YYYY-MM-DD */
