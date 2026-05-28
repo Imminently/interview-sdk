@@ -22,8 +22,6 @@ export interface InterviewProps extends PropsWithChildren, InterviewConfig {
 export const Interview = ({ options, children, readOnly, ...props }: InterviewProps) => {
   const [manager] = useState(() => new SessionManager({ ...options, readOnly }));
 
-  console.log("Interview render", { options, readOnly });
-
   return (
     <InterviewProvider
       manager={manager}
