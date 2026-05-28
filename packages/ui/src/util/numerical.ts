@@ -23,6 +23,20 @@ export const parseNumericOption = (value: number | string | undefined): number |
 };
 
 /**
+ * Safely parses an arbitrary field value to a number.
+ * Returns `undefined` for arrays, objects, booleans, empty strings, or non-finite results.
+ */
+export const safeParseNumber = (value: unknown): number | undefined => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  debugger
+  return undefined;
+};
+
+/**
  * Derives the appropriate `step` value for a number input from numerical options.
  */
 export const getNumericalStep = (options: NumericalOptions | undefined): number => {
