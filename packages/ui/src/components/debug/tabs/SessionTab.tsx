@@ -46,6 +46,14 @@ export const SessionTab = () => {
           {session.context?.parent !== undefined && <Row label="Parent" value={session.context.parent} />}
         </dl>
       </section>
+
+      <section>
+        <h3 className="font-semibold mb-2 text-xs uppercase tracking-wide text-gray-500">Progress</h3>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+          <Row label="Percentage" value={session.progress?.percentage} />
+          <Row label="ETA (s)" value={session.progress?.time} />
+        </dl>
+      </section>
     </div>
   );
 };
