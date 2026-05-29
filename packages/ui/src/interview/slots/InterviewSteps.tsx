@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useTheme } from "@/providers";
 import type { Step } from "@imminently/interview-sdk";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, FlagIcon } from "lucide-react";
 import type * as React from "react";
 import { useInterview } from "../InterviewContext";
 import { InterviewProgress } from "./InterviewProgress";
@@ -158,7 +158,8 @@ const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate, disabled }
         const visibleSubSteps = step.steps?.filter((s) => s.visited || s.current);
         const showChildren = !!visibleSubSteps?.length && canShowSubStepsAtDepth(showSubSteps, depth);
 
-        const handleClick = (e: React.MouseEvent) => { e.stopPropagation(); if (!disabled) navigate(step.id); };
+        const isComplete = step.special?.type === "complete";
+        const handleClick = (e: React.MouseEvent) => { e.stopPropagation(); if (!disabled && !isComplete) navigate(step.id); };
 
         const subTree = showChildren ? (
           renderStep ? (
@@ -194,9 +195,9 @@ const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate, disabled }
         if (depth === 0) {
           return (
             <SidebarMenuItem key={step.id} onClick={handleClick}>
-              <SidebarMenuButton disabled={disabled} className="cursor-pointer" tooltip={t(step.title)}>
+              <SidebarMenuButton disabled={disabled} className={isComplete ? "cursor-default" : "cursor-pointer"} tooltip={t(step.title)}>
                 <Badge variant={getVariant(step)} className="rounded-full">
-                  {index + 1}
+                  {isComplete ? <FlagIcon/> : index + 1}
                 </Badge>
                 <span className="truncate">{t(step.title)}</span>
                 {step.complete ? <CheckIcon className="h-4 w-4 ml-auto" /> : null}
@@ -208,7 +209,7 @@ const StepTree = ({ steps, depth, showSubSteps, renderStep, navigate, disabled }
 
         return (
           <SidebarMenuSubItem key={step.id} onClick={handleClick}>
-            <SidebarMenuSubButton isActive={step.current} aria-disabled={disabled} className="cursor-pointer w-full">
+            <SidebarMenuSubButton isActive={step.current} aria-disabled={disabled} className={isComplete ? "cursor-default w-full" : "cursor-pointer w-full"}>
               <span className="truncate">{t(step.title)}</span>
               {step.complete ? <CheckIcon className="h-4 w-4 ml-auto" /> : null}
             </SidebarMenuSubButton>
