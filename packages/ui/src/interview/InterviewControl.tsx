@@ -81,16 +81,6 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     [schema],
   );
 
-  // NOTE - this forces the default value to be set, if the form has undefined
-  // this is needed for number_of_instances to work properly when navigating back
-  // It currently runs twice, which is indicating something else is happening
-  // but it does work and seems to have no impact on other controls
-  if(form.getValues(name) === undefined && defaultValue !== undefined) {
-    // console.log(`[InterviewControl] ${control.type}:`, { control, resolvedControl, name, defaultValue, value: form.getValues(name) });
-    // console.log(`[InterviewControl] setting default value for ${name}:`, defaultValue);
-    form.setValue(name, defaultValue);
-  }
-
   // set validation errors from the session object
   const { setError, clearErrors } = form;
   const validations = useAttributeValidationErrors(control.attribute);
