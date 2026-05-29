@@ -71,12 +71,13 @@ export interface TypographyControlProps {
   control: TypographyControl;
 }
 
-const TypographyDebug = ({ name, control }: { name: string; control: TypographyControl }) => {
+const TypographyDebug = ({ name, control }: { name?: string; control: TypographyControl }) => {
   const { t } = useTheme();
   const context = useInterview();
   const graph = useMemo(() => context.manager.parsedGraph, [context]);
 
-  const node = graph ? graph.node(name) : { description: "No graph", entity: "N/A" };
+  const attribute = name?.split("/").pop()?.split(".").pop() ?? name;
+  const node = graph && attribute ? graph.node(attribute) : null;
   // console.log("TypographyDebug", { name, node });
 
   const dynamic = [] as string[];
@@ -110,10 +111,14 @@ const TypographyDebug = ({ name, control }: { name: string; control: TypographyC
     <Tooltip>
       <TooltipTrigger asChild>
         <div tabIndex={-1} onClick={handleDebugClick} data-slot="debug-info" className="flex flex-col text-xs text-muted-foreground">
-          <div className="flex flex-row gap-1 items-center">
-            {node?.entity ? <span>[{node.entity}]</span> : null}
-            <span>{node?.description ?? `Missing node for ${name}`}</span>
-          </div>
+          {
+            node ? (
+              <div className="flex flex-row gap-1 items-center">
+                {node?.entity ? <span>[{node.entity}]</span> : null}
+                <span>{node?.description ?? "-"}</span>
+              </div>
+            ) : null
+          }
           {/* @ts-ignore */}
           {control.templateText ? <span>Template: {control.templateText}</span> : null}
           {dynamic.length > 0 ? (<span>Dynamic Attributes: {dynamic.join(", ")}</span>) : null}
@@ -149,7 +154,7 @@ export const Typography = ({ control }: TypographyControlProps) => {
   if (control.label) {
     return (
       <>
-        {debugEnabled ? <TypographyDebug name={control.attribute ?? control.id} control={control} /> : null}
+        {debugEnabled ? <TypographyDebug name={control.attribute} control={control} /> : null}
         <FormField
           name={control.attribute ?? control.id}
           data={control}
@@ -165,7 +170,7 @@ export const Typography = ({ control }: TypographyControlProps) => {
 
   return (
     <>
-      {debugEnabled ? <TypographyDebug name={control.attribute ?? control.id} control={control} /> : null}
+      {debugEnabled ? <TypographyDebug name={control.attribute} control={control} /> : null}
       {component}
     </>
   );

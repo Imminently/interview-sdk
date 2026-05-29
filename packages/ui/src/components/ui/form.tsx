@@ -114,7 +114,11 @@ export const FormItemDebug = () => {
     });
   };
 
-  const node = graph ? graph.node(name) : { description: "No graph", entity: "N/A" };
+  // name might be a path, separated by / or ., so we need to strip to just the id at the end for lookup in the graph
+  const attribute = name.split("/").pop()?.split(".").pop() ?? name;
+  const node = graph ? graph.node(attribute) : { description: "No graph", entity: "N/A" };
+  const entity = node?.entity ? `[${node.entity}]` : (control as any).entity ? `[${(control as any).entity}]` : undefined;
+
   // doing a weird fallback tooltip, as our translation layer fallbacks to the key
   const defaultTooltip = "Click to log control to console. Shift+Click to trigger debug callback.";
   const tooltipKey = "form.debugTooltip";
@@ -125,8 +129,8 @@ export const FormItemDebug = () => {
     <Tooltip>
       <TooltipTrigger asChild>
         <div tabIndex={-1} onClick={handleDebugClick} data-slot="debug-info" className="flex flex-row gap-1 text-xs text-muted-foreground items-center cursor-pointer">
-          {node?.entity ? <span>[{node.entity}]</span> : null}
-          <span>{node?.description ?? `Missing node for ${name}`}</span>
+          {entity ? <span>{entity}</span> : null}
+          <span>{node?.description ?? "-"}</span>
           <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
         </div>
       </TooltipTrigger>
