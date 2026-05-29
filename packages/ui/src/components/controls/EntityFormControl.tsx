@@ -117,16 +117,16 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
     if (!initialized.current && fields.length === 0) {
       initialized.current = true;
 
+      // IMPORTANT: all items must be appended in a single call, not in a loop.
+      // When the parent form is brand new (e.g. after a screen change re-mounts InterviewForm),
+      // the field array's internal ref is not yet established. Calling append() multiple times
+      // synchronously before a re-render causes each call to read the same empty base state,
+      // so every call overwrites the previous one and only the last item survives.
+      // Passing an array lets react-hook-form add all items atomically from one base state.
       if (control.instances && control.instances.length > 0) {
-        for (const instance of control.instances) {
-          append({
-            "@id": instance.id || uuid(),
-          });
-        }
+        append(control.instances.map((instance) => ({ "@id": instance.id || uuid() })));
       } else if (effectiveDefault > 0) {
-        for (let i = 0; i < effectiveDefault; i++) {
-          append({ "@id": uuid() });
-        }
+        append(Array.from({ length: effectiveDefault }, () => ({ "@id": uuid() })));
       }
     }
   }, [control.instances, fields.length, initialized, effectiveDefault, append]);
