@@ -24,6 +24,14 @@ const COLLAPSED_W = 98;
 const COLLAPSED_H = 36;
 const getDefaultPos = () => ({ x: 20, y: 20 }); // left, bottom offsets
 
+// Module-level memory so state survives remounts (e.g. screen changes)
+const panelMemory = {
+  expanded: false,
+  activeTab: "overview" as Tab,
+  pos: getDefaultPos(),
+  size: DEFAULT_SIZE,
+};
+
 /**
  * A floating, draggable debug panel with tabs for inspecting interview state.
  *
@@ -37,10 +45,10 @@ const getDefaultPos = () => ({ x: 20, y: 20 }); // left, bottom offsets
  */
 export const DebugPanel = () => {
   const { debugEnabled } = useDebugSettings();
-  const [expanded, setExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [pos, setPos] = useState(getDefaultPos);
-  const [size, setSize] = useState(DEFAULT_SIZE);
+  const [expanded, setExpanded] = useState(() => panelMemory.expanded);
+  const [activeTab, setActiveTab] = useState<Tab>(() => panelMemory.activeTab);
+  const [pos, setPos] = useState(() => panelMemory.pos);
+  const [size, setSize] = useState(() => panelMemory.size);
 
   const [isInteracting, setIsInteracting] = useState(false);
 
@@ -68,6 +76,7 @@ export const DebugPanel = () => {
       // Y is inverted because we anchor to bottom
       const newPos = { x: startPosX + dx, y: startPosY - dy };
       posRef.current = newPos;
+      panelMemory.pos = newPos;
       setPos(newPos);
     };
 
@@ -106,10 +115,12 @@ export const DebugPanel = () => {
         : Math.max(240, startH - dy);
       const newSize = { width: Math.max(320, startW + dx), height: newH };
       sizeRef.current = newSize;
+      panelMemory.size = newSize;
       setSize(newSize);
       if (isBottom) {
         const newPos = { x: posRef.current.x, y: startPosY - (newH - startH) };
         posRef.current = newPos;
+        panelMemory.pos = newPos;
         setPos(newPos);
       }
     };
@@ -150,7 +161,7 @@ export const DebugPanel = () => {
         <button
           type="button"
           onMouseDown={startDrag}
-          onClick={() => { if (!hasDragged.current) setExpanded(true); }}
+          onClick={() => { if (!hasDragged.current) { panelMemory.expanded = true; setExpanded(true); } }}
           title="Open Debug Panel"
           className="flex items-center gap-2 text-sm font-medium cursor-grab active:cursor-grabbing text-white w-full h-full px-3 hover:bg-gray-700 transition-colors"
         >
@@ -171,7 +182,7 @@ export const DebugPanel = () => {
             <button
               type="button"
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={() => setExpanded(false)}
+              onClick={() => { panelMemory.expanded = false; setExpanded(false); }}
               className="hover:bg-white/20 rounded p-0.5 transition-colors"
               title="Collapse"
             >
@@ -185,7 +196,7 @@ export const DebugPanel = () => {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { panelMemory.activeTab = tab.id; setActiveTab(tab.id); }}
                 className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
                   activeTab === tab.id
                     ? "border-gray-900 text-gray-900"
