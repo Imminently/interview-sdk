@@ -14,7 +14,7 @@ export const NumberOfInstancesFormControl = ({ field }: UseControllerReturn) => 
       {control.label ? <FormLabel>{t(control.label)}</FormLabel> : null}
       <FormControl>
         <NumberInput
-          value={typeof field.value === "number" ? field.value : field.value ? Number(field.value) : undefined}
+          value={field.value}
           onChange={(value) => field.onChange(value ?? "")}
           disabled={field.disabled || control.readOnly}
           placeholder={t("form.text_placeholder")}

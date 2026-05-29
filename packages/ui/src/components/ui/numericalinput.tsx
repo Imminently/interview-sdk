@@ -1,4 +1,4 @@
-import { cn } from "@/util";
+import { cn, safeParseNumber } from "@/util";
 import { NumberField } from "@base-ui-components/react/number-field";
 import { cva } from "class-variance-authority";
 import * as React from "react";
@@ -22,7 +22,7 @@ const numberInputVariants = cva("", {
 });
 
 export interface NumberInputProps {
-  value?: number;
+  value?: unknown;
   defaultValue?: number;
   onChange?: (value: number | undefined) => void;
   onValueChange?: (value: number | undefined) => void;
@@ -210,7 +210,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
     return (
       <NumberField.Root
-        value={value ?? null}
+        value={safeParseNumber(value) ?? null}
         defaultValue={defaultValue}
         onValueChange={handleValueChange}
         min={min}

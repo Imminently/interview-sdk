@@ -1,5 +1,5 @@
 import { useTheme } from "@/providers";
-import { getNumericalStep, parseNumericOption, safeParseNumber } from "@/util";
+import { getNumericalStep, parseNumericOption } from "@/util";
 import type { NumberControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
 import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
@@ -19,7 +19,7 @@ export const NumberFormControl = ({ field }: UseControllerReturn) => {
       <FormLabel>{t(control.label)}</FormLabel>
       <FormControl>
         <NumberInput
-          value={safeParseNumber(field.value)}
+          value={field.value}
           onChange={(value) => field.onChange(value ?? "")}
           disabled={field.disabled || control.readOnly}
           placeholder={t("form.text_placeholder")}

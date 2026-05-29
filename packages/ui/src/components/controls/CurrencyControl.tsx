@@ -21,7 +21,7 @@ export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
       </FormLabel>
       <FormControl>
         <NumberInput
-          value={field.value ? Number(field.value) : undefined}
+          value={field.value}
           onChange={(value) => field.onChange(value?.toString() ?? "")}
           disabled={field.disabled || control.readOnly}
           placeholder={t("form.text_placeholder")}

@@ -41,7 +41,7 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
           />
         ) : isNumberType ? (
           <NumberInput
-            value={field.value ? Number(field.value) : undefined}
+            value={field.value}
             onChange={(value) => field.onChange(value?.toString() ?? "")}
             disabled={disabled}
             placeholder={t("form.text_placeholder")}
