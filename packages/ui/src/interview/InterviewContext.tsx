@@ -38,6 +38,26 @@ export type InterviewConfig = {
 
 const InterviewContext = createContext<InterviewContextState | undefined>(undefined);
 
+type InterviewFormProps = PropsWithChildren<{
+  formId: string;
+  form?: ExposedFormControls;
+  className?: string;
+  onSubmit: (data: any) => void;
+}>;
+
+const InterviewForm = ({ formId, form, className, onSubmit, children }: InterviewFormProps) => {
+  const methods = useForm(form);
+  const handleSubmit = methods.handleSubmit(onSubmit);
+
+  return (
+    <FormProvider {...methods}>
+      <form data-slot={"form"} className={cn("flex flex-1 min-h-0", className)} id={formId} onSubmit={handleSubmit}>
+        {children}
+      </form>
+    </FormProvider>
+  );
+};
+
 export const useInterview = () => {
   const ctx = useContext(InterviewContext);
   if (!ctx) throw new Error("useInterview must be used within InterviewProvider");
@@ -65,7 +85,6 @@ export const InterviewProvider = ({ manager, children, className, ...config }: I
   const { form, theme, icons, slots, callbacks } = config;
   // Generate a unique form ID for this interview instance
   const formId = useId();
-  const methods = useForm(form);
   const snapshot = useSyncExternalStore(manager.subscribe, manager.getSnapshot);
 
   if (manager.isDebugEnabled()) {
@@ -111,9 +130,6 @@ export const InterviewProvider = ({ manager, children, className, ...config }: I
     ...manager.options
   }), [config.inlineErrors, manager.options]);
 
-  // ensure the form is submitted when the user clicks the next button or presses enter
-  const handleNext = methods.handleSubmit((data) => manager.next(data));
-
   return (
     <OptionsProvider value={options}>
       <ThemeProvider
@@ -123,11 +139,15 @@ export const InterviewProvider = ({ manager, children, className, ...config }: I
       >
         <InterviewContext.Provider value={value}>
           <AttributeNestingProvider value={false}>
-            <FormProvider {...methods}>
-              <form data-slot={"form"} className={cn("flex flex-1 min-h-0", className) } id={formId} onSubmit={handleNext}>
-                {children}
-              </form>
-            </FormProvider>
+            <InterviewForm
+              key={snapshot.session?.screen?.id}
+              formId={formId}
+              form={form}
+              className={className}
+              onSubmit={(data) => manager.next(data)}
+            >
+              {children}
+            </InterviewForm>
           </AttributeNestingProvider>
         </InterviewContext.Provider>
       </ThemeProvider>
