@@ -39,10 +39,10 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
 
       if ("attribute" in subControl || subControl.type === "entity") {
         // @ts-ignore subControl.entity is not always defined
-        const key = (subControl.attribute || subControl.entity)?.split("/").pop();
-        if (!key) return null;
+        const attrib = (subControl.attribute || subControl.entity)?.split("/").pop();
+        if (!attrib) return null;
 
-        const path = parentPath ? `${parentPath}.${index}.${key}` : `${control.entity}.${index}.${key}`;
+        const path = parentPath ? `${parentPath}.${index}.${attrib}` : `${control.entity}.${index}.${attrib}`;
 
         const childControl = {
           ...subControl,
