@@ -2,19 +2,23 @@ import { useCallback, useRef, useState } from "react";
 import { ArrowDownLeft, Bug } from "lucide-react";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { FormTab } from "./tabs/FormTab";
+import { FormStateTab } from "./tabs/FormStateTab";
 import { StepsTab } from "./tabs/StepsTab";
 import { ControlsTab } from "./tabs/ControlsTab";
 import { SessionTab } from "./tabs/SessionTab";
 import { SessionDataTab } from "./tabs/SessionDataTab";
+import { ValidationsTab } from "./tabs/ValidationsTab";
 import { useDebugSettings } from "@/providers";
 
-type Tab = "overview" | "form" | "steps" | "controls" | "session" | "session-data";
+type Tab = "overview" | "form" | "form-state" | "steps" | "controls" | "session" | "session-data" | "validations";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "session", label: "Session" },
   { id: "session-data", label: "Session data" },
+  { id: "validations", label: "Validations" },
   { id: "form", label: "Form" },
+  { id: "form-state", label: "Form state" },
   { id: "steps", label: "Steps" },
   { id: "controls", label: "Controls" },
 ];
@@ -191,13 +195,13 @@ export const DebugPanel = () => {
           </div>
 
           {/* Tab bar */}
-          <div className="flex border-b border-gray-200 shrink-0 bg-gray-50">
+          <div className="flex border-b border-gray-200 shrink-0 bg-gray-50 overflow-x-auto">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => { panelMemory.activeTab = tab.id; setActiveTab(tab.id); }}
-                className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px shrink-0 whitespace-nowrap ${
                   activeTab === tab.id
                     ? "border-gray-900 text-gray-900"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -213,7 +217,9 @@ export const DebugPanel = () => {
             {activeTab === "overview" && <OverviewTab />}
             {activeTab === "session" && <SessionTab />}
             {activeTab === "session-data" && <SessionDataTab />}
+            {activeTab === "validations" && <ValidationsTab />}
             {activeTab === "form" && <FormTab />}
+            {activeTab === "form-state" && <FormStateTab />}
             {activeTab === "steps" && <StepsTab />}
             {activeTab === "controls" && <ControlsTab />}
           </div>

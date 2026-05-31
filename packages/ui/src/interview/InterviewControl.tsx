@@ -6,7 +6,7 @@ import { type RegisterOptions, useFormContext } from "react-hook-form";
 import { FormField } from "../components/ui/form";
 import { useAttributeToFieldName } from "../util/attribute-to-field-name";
 import { useValidatorForControl, useAttributeValidationErrors } from "../util/validation";
-import { useOptions } from "@/providers";
+import { useDebugSettings, useOptions } from "@/providers";
 // import directly to avoid circular dependency
 import { parseControl } from "@/components/parseControl";
 
@@ -43,6 +43,7 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
   // @ts-ignore
   const { attribute, hidden } = control;
   const { inlineErrors, _experimental_strictMode } = useOptions();
+  const { debugEnabled } = useDebugSettings();
   const { unregister, ...form } = useFormContext();
   // take a local copy
   // TODO why do some of the controls have booleans listed as type 'true'?
@@ -68,17 +69,20 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
     () => ({
       validate: async (value) => {
         if (!schema) {
+          if (debugEnabled) {
+            console.log("[InterviewControl] validate", { control: resolvedControl, value, result: true, schema: "none" });
+          }
           return true;
         }
-        try {
-          await schema.validate(value);
-          return true;
-        } catch (e: any) {
-          return e.errors.join(", ");
+        const result = await schema.safeParseAsync(value);
+        const returnValue = result.success ? true : result.error.errors.map((e) => e.message).join(", ");
+        if (debugEnabled) {
+          console.log("[InterviewControl] validate", { control: resolvedControl, value, result: returnValue });
         }
+        return returnValue;
       },
     }),
-    [schema],
+    [schema, debugEnabled, resolvedControl],
   );
 
   // set validation errors from the session object
