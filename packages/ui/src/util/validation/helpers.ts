@@ -30,6 +30,15 @@ export const timeToSeconds = (input: any): number => {
     return hh * 3600 + mm * 60;
   }
 
+  // Bare digit string (e.g. "930" or "1030") — interpret as HHMM
+  if (/^\d{1,4}$/.test(s)) {
+    const padded = s.padStart(4, "0");
+    const hh = Number(padded.slice(0, 2));
+    const mm = Number(padded.slice(2, 4));
+    if (hh <= 23 && mm <= 59) return hh * 3600 + mm * 60;
+    return NaN;
+  }
+
   // Fallback: attempt Date parse (may include timezone offsets)
   const dt = new Date(s);
   if (!Number.isNaN(Number(dt))) {

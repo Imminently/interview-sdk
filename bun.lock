@@ -49,7 +49,7 @@
     },
     "packages/core": {
       "name": "@imminently/interview-sdk",
-      "version": "4.1.0",
+      "version": "4.2.0",
       "dependencies": {
         "@dagrejs/graphlib": "^2.2.4",
         "@date-fns/utc": "^2.1.1",
@@ -76,7 +76,7 @@
     },
     "packages/ui": {
       "name": "@imminently/interview-ui",
-      "version": "4.1.3",
+      "version": "4.2.2",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@radix-ui/react-checkbox": "^1.3.3",
@@ -122,6 +122,7 @@
         "@types/react": "^19.2.2",
         "@types/react-dom": "^19.2.2",
         "autoprefixer": "^10.4.21",
+        "bun-types": "^1.3.14",
         "postcss": "^8.5.6",
         "tailwindcss": "^4.1.16",
         "tsup": "^8.5.0",
@@ -129,8 +130,8 @@
       },
       "peerDependencies": {
         "@imminently/interview-sdk": ">= 0.2.0",
-        "react": "^19.1.0",
-        "react-dom": "^19.1.0",
+        "react": ">= 19",
+        "react-dom": ">= 19",
         "react-hook-form": "^7.72.1",
       },
     },
@@ -789,6 +790,8 @@
     "bser": ["bser@2.1.1", "", { "dependencies": { "node-int64": "^0.4.0" } }, "sha512-gQxTNE/GAfIIrmHLUE3oJyp5FO6HRBfhjnw4/wMmA63ZGDJnWBmgY/lyQBpnDUkGmAhbSe39tx2d/iTOAfglwQ=="],
 
     "buffer-from": ["buffer-from@1.1.2", "", {}, "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ=="],
+
+    "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "bundle-require": ["bundle-require@5.1.0", "", { "dependencies": { "load-tsconfig": "^0.2.3" }, "peerDependencies": { "esbuild": ">=0.18" } }, "sha512-3WrrOuZiyaaZPWiEt4G3+IffISVC9HYlWueJEBWED4ZH4aIAC2PnkdnuRrR94M+w6yGWn4AglWtJtBI8YqvgoA=="],
 

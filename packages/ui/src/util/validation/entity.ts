@@ -1,6 +1,6 @@
 import type { RenderableEntityControl } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { parseNumericOption } from "..";
+import { parseNumericOption } from "../numerical";
 
 export const entityValidator = (c: RenderableEntityControl): z.ZodTypeAny | undefined => {
   const min = parseNumericOption((c as any).min);

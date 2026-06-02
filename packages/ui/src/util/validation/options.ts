@@ -1,6 +1,6 @@
 import type { OptionsControl } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { requiredErrStr } from "..";
+import { requiredErrStr } from "../global";
 
 export const optionsValidator = (c: OptionsControl, manager?: any): z.ZodTypeAny => {
   const { required, asyncOptions } = c;

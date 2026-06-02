@@ -1,6 +1,7 @@
 import type { NumberOfInstancesControl } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { parseNumericOption, requiredErrStr } from "..";
+import { parseNumericOption } from "../numerical";
+import { requiredErrStr } from "../global";
 
 export const numberOfInstancesValidator = (c: NumberOfInstancesControl): z.ZodTypeAny => {
   const max = parseNumericOption(c.max);

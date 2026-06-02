@@ -1,6 +1,7 @@
 import type { TextControl } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { parseNumericOption, requiredErrStr } from "..";
+import { parseNumericOption } from "../numerical";
+import { requiredErrStr } from "../global";
 
 export const textValidator = (c: TextControl): z.ZodTypeAny => {
   const { required, variation } = c;

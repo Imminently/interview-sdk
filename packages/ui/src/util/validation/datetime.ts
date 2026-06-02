@@ -6,7 +6,7 @@ import {
   TIME_FORMAT_24,
 } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate } from "..";
+import { deriveDateFromTimeComponent, requiredErrStr, resolveNowInDate } from "../global";
 
 export const datetimeValidator = (c: DateTimeControl): z.ZodTypeAny => {
   const { required, time_max, time_min, date_max, date_min, amPmFormat } = c;

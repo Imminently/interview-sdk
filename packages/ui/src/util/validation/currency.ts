@@ -1,6 +1,7 @@
 import type { CurrencyControl } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { parseNumericOption, requiredErrStr } from "..";
+import { parseNumericOption } from "../numerical";
+import { requiredErrStr } from "../global";
 
 export const currencyValidator = (c: CurrencyControl): z.ZodTypeAny => {
   const { required } = c;

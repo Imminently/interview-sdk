@@ -1,6 +1,6 @@
 import { formatDate, type TimeControl, TIME_FORMAT_12, TIME_FORMAT_24 } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { requiredErrStr } from "..";
+import { requiredErrStr } from "../global";
 import { timeToSeconds } from "./helpers";
 
 export const timeValidator = (c: TimeControl): z.ZodTypeAny => {

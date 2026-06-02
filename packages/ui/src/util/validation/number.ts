@@ -1,6 +1,7 @@
 import type { NumberControl } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { parseNumericOption, requiredErrStr } from "..";
+import { parseNumericOption } from "../numerical";
+import { requiredErrStr } from "../global";
 
 export const numberValidator = (c: NumberControl): z.ZodTypeAny => {
   const { required, numericalOptions } = c;

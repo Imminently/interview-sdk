@@ -1,6 +1,6 @@
 import type { DateControl } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { requiredErrStr, resolveNowInDate } from "..";
+import { requiredErrStr, resolveNowInDate } from "../global";
 
 /** a.k.a YYYY-MM-DD */
 const DATE_FORMAT_REGEX = /^\d\d\d\d-\d\d-\d\d$/;
