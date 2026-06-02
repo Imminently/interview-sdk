@@ -9,7 +9,7 @@ export const currencyValidator = (c: CurrencyControl): z.ZodTypeAny => {
   const min = parseNumericOption(c.min);
 
   let schema: z.ZodTypeAny = z
-    .number({ invalid_type_error: "Please specify a valid number. E.g. 5.50" })
+    .number({ error: "Please specify a valid number. E.g. 5.50" })
     .nullable()
     .optional();
 

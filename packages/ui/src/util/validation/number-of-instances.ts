@@ -8,7 +8,7 @@ export const numberOfInstancesValidator = (c: NumberOfInstancesControl): z.ZodTy
   const min = parseNumericOption(c.min);
 
   let schema: z.ZodTypeAny = z
-    .number({ invalid_type_error: "Please specify a valid positive integer. E.g. 5" })
+    .number({ error: "Please specify a valid positive integer. E.g. 5" })
     .nullable()
     .optional();
 

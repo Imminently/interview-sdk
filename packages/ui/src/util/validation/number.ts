@@ -11,7 +11,7 @@ export const numberValidator = (c: NumberControl): z.ZodTypeAny => {
   const maxDecimalPlaces = parseNumericOption(numericalOptions?.maxDecimalPlaces);
 
   let schema: z.ZodTypeAny = z
-    .number({ invalid_type_error: "Please specify a valid number. E.g. 5" })
+    .number({ error: "Please specify a valid number. E.g. 5" })
     .nullable()
     .optional();
 
