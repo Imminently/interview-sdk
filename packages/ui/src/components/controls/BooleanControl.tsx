@@ -5,6 +5,21 @@ import { Checkbox } from "../ui/checkbox";
 import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Explanation } from "./Explanation";
 
+const toBool = (v: any): boolean | null | undefined => {
+  if (v === null) return null;
+  if (v === undefined) return undefined;
+  if (typeof v === "boolean") return v;
+  if (v === "true" || v === 1 || v === "1") return true;
+  if (v === "false" || v === 0 || v === "0") return false;
+  return v;
+};
+
+export const parseBooleanControl = (control: BooleanControl): BooleanControl => ({
+  ...control,
+  value: toBool(control.value),
+  default: toBool(control.default),
+});
+
 export const BooleanFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
   const { control } = useFormField<BooleanControl>();

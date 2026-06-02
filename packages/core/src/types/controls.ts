@@ -42,7 +42,7 @@ export interface BooleanControl extends BaseControl {
   labelLength?: number;
   required?: true;
   disabled?: true;
-  default?: boolean;
+  default?: boolean | null;
   value?: boolean | null;
   // The GUID of the attribute
   attribute: string;
@@ -72,7 +72,7 @@ export interface CurrencyControl extends BaseControl {
   labelLength?: number;
   required?: true;
   disabled?: true;
-  default?: number;
+  default?: number | null;
   /** uuid */
   attribute: string;
   value?: number | null;
@@ -103,7 +103,7 @@ export interface NumberControl extends BaseControl {
   /** current numeric value */
   value?: number | null;
   /** numeric default */
-  default?: number;
+  default?: number | null;
   /** Numeric-only configuration */
   numericalOptions?: {
     /** The minimum numeric value allowed */

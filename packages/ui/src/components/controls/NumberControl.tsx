@@ -5,6 +5,20 @@ import type { UseControllerReturn } from "react-hook-form";
 import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { NumberInput } from "../ui/numericalinput";
 
+const toNum = (v: any): number | null | undefined => {
+  if (v === null) return null;
+  if (v === undefined) return undefined;
+  if (typeof v === "number") return v;
+  const n = Number(v);
+  return Number.isNaN(n) ? undefined : n;
+};
+
+export const parseNumberControl = (control: NumberControl): NumberControl => ({
+  ...control,
+  value: toNum(control.value),
+  default: toNum(control.default),
+});
+
 export const NumberFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
   const { control } = useFormField<NumberControl>();
