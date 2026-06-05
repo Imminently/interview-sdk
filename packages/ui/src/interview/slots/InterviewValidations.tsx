@@ -21,6 +21,7 @@ export const InterviewValidations = ({ asChild, className, severity, ...props }:
 
   return (
     <div
+      data-slot="validations"
       className={clsx("flex flex-col gap-2 p-2 w-full overflow-y-auto max-h-[200px]", className)}
       {...props}
     >
@@ -28,6 +29,8 @@ export const InterviewValidations = ({ asChild, className, severity, ...props }:
         return (
           <Alert
             key={`${validation.parent}/${validation.id}`}
+            data-slot="validation"
+            data-severity={validation.severity}
             variant={validation.severity === "error" ? "red" : "yellow"}
           >
             <AlertDescription>{validation.message}</AlertDescription>

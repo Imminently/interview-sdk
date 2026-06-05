@@ -15,7 +15,6 @@ import {
   type ManagerLifecycleSessionStartSource,
   type ManagerLifecycleSessionUpdateSource,
 } from "./manager-events";
-import { SIDEBAR_DYNAMIC_DATA_INFO } from "./sidebars/sidebar";
 import type {
   AttributeValues,
   ChatResponse,
@@ -201,6 +200,15 @@ export interface ManagerOptions {
   sessionStore?: Storage;
   lifecycle?: ManagerLifecycleOptions;
   readOnly?: boolean;
+}
+
+declare global {
+  interface Window {
+    __INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__?: boolean;
+    __INTERVIEW_HARNESS_LAST_CLIENT_SOLVE_RESPONSE__?: any;
+    __INTERVIEW_HARNESS_CLIENT_SOLVE_PROMISE__?: Promise<any>;
+    __INTERVIEW_HARNESS_RESOLVE_CLIENT_SOLVE__?: (response: any) => void;
+  }
 }
 
 export const updateReportingWithReplacements = (reporting: any, replacements: any, parent?: string) => {
@@ -443,7 +451,7 @@ export class SessionManager {
 
   private preCacheClient = () => {
     // try to pre-cache the client-side dynamic runtime
-    if (this.options.preCacheClient && !this.rulesEnginePromise) {
+    if (this.options.preCacheClient && this.clientGraph && !this.rulesEnginePromise) {
       this.log("Pre-caching client-side dynamic runtime");
       this.rulesEnginePromise = this.loadRulesEngine();
     }
@@ -886,6 +894,11 @@ export class SessionManager {
     if (!this.activeSession || !this.clientGraph) {
       return;
     }
+    if (typeof window !== "undefined" && window.__INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__) {
+      window.__INTERVIEW_HARNESS_CLIENT_SOLVE_PROMISE__ = new Promise((resolve) => {
+        window.__INTERVIEW_HARNESS_RESOLVE_CLIENT_SOLVE__ = resolve;
+      });
+    }
     const { data, screen } = this.activeSession;
     if (!this.rulesEnginePromise) {
       this.rulesEnginePromise = this.loadRulesEngine();
@@ -940,6 +953,10 @@ export class SessionManager {
               type: "attributes",
               ids: roots.map((path) => path.split("/").pop()),
             },
+            {
+              type: "screenUpdate",
+              screen,
+            },
             debug
               ? {
                 type: "graph",
@@ -956,13 +973,22 @@ export class SessionManager {
         },
         {},
       );
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
     } catch (error: any) {
       console.error(LogGroup, "Rules engine failed to load:", error);
       this.setState("error", new Error("Rules engine failed to load"));
-      return;
+      throw error;
     }
 
     this.log(`[${LogGroup}] Calculated':`, structuredClone(result));
+
+    if (typeof window !== "undefined" && window.__INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__) {
+      window.__INTERVIEW_HARNESS_LAST_CLIENT_SOLVE_RESPONSE__ = result;
+      window.__INTERVIEW_HARNESS_RESOLVE_CLIENT_SOLVE__?.(result);
+    }
 
     return result;
   }
@@ -999,33 +1025,25 @@ export class SessionManager {
 
         this.log("Calculated replacement queries:", replacementQueries);
 
-        const newScreen = this.makeScreenCopy();
-        const hasUnknownsRequiringSimulate = Object.keys(this.internals.unknownsRequiringSimulate).length > 0;
-
         // If client-side dynamic runtime is available, always solve all dynamic goals.
         // unknownsRequiringSimulate is treated as a server-side queue only.
         if (this.clientGraph) {
           try {
-            const result = await this.runRulesEngine();
-            if (result?.reporting) {
-              const replacements = createEntityPathedData({
-                ...result.reporting.global,
-                ...result.reporting,
-                global: undefined,
-              });
-              this.log(`[${LogGroup}] Replacements':`, replacements);
-              this.internals.replacements = replacements;
+            const clientDynamicResult = await this.runRulesEngine(
+              typeof window !== "undefined" && window.__INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__,
+            );
 
-              // Keep server-side queue only for goals not solved client-side.
-              for (const goal of Object.keys(this.internals.unknownsRequiringSimulate)) {
-                if (this.internals.replacements[goal] !== undefined) {
-                  delete this.internals.unknownsRequiringSimulate[goal];
-                }
-              }
+            if (!clientDynamicResult?.screen) {
+              throw new Error("Client dynamic solve did not return a screen");
             }
 
-            // make sure we update the newScreen, as thats our working copy
-            this.activeSession.validations = result?.validations;
+            this.activeSession.screen = clientDynamicResult.screen;
+            this.activeSession.reporting = clientDynamicResult.reporting;
+            this.activeSession.validations = clientDynamicResult?.validations;
+            this.updateSession(this.activeSession, "simulate");
+            this.triggerUpdate(false);
+            this.internals.prevUserValues = structuredClone(this.internals.userValues);
+            return;
           } catch (error) {
             console.error(`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`, error);
             // surface error under validations, so the user knows something went wrong
@@ -1037,56 +1055,21 @@ export class SessionManager {
               message: "An error occurred while processing your input. Please refresh and try again.",
               shown: true,
             }];
-          }
-
-          // Update screen with new values
-          if (newScreen?.controls) {
-            iterateControls(newScreen.controls, (control: any) => {
-              control.loading = undefined;
-              postProcessControl(control, this.internals.replacements, data, state, locale);
-            });
-          }
-
-          // Update progress state
-          const nextButton = screen.buttons?.next;
-          if (nextButton && typeof nextButton === "object") {
-            this.internals.canProgress = nextButton.dependencies.every(
-              (attr) => (this.internals.userValues[attr] || this.internals.replacements[attr]) === true,
-            );
+            this.updateSession(this.activeSession, "simulate");
+            this.triggerUpdate(false);
+            this.internals.prevUserValues = structuredClone(this.internals.userValues);
+            return;
           }
         }
 
-        this.activeSession.reporting = updateReportingWithReplacements(
-          this.activeSession.reporting,
-          this.internals.replacements,
-          this.activeSession.data?.["@parent"],
-        );
-        this.log("New reporting object", this.activeSession.reporting);
-
-        this.internals.sidebarSimulate = replacementQueries.sidebarSimulate;
-        if (newScreen.sidebars) {
-          for (const sidebar of newScreen.sidebars) {
-            if (sidebar.id) {
-              sidebar.loading = this.internals.sidebarSimulate?.ids.includes(sidebar.id);
-            }
-          }
-        }
-
-        const requiresServiceDynamic = Boolean(
-          !this.clientGraph &&
-          (hasUnknownsRequiringSimulate || replacementQueries.sidebarSimulate?.ids?.length),
-        );
-
-        this.activeSession.screen = newScreen;
-        this.updateSession(this.activeSession, "simulate");
-
-        // Handle any remaining unknowns that require server-side simulation
-        if (requiresServiceDynamic) {
-          this.triggerUpdate(true);
-          this.serverSideDynamic();
-        } else {
-          this.triggerUpdate(false);
-        }
+        this.updateSession({
+          ...this.activeSession,
+          screen: this.makeScreenCopy(),
+        }, "simulate");
+        this.triggerUpdate(true);
+        this.serverSideDynamic();
+        this.internals.prevUserValues = structuredClone(this.internals.userValues);
+        return;
       }
     }
     this.internals.prevUserValues = structuredClone(this.internals.userValues);
@@ -1121,58 +1104,48 @@ export class SessionManager {
       this.triggerUpdate(false);
       return;
     }
-    let newScreen: Screen | undefined;
-    if (Object.keys(this.internals.unknownsRequiringSimulate).length > 0 && this.activeSession.screen) {
-      const requestId = this.internals.latestRequest;
+    const requestId = this.internals.latestRequest;
 
-      const result = await this.apiManager.simulate({
-        session: this.activeSession,
-        payload: {
-          goal: this.activeSession.goal,
-          mode: "interview",
-          data: {
-            "@parent": this.activeSession.data["@parent"],
-            ...(this.internals.userValues as any),
+    const result = await this.apiManager.simulate({
+      session: this.activeSession,
+      payload: {
+        goal: this.activeSession.goal,
+        response: [
+          {
+            type: "screenUpdate",
+            screen: this.activeSession.screen,
           },
+        ],
+        data: {
+          "@parent": this.activeSession.data["@parent"],
+          ...(this.internals.userValues as any),
         },
-      });
+      },
+    });
 
-      // are we still the last request?
-      if (this.internals.latestRequest === requestId) {
-        newScreen = result.screen;
-        this.updateSession(result, "simulate");
-
-        this.internals.unknownsAlreadySimulated = {
-          ...this.internals.unknownsRequiringSimulate,
-        };
-        this.internals.unknownsRequiringSimulate = {};
-      }
+    // are we still the last request?
+    if (this.internals.latestRequest !== requestId) {
+      return;
     }
 
+    if (!result.screen) {
+      throw new Error("Server dynamic solve did not return a screen");
+    }
+
+    const newScreen = result.screen;
+    this.updateSession({
+      ...this.activeSession,
+      ...result,
+      data: this.activeSession.data,
+      screen: newScreen,
+    }, "simulate");
+
+    this.internals.unknownsAlreadySimulated = {
+      ...this.internals.unknownsRequiringSimulate,
+    };
+    this.internals.unknownsRequiringSimulate = {};
+
     if (newScreen) {
-      this.log("Simulate sidebar?", this.internals.sidebarSimulate);
-
-      if (this.internals.sidebarSimulate) {
-        const result = await this.apiManager.simulate({
-          session: this.activeSession,
-          payload: this.internals.sidebarSimulate.simulate?.data,
-        });
-        for (const sidebarId of this.internals.sidebarSimulate.ids) {
-          const screenSidebar = newScreen.sidebars?.find((s) => s.id === sidebarId);
-          if (screenSidebar) {
-            const dataInfo = SIDEBAR_DYNAMIC_DATA_INFO[screenSidebar.type as keyof typeof SIDEBAR_DYNAMIC_DATA_INFO];
-            if (dataInfo) {
-              try {
-                Object.assign(screenSidebar.data, dataInfo.generateData(screenSidebar.config, result));
-              } catch (error) {
-                console.error(`[${LogGroup}] Error generating sidebar data`, error);
-              }
-            }
-            screenSidebar.loading = false;
-          }
-        }
-      }
-
       const nextButton = newScreen.buttons?.next;
       if (nextButton && typeof nextButton === "object") {
         this.internals.canProgress = nextButton.dependencies.every(
