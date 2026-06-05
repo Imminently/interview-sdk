@@ -195,6 +195,8 @@ export interface Screen {
   title: string;
   /** Unique ID of the screen */
   id: string;
+  /** The entity context the screen was generated in */
+  context: Context;
   /** The list of controls to be displayed on the screen */
   controls: RenderableControl[];
   /** The sidebar to render **/

@@ -46,7 +46,9 @@ const FormField = <
     <Controller {...props} render={(p) => (
       <FormFieldContext.Provider value={{ name: props.name, control: data, fieldRef: p.field.ref }}>
         <FormItem>
-          <Slot children={children} {...p} />
+          {React.isValidElement(children) && children.type !== React.Fragment
+            ? React.cloneElement(children, { field: p.field } as Partial<typeof children.props>)
+            : children}
         </FormItem>
       </FormFieldContext.Provider>
     )} />
