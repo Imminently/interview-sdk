@@ -5,7 +5,7 @@ import isEqual from "lodash/isEqual";
 import set from "lodash/set";
 import { ApiManager, type ApiManagerOptions } from "./api-manager";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
-import { type SidebarSimulate, type UnknownValues, buildDynamicReplacementQueries } from "./dynamic";
+import { type SidebarSimulate, requiresSimulation } from "./dynamic";
 import { FileManager, type FileManagerOptions } from "./file-manager";
 import {
   ManagerLifecycle,
@@ -158,9 +158,6 @@ interface SessionInternal {
   userValues: AttributeValues;
   prevUserValues: AttributeValues;
 
-  replacements: AttributeValues;
-  unknownsRequiringSimulate: UnknownValues;
-  unknownsAlreadySimulated: UnknownValues;
   sidebarSimulate: SidebarSimulate | undefined;
 
   // we only care about the latest request
@@ -330,9 +327,6 @@ export class SessionManager {
   private internals: SessionInternal = {
     userValues: {},
     prevUserValues: {},
-    replacements: {},
-    unknownsRequiringSimulate: {},
-    unknownsAlreadySimulated: {},
     latestRequest: undefined,
     sidebarSimulate: undefined,
     canProgress: false,
@@ -873,7 +867,7 @@ export class SessionManager {
   templateText = (text: string, inputData: Record<string, any> = {}) => {
     if (!this.activeSession) return text;
     const { state, locale, data } = this.activeSession;
-    return replaceTemplatedText(text, { ...this.internals.replacements, ...inputData }, data, state, locale);
+    return replaceTemplatedText(text, { ...inputData }, data, state, locale);
   }
 
   // #region dynamic
@@ -967,9 +961,7 @@ export class SessionManager {
         },
         screen.id,
         {
-          getRelease: () => {
-            return (release);
-          },
+          getRelease: () => release,
         },
         {},
       );
@@ -1008,25 +1000,7 @@ export class SessionManager {
         !isEqual(this.internals.prevUserValues, this.internals.userValues) &&
         Object.keys(this.internals.userValues).length > 0
       ) {
-        const replacementQueries = buildDynamicReplacementQueries(this.activeSession, this.internals.userValues);
-        Object.assign(this.internals.replacements, replacementQueries?.knownValues);
-
-        for (const [key, value] of Object.entries(replacementQueries.unknownValues)) {
-          if (value) {
-            const alreadySimulated = this.internals.unknownsAlreadySimulated[key];
-            if (alreadySimulated) {
-              if (isEqual(alreadySimulated.data, value.data)) {
-                continue;
-              }
-            }
-          }
-          this.internals.unknownsRequiringSimulate[key] = value;
-        }
-
-        this.log("Calculated replacement queries:", replacementQueries);
-
         // If client-side dynamic runtime is available, always solve all dynamic goals.
-        // unknownsRequiringSimulate is treated as a server-side queue only.
         if (this.clientGraph) {
           try {
             const clientDynamicResult = await this.runRulesEngine(
@@ -1040,6 +1014,9 @@ export class SessionManager {
             this.activeSession.screen = clientDynamicResult.screen;
             this.activeSession.reporting = clientDynamicResult.reporting;
             this.activeSession.validations = clientDynamicResult?.validations;
+            if (clientDynamicResult.state) {
+              this.activeSession.state = clientDynamicResult.state;
+            }
             this.updateSession(this.activeSession, "simulate");
             this.triggerUpdate(false);
             this.internals.prevUserValues = structuredClone(this.internals.userValues);
@@ -1104,6 +1081,12 @@ export class SessionManager {
       this.triggerUpdate(false);
       return;
     }
+
+    if (!requiresSimulation(this.activeSession, this.internals.userValues)) {
+      this.triggerUpdate(false);
+      return;
+    }
+
     const requestId = this.internals.latestRequest;
 
     const result = await this.apiManager.simulate({
@@ -1140,16 +1123,11 @@ export class SessionManager {
       screen: newScreen,
     }, "simulate");
 
-    this.internals.unknownsAlreadySimulated = {
-      ...this.internals.unknownsRequiringSimulate,
-    };
-    this.internals.unknownsRequiringSimulate = {};
-
     if (newScreen) {
       const nextButton = newScreen.buttons?.next;
       if (nextButton && typeof nextButton === "object") {
         this.internals.canProgress = nextButton.dependencies.every(
-          (attr) => (this.internals.userValues[attr] || this.internals.replacements[attr]) === true,
+          (attr) => (this.internals.userValues[attr] || this.activeSession?.state?.find((s) => s.id === attr)?.value) === true,
         );
       }
     }
@@ -1166,14 +1144,6 @@ export class SessionManager {
     // this.session = session;
     this.sessions[this.active] = session; // update the active session in the array
     if (!isEmpty(session.screen)) {
-      const replacements: AttributeValues = {};
-      if (session.state) {
-        for (const stateObj of session.state) {
-          if (replacements[stateObj.id] === undefined && stateObj.value) {
-            replacements[stateObj.id] = stateObj.value;
-          }
-        }
-      }
       if (prevSession?.screen?.id !== session.screen?.id) {
         const nextButton = session.screen.buttons?.next;
         let canProgress = true;
@@ -1184,9 +1154,6 @@ export class SessionManager {
         this.internals = {
           userValues: {},
           prevUserValues: {},
-          replacements: replacements,
-          unknownsRequiringSimulate: {},
-          unknownsAlreadySimulated: {},
           latestRequest: undefined,
           sidebarSimulate: undefined,
           canProgress: canProgress,
