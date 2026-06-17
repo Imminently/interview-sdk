@@ -1,4 +1,4 @@
-import { useInterview } from "@/interview";
+import { useInterview } from "@/interview/InterviewContext";
 import { useTheme } from "@/providers";
 import { useAttributeToFieldName } from "@/util";
 import type {

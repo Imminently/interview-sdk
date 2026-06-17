@@ -1,9 +1,9 @@
-import { useInterview } from "@/interview";
+import { useInterview } from "@/interview/InterviewContext";
 import { useTheme } from "@/providers";
 import { cn } from "@/util";
+import { isSupportedControl } from "@/util/container-utils";
 import {
   getNameFromFileAttributeRef,
-  type Control,
   type RenderableDataContainerControl,
 } from "@imminently/interview-sdk";
 import { Download, Loader2 } from "lucide-react";
@@ -19,18 +19,7 @@ type LabelValue = {
   values: DisplayValue[];
 };
 
-const isSupportedControl = (control: Control) =>
-  control.type === "boolean" ||
-  control.type === "currency" ||
-  control.type === "date" ||
-  control.type === "time" ||
-  control.type === "datetime" ||
-  control.type === "options" ||
-  control.type === "file" ||
-  control.type === "number_of_instances" ||
-  control.type === "text" ||
-  control.type === "document" ||
-  control.type === "image";
+export { isSupportedControl } from "@/util/container-utils";
 
 export const DataContainer = ({ control, className }: { control: RenderableDataContainerControl; className?: string }) => {
   const { t } = useTheme();

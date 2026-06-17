@@ -30,7 +30,7 @@ export interface InterviewControlProps extends Omit<React.HTMLAttributes<HTMLDiv
 // Undefined is when the control gets hidden, either through a container or something else. Meaning they did not see it.
 // This is risky however, as everything has been built using the legacy method.
 // For now, we will make this experimental and opt-in.
-const getDefaultValue = (control: any, strict: boolean = false) => {
+export const getDefaultValue = (control: any, strict: boolean = false) => {
   // we want fallback order of: value, default, undefined (or null if strict)
   // but value and default can be null as a valid value, so ?? won't work
   if (control.value !== undefined) return control.value;

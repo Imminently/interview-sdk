@@ -1,4 +1,4 @@
-import { useInterview } from "@/interview";
+import { useInterview } from "@/interview/InterviewContext";
 import type { RenderableInterviewContainerControl } from "@imminently/interview-sdk";
 import { useEffect } from "react";
 import { RenderControl } from "../RenderControl";

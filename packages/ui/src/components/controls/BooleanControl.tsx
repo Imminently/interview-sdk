@@ -5,7 +5,7 @@ import { Checkbox } from "../ui/checkbox";
 import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Explanation } from "./Explanation";
 
-const toBool = (v: any): boolean | null | undefined => {
+export const toBool = (v: any): boolean | null | undefined => {
   if (v === null) return null;
   if (v === undefined) return undefined;
   if (typeof v === "boolean") return v;

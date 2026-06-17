@@ -1,37 +1,14 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useInterview } from "@/interview";
+import { useInterview } from "@/interview/InterviewContext";
 import { useDebugSettings } from "@/providers";
 import { getColor } from "@/util";
-import type { Control, RenderableSwitchContainerControl } from "@imminently/interview-sdk";
+import { mapControls } from "@/util/container-utils";
+import type { RenderableSwitchContainerControl } from "@imminently/interview-sdk";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { RenderControl } from "../RenderControl";
 
-/**
- * we want to override child controls in case we are rendering\
- * this control inside a nested one, and so control.attribute\
- * is smth like uuid1.0.uuid2, but for children we want to swap\
- * uuid2 for uuid of each child attribute
- */
-const mapControls = (controls: Control[], attribute?: string) => {
-  if (attribute === undefined) return controls;
-
-  const parentPathParts = attribute.split(attribute.includes("/") ? "/" : ".").slice(0, -1);
-  if (!parentPathParts?.length) return controls;
-
-  return controls.map((it) => {
-    if (it.attribute === undefined) return it;
-
-    if (it.attribute.startsWith(parentPathParts.join(".")) || it.attribute.includes("/")) {
-      return it;
-    }
-
-    return {
-      ...it,
-      attribute: parentPathParts.concat(it.attribute).join(attribute.includes("/") ? "/" : "."),
-    };
-  });
-};
+export { mapControls } from "@/util/container-utils";
 
 export const SwitchContainer = ({
   control,

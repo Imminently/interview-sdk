@@ -1,4 +1,4 @@
-import { useInterview } from "@/interview";
+import { useInterview } from "@/interview/InterviewContext";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type DebugSettings = {

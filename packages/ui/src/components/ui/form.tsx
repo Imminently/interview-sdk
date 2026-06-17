@@ -1,4 +1,4 @@
-import { useInterview } from "@/interview";
+import { useInterview } from "@/interview/InterviewContext";
 import { useDebugSettings, useTheme } from "@/providers";
 import { cn } from "@/util";
 import { displayValue, type Control } from "@imminently/interview-sdk";

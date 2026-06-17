@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { numberOfInstancesValidator } from "../../src/util/validation/number-of-instances";
 
-const base = { id: "ctrl-1", type: "number_of_instances" as const, attribute: "attr-1" };
+const base = { id: "ctrl-1", type: "number_of_instances" as const, attribute: "attr-1", entity: "item" };
 
 describe("numberOfInstancesValidator", () => {
   describe("always required (no explicit required field)", () => {
