@@ -1,6 +1,6 @@
 import { formatDate, type TimeControl, TIME_FORMAT_12, TIME_FORMAT_24 } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { requiredErrStr } from "../global";
+import { deriveDateFromTimeComponent, requiredErrStr } from "../global";
 import { timeToSeconds } from "./helpers";
 
 export const timeValidator = (c: TimeControl): z.ZodTypeAny => {
@@ -8,8 +8,8 @@ export const timeValidator = (c: TimeControl): z.ZodTypeAny => {
 
   const minSeconds = min === undefined ? undefined : timeToSeconds(min);
   const maxSeconds = max === undefined ? undefined : timeToSeconds(max);
-  const maxForUi = max && formatDate(new Date(max), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
-  const minForUi = min && formatDate(new Date(min), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
+  const maxForUi = max && formatDate(deriveDateFromTimeComponent(max), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
+  const minForUi = min && formatDate(deriveDateFromTimeComponent(min), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
 
   return z.custom<unknown>().superRefine((v, ctx) => {
     if (v === undefined || v === null || v === "") {

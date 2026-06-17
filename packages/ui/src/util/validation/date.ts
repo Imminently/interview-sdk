@@ -1,6 +1,7 @@
 import type { DateControl } from "@imminently/interview-sdk";
 import { z } from "zod";
 import { requiredErrStr, resolveNowInDate } from "../global";
+import { formatDateForValidationMessage } from "./helpers";
 
 /** a.k.a YYYY-MM-DD */
 const DATE_FORMAT_REGEX = /^\d\d\d\d-\d\d-\d\d$/;
@@ -10,6 +11,8 @@ export const dateValidator = (c: DateControl): z.ZodTypeAny => {
 
   const nowLessMax = resolveNowInDate(max);
   const nowLessMin = resolveNowInDate(min);
+  const maxForUi = formatDateForValidationMessage(nowLessMax);
+  const minForUi = formatDateForValidationMessage(nowLessMin);
 
   let schema: z.ZodTypeAny = z.string().nullable().optional();
 
@@ -36,14 +39,14 @@ export const dateValidator = (c: DateControl): z.ZodTypeAny => {
   if (nowLessMax !== undefined) {
     schema = schema.refine(
       (v: unknown) => v !== undefined && v !== null && (v as string) <= nowLessMax,
-      `Should be before or equal to ${nowLessMax}`,
+      `Should be before or equal to ${maxForUi}`,
     );
   }
 
   if (nowLessMin !== undefined) {
     schema = schema.refine(
       (v: unknown) => v !== undefined && v !== null && (v as string) >= nowLessMin,
-      `Should be after or equal to ${nowLessMin}`,
+      `Should be after or equal to ${minForUi}`,
     );
   }
 
