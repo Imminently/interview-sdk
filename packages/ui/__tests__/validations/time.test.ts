@@ -83,7 +83,7 @@ describe("timeValidator", () => {
 
   describe("with max time", () => {
     // min/max are ISO datetime strings; timeToSeconds parses the time component
-    const schema = timeValidator({ ...base, max: "1970-01-01T17:00:00" });
+    const schema = timeValidator({ ...base, max: "17:00:00" });
 
     test("accepts time at max", () => {
       expect(schema.safeParse("17:00").success).toBe(true);
@@ -103,7 +103,7 @@ describe("timeValidator", () => {
   });
 
   describe("with min time", () => {
-    const schema = timeValidator({ ...base, min: "1970-01-01T09:00:00" });
+    const schema = timeValidator({ ...base, min: "09:00:00" });
 
     test("accepts time at min", () => {
       expect(schema.safeParse("09:00").success).toBe(true);
