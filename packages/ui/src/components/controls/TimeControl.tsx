@@ -118,8 +118,6 @@ export const TimeFormControl = ({ field }: UseControllerReturn) => {
           value={field.value ?? ""}
           onChange={(e) => field.onChange(e.target.value)}
           disabled={field.disabled || control.readOnly}
-          min={control.min}
-          max={control.max}
           step={specifiedIncrement ? (control.minutes_increment as number) * 60 : undefined}
         />
       </FormControl>
