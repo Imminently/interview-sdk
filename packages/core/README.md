@@ -94,7 +94,7 @@ const manager = new SessionManager({
     })
   },
 
-  // Optional: Enable debug logging
+  // Optional: Enable debug mode (starts disabled — toggle at runtime with setDebugEnabled)
   debug: true,
 
   // Optional: Initialize with a session
@@ -132,7 +132,7 @@ const manager = new SessionManager({
 | `apiManager` | `ApiManager \| ApiManagerOptions` | Configures API communication. See [ApiManager](#apimanager) section. |
 | `fileManager` | `FileManager \| FileManagerOptions` | Configures file upload/download. See [FileManager](#filemanager) section. |
 | `init` | `(manager) => void \| Promise<void>` | Initialization function called after manager creation. Use this to `create()` or `load()` a session. |
-| `debug` | `boolean` | Enables debug logging to console. Default: `false` |
+| `debug` | `boolean` | Enables debug mode — mounts debug infrastructure and allows runtime toggling via `setDebugEnabled()`. Debug starts disabled. Default: `false` |
 | `preCacheClient` | `boolean` | Pre-loads client-side dynamic runtime for faster interactions. Default: `false` |
 | `sessionStore` | `Storage` | Optional storage interface for persisting sessions across page reloads. |
 | `lifecycle` | `ManagerLifecycleOptions` | Optional lifecycle callbacks for common side effects like create/load/update/complete events. |
@@ -558,7 +558,7 @@ manager.activeSession;  // Currently active session (may be sub-interview)
 
 ### Debug Mode
 
-Enable debugging to see detailed logs:
+Set `debug: true` in `ManagerOptions` to enable debug mode. Debug starts disabled — activate it at runtime:
 
 ```typescript
 manager.setDebugEnabled(true);

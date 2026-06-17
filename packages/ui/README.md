@@ -551,18 +551,18 @@ interface InterviewContextState {
 
 ### Debug Mode
 
-Enable debug features during development:
+Set `debug: true` in options to enable debug mode. This mounts the debug panel and activates the keyboard shortcut — debug starts disabled and must be toggled on by the user:
 
 ```tsx
 <Interview
   options={{
     ...managerOptions,
-    debug: true  // Enables console logging and debug UI
+    debug: true  // Unlocks debug mode; press Ctrl+D (or Cmd+D) to activate
   }}
 />
 ```
 
-When debug mode is enabled, you can shift-click on controls to log their details.
+Once activated with `Ctrl+D`, a floating debug panel appears with tabs for session data, form state, validations, and more. Press `` ` `` to toggle advanced debug overlays on containers. Shift-click any control to inspect it.
 
 ### Internationalization
 

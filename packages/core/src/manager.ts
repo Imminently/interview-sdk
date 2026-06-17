@@ -173,7 +173,12 @@ export interface Storage {
 }
 
 export interface ManagerOptions {
-  /** Enables debug logs */
+  /**
+   * Enables debug mode. When true, mounts debug infrastructure and allows
+   * debug to be toggled at runtime. Debug starts disabled — use
+   * `setDebugEnabled(true)` or the Ctrl+D keyboard shortcut (in the UI) to
+   * activate it.
+   */
   debug?: boolean;
   /**
    * If true, will pre-load/cache client side dynamic runtime.
@@ -340,7 +345,7 @@ export class SessionManager {
     this.error = undefined;
     this._options = options;
     this.listeners = new Set();
-    this.debugEnabled = Boolean(options.debug);
+    this.debugEnabled = false;
     this.advancedDebugEnabled = false;
     this.sessionConfigs = {};
     this.events = new ManagerLifecycle(options.lifecycle);
