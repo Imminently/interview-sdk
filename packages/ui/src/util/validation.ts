@@ -65,6 +65,23 @@ const timeToSeconds = (input: any): number => {
   return NaN;
 };
 
+const formatDateForValidationMessage = (value: string | undefined): string | undefined => {
+  if (!value) return value;
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return value;
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  if (Number.isNaN(Number(date))) return value;
+
+  return new Intl.DateTimeFormat(undefined, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
+
 const setCustomValidity = (ref: Ref, fieldPath: string, errors: FieldErrors) => {
   if (ref && "reportValidity" in ref) {
     const error = get(errors, fieldPath) as FieldError | undefined;
@@ -234,6 +251,8 @@ export const generateValidatorForControl = (c: RenderableControl, manager?: any)
 
       const nowLessMax = resolveNowInDate(max);
       const nowLessMin = resolveNowInDate(min);
+      const maxForUi = formatDateForValidationMessage(nowLessMax);
+      const minForUi = formatDateForValidationMessage(nowLessMin);
 
       const schema = yup.string().nullable();
       const finalSchema: typeof schema = [schema]
@@ -256,7 +275,7 @@ export const generateValidatorForControl = (c: RenderableControl, manager?: any)
             ? it
             : it.test(
               "withMax",
-              `Should be before or equal to ${nowLessMax}`,
+              `Should be before or equal to ${maxForUi}`,
               (v) => v !== undefined && v !== null && v <= nowLessMax,
             ),
         )
@@ -265,7 +284,7 @@ export const generateValidatorForControl = (c: RenderableControl, manager?: any)
             ? it
             : it.test(
               "withMin",
-              `Should be after or equal to ${nowLessMin}`,
+              `Should be after or equal to ${minForUi}`,
               (v) => v !== undefined && v !== null && v >= nowLessMin,
             ),
         )[0];
@@ -280,9 +299,9 @@ export const generateValidatorForControl = (c: RenderableControl, manager?: any)
       const maxSeconds = max === undefined ? undefined : timeToSeconds(max);
       // format min/max for UI display
       const maxForUi =
-        max && formatDate(new Date(max), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
+        max && formatDate(deriveDateFromTimeComponent(max), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
       const minForUi =
-        min && formatDate(new Date(min), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
+        min && formatDate(deriveDateFromTimeComponent(min), amPmFormat ? TIME_FORMAT_12 : TIME_FORMAT_24);
 
       // Use a numeric schema (seconds since midnight) so we can use yup.min / yup.max
       const schema = yup

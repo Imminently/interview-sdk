@@ -951,7 +951,7 @@ export class SessionManager {
         screen.id,
         {
           getRelease: () => {
-            return Promise.resolve(release);
+            return (release);
           },
         },
         {},
