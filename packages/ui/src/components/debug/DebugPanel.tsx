@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowDownLeft, Bug } from "lucide-react";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { FormTab } from "./tabs/FormTab";
@@ -145,7 +146,7 @@ export const DebugPanel = () => {
 
   const transition = isInteracting ? undefined : "width 200ms ease, height 200ms ease";
 
-  return (
+  return createPortal(
     <div
       style={{
         position: "fixed",
@@ -244,6 +245,7 @@ export const DebugPanel = () => {
           </div>
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 };
