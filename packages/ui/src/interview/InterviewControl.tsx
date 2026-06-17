@@ -75,7 +75,7 @@ export const InterviewControl = ({ control, children }: InterviewControlProps) =
           return true;
         }
         const result = await schema.safeParseAsync(value);
-        const returnValue = result.success ? true : result.error.errors.map((e) => e.message).join(", ");
+        const returnValue = result.success ? true : result.error.issues.map((e) => e.message).join(", ");
         if (debugEnabled) {
           console.log("[InterviewControl] validate", { control: resolvedControl, value, result: returnValue });
         }
