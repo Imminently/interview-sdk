@@ -4,33 +4,45 @@ Four levels of customization, from least to most effort:
 
 ## 1. Layout composition
 
-Keep all default controls, rearrange the layout using compositional components:
+Keep all default controls, rearrange the layout using compositional components. Use a child component with `useInterview()` to gate the success-state content:
 
 ```tsx
+import { Interview, InterviewStepList, useInterview } from '@imminently/interview-ui';
+
+function InterviewLayout() {
+  const { state } = useInterview();
+
+  return (
+    <div className="grid grid-cols-[280px_1fr] h-screen">
+      {/* Use InterviewStepList when providing your own sidebar shell — no SidebarProvider needed */}
+      <aside className="p-6 bg-slate-50 border-r overflow-auto">
+        <InterviewStepList />
+        <Interview.Progress />
+      </aside>
+
+      <main className="flex flex-col overflow-auto">
+        <Interview.Error />
+        <Interview.Loading />
+
+        {state === 'success' && (
+          <div className="max-w-2xl mx-auto p-8">
+            <Interview.Validations className="mb-6" />
+            <Interview.Form className="space-y-6" />
+          </div>
+        )}
+
+        <footer className="flex gap-4 p-4 border-t">
+          <Interview.Back />
+          <Interview.Reset />
+          <Interview.Next />
+        </footer>
+      </main>
+    </div>
+  );
+}
+
 <Interview options={options}>
-  <div className="grid grid-cols-[280px_1fr] h-screen">
-    <aside className="p-6 bg-slate-50 border-r">
-      <Interview.Steps />
-      <Interview.Progress />
-    </aside>
-
-    <main className="flex flex-col overflow-auto">
-      <Interview.Error />
-      <Interview.Loading />
-      <Interview.Content>
-        <div className="max-w-2xl mx-auto p-8">
-          <Interview.Validations className="mb-6" />
-          <Interview.Form className="space-y-6" />
-        </div>
-      </Interview.Content>
-
-      <footer className="flex gap-4 p-4 border-t">
-        <Interview.Back />
-        <Interview.Reset />
-        <Interview.Next />
-      </footer>
-    </main>
-  </div>
+  <InterviewLayout />
 </Interview>
 ```
 
@@ -70,6 +82,13 @@ export const MyCustomTextInput = ({ field }: { field: any }) => {
       </FormLabel>
 
       <FormControl>
+        {/*
+          FormControl uses Radix Slot to forward the React Hook Form ref to this element.
+          Native elements (input, textarea, select) receive the ref automatically.
+          If you use a custom React component here, it must use React.forwardRef so the
+          ref reaches the underlying DOM node — without it, shouldFocusError cannot
+          auto-focus this control when validation fails.
+        */}
         <input
           type="text"
           value={value ?? ''}
@@ -81,22 +100,20 @@ export const MyCustomTextInput = ({ field }: { field: any }) => {
         />
       </FormControl>
 
-      <FormMessage />  {/* shows validation errors */}
-
-      {control.help && (
-        <FormDescription>{control.help}</FormDescription>
-      )}
+      <FormDescription />  {/* reads control.longDescription automatically — renders nothing if empty */}
+      <FormMessage />      {/* shows validation error if present, otherwise renders nothing */}
     </>
   );
 };
 ```
 
 Form utilities exported from `@imminently/interview-ui`:
+
 - `FormField` — wrapper providing form context (already applied by parent)
 - `FormLabel` — accessible label
 - `FormControl` — wrapper for the input element
-- `FormMessage` — validation error display
-- `FormDescription` — help text
+- `FormDescription` — reads `control.longDescription` via context and renders it automatically; returns null if empty; do not pass children or check `control.help` manually
+- `FormMessage` — shows the validation error if one exists, otherwise renders nothing; returns null if no error
 - `useFormField` — hook to access field state and control metadata
 
 ## 4. Full custom UI with useInterview

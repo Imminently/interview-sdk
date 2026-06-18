@@ -41,7 +41,7 @@ import { Interview, useInterview } from '@imminently/interview-ui';
 import type { ManagerOptions } from '@imminently/interview-sdk';
 
 function InterviewLayout() {
-  const { session } = useInterview();
+  const { state, session } = useInterview();
 
   return (
     <div className="grid grid-cols-[280px_1fr] h-screen">
@@ -52,13 +52,14 @@ function InterviewLayout() {
       <div className="flex flex-col overflow-hidden">
         <Interview.Error />
         <Interview.Loading />
-        <Interview.Content>
+
+        {state === 'success' && (
           <main className="flex-1 overflow-auto p-8">
             <h1 className="text-2xl font-bold mb-4">{session.screen.title}</h1>
             <Interview.Validations className="mb-6" />
             <Interview.Form className="space-y-6" />
           </main>
-        </Interview.Content>
+        )}
 
         <footer className="flex justify-between items-center p-4 border-t bg-white">
           <Interview.Back />
@@ -195,8 +196,8 @@ export const CustomTextInput = ({ field }: any) => (
         className="w-full px-4 py-2 border rounded-lg"
       />
     </FormControl>
+    <FormDescription />
     <FormMessage />
-    {field.control.help && <FormDescription>{field.control.help}</FormDescription>}
   </>
 );
 

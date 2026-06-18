@@ -241,8 +241,8 @@ manager.setAdvancedDebugEnabled(true);
 - Fix: wrap your `<input>` in `<FormControl>` so React Hook Form can track it
 
 **`Interview.Next` not submitting**
-- Cause: `Interview.Next` renders `type="submit"` and relies on a surrounding `Interview.Form` — it doesn't call `manager.next()` itself
-- Fix: ensure `<Interview.Next>` is inside the same render tree as `<Interview.Form>`
+- Cause: `Interview.Next` renders `type="submit"` and triggers the HTML `<form>` owned by `InterviewProvider` — it doesn't call `manager.next()` itself
+- Fix: ensure `<Interview.Next>` is inside the `<Interview>` or `<Interview.Root>` tree so that `InterviewProvider`'s form element is an ancestor
 
 ## Best practices
 

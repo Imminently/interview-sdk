@@ -17,6 +17,7 @@ Creates and manages a `SessionManager` internally. Takes `ManagerOptions` via th
 ```
 
 Props:
+
 - `options: ManagerOptions` — **must be memoized** (see critical rules in SKILL.md)
 - `slots?: Record<string, React.FC>` — custom control components
 - `form?: { mode, reValidateMode, shouldFocusError }` — React Hook Form config
@@ -44,34 +45,57 @@ Useful when you need access to the manager outside the Interview tree, or want t
 
 ## Interview.Content
 
-Handles loading/error/success states automatically. Always wrap your form content in this.
+Renders `null` when the session is not in the `success` state. When the session is `success`, it renders a fixed default layout: `InterviewTitle`, `Interview.Form`, `Interview.Validations`, `Interview.Back`, and `Interview.Next`.
 
 ```tsx
-<Interview.Content>
-  <Interview.Form />
-  <Interview.Validations />
-</Interview.Content>
+<Interview.Content />
 ```
 
-In the `loading` state it renders `<Interview.Loading>`, in `error` it renders `<Interview.Error>`, in `success` it renders children.
+It does not support custom children — use the individual compositional components directly (alongside `Interview.Loading` and `Interview.Error` for the other states) if you need a custom layout:
+
+```tsx
+<Interview.Error />
+<Interview.Loading />
+{/* Interview.Content equivalent, manually composed */}
+<div className="...">
+  <Interview.Form />
+  <Interview.Validations />
+  <Interview.Back />
+  <Interview.Next />
+</div>
+```
 
 ## Interview.Form
 
-Renders all controls for the current screen using React Hook Form. **Owns form submission** — when submitted, calls `manager.next(data)` with current form values.
+Renders the controls for the current screen using React Hook Form. Form submission is handled by `InterviewProvider`, which renders the actual HTML `<form>` element — `Interview.Form` renders the fields inside it.
 
 ```tsx
 <Interview.Form className="space-y-4" />
 ```
 
-`Interview.Next` renders a `type="submit"` button and works with this component — clicking Next or pressing Enter inside the form submits it.
+`Interview.Next` is `type="submit"` and triggers `InterviewProvider`'s form submit handler, which calls `manager.next(data)` with the current form values.
+
+> **Important — button types inside the interview:** Because `InterviewProvider` renders an HTML `<form>`, any `<button>` without an explicit `type` attribute defaults to `type="submit"` and will unintentionally trigger form submission. Always set `type="button"` on any button that should not submit (e.g. "Save draft", "Cancel", custom actions). `Interview.Next` is already `type="submit"`; `Interview.Back` and `Interview.Reset` are already `type="button"`.
 
 ## Interview.Steps
 
-Displays the interview step navigation sidebar, including a progress bar footer.
+Displays interview steps in the default shadcn sidebar layout, including a progress bar footer.
+
+> **Requires `<SidebarProvider>` above it in the tree.** The default layout (`<Interview.Content />`) provides this automatically. If you are composing a custom layout and want to use `Interview.Steps`, you must wrap your layout in `<SidebarProvider>` from `@imminently/interview-ui`. If you are providing your own sidebar, use `InterviewStepList` instead.
 
 ```tsx
-<Interview.Steps />
+import { SidebarProvider } from '@imminently/interview-ui';
 
+// Custom layout with Interview.Steps — must provide SidebarProvider
+<SidebarProvider>
+  <Interview.Steps />
+  <SidebarInset>
+    {/* your content */}
+  </SidebarInset>
+</SidebarProvider>
+```
+
+```tsx
 // Show sub-steps
 <Interview.Steps showSubSteps />           // all depths
 <Interview.Steps showSubSteps={1} />       // one level of children
@@ -79,7 +103,7 @@ Displays the interview step navigation sidebar, including a progress bar footer.
 
 // Custom item rendering
 <Interview.Steps
-  renderStep={({ step, index, depth, navigate, children }) => (
+  renderStep={({ step, index, navigate, children }) => (
     <button onClick={navigate}>{index + 1}. {step.title}</button>
   )}
 />
@@ -87,16 +111,14 @@ Displays the interview step navigation sidebar, including a progress bar footer.
 
 ### InterviewStepList
 
-For embedding steps inside a custom sidebar or drawer — renders only the menu items, no sidebar chrome:
+For embedding steps inside your own sidebar, drawer, or sheet — renders only the step list items, no sidebar chrome, and has no `SidebarProvider` dependency:
 
 ```tsx
 import { InterviewStepList } from '@imminently/interview-ui';
 
-<Sidebar>
-  <SidebarContent>
-    <InterviewStepList showSubSteps={2} />
-  </SidebarContent>
-</Sidebar>
+<MySidebar>
+  <InterviewStepList showSubSteps={2} />
+</MySidebar>
 ```
 
 Accepts the same `showSubSteps` and `renderStep` props as `Interview.Steps`, plus an optional `steps` override to render a custom subset.
@@ -107,11 +129,11 @@ Navigation buttons.
 
 ```tsx
 <Interview.Back className="..." />
-<Interview.Reset className="..." />  // calls manager.reset()
-<Interview.Next className="..." />   // type="submit", works with Interview.Form
+<Interview.Reset className="..." />  // type="button", calls manager.reset()
+<Interview.Next className="..." />   // type="submit", triggers InterviewProvider's form submit
 ```
 
-`Interview.Next` does **not** call `manager.next()` directly — it submits the surrounding `Interview.Form`.
+`Interview.Next` does **not** call `manager.next()` directly — it submits the HTML form owned by `InterviewProvider`, whose submit handler calls `manager.next(data)`.
 
 Use `asChild` to inject `onClick` and `disabled` into your own button:
 
@@ -139,10 +161,11 @@ Shows interview completion percentage.
 
 ## Interview.Validations
 
-Displays validation errors and warnings from the current session. Always include this somewhere visible.
+Displays rule validation messages from the current session. Defaults to showing errors only — pass `severity` to change this. Always include this somewhere visible.
 
 ```tsx
-<Interview.Validations className="mb-6" />
+<Interview.Validations />                    // errors only (default)
+<Interview.Validations severity="warning" /> // warnings only
 ```
 
 Pairs with `inlineErrors={false}` to centralise all errors in one place.

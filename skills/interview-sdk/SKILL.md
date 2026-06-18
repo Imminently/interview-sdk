@@ -1,11 +1,11 @@
 ---
 name: interview-sdk
-description: Guide for implementing and customizing @imminently/interview-sdk and @imminently/interview-ui — the Decisively interview/questionnaire SDK for React applications.
+description: Guide for implementing and customizing @imminently/interview-sdk and @imminently/interview-ui — the Decisively interview SDK for React applications.
 ---
 
 # Interview SDK
 
-Use this skill when working with `@imminently/interview-sdk` or `@imminently/interview-ui`, or when building any UI that integrates with the Decisively API to run interviews/questionnaires.
+Use this skill when working with `@imminently/interview-sdk` or `@imminently/interview-ui`, or when building any UI that integrates with the Decisively API to run interviews.
 
 ## When to use
 
@@ -31,16 +31,16 @@ npm install @imminently/interview-sdk @imminently/interview-ui
 
 ```
 <Interview> (main wrapper — creates SessionManager internally)
-  └── <Interview.Root> (InterviewProvider — context + useSyncExternalStore)
+  └── <Interview.Root> (InterviewProvider — context, useSyncExternalStore, HTML <form>)
       ├── <Interview.Error>
       ├── <Interview.Loading>
       ├── <Interview.Processing>
       └── <Interview.Content>
           ├── <Interview.Steps>
-          ├── <Interview.Form>       ← owns form submission
+          ├── <Interview.Form>       ← renders controls (form submission handled by InterviewProvider)
           ├── <Interview.Validations>
           ├── <Interview.Back>
-          ├── <Interview.Next>       ← submit button, works with Interview.Form
+          ├── <Interview.Next>       ← type="submit", triggers InterviewProvider's form submit
           ├── <Interview.Reset>
           └── <Interview.Progress>
 ```
@@ -62,4 +62,6 @@ Two usage patterns:
 - [Customization](./references/customization.md) — slots, custom controls, `useInterview` hook, full custom UI
 - [Configuration](./references/configuration.md) — `ManagerOptions`, `ApiManager`, `FileManager`, `InterviewConfig` full type reference
 - [Examples](./references/examples.md) — complete working code examples
+- [Validation](./references/validation.md) — form validation (Zod/React Hook Form) vs rule validation (Decisively rule engine), how they interact, and how to surface them
 - [Patterns](./references/patterns.md) — common patterns, proxy/security setup, styling, debugging, best practices
+- [Advanced](./references/advanced.md) — `useSyncExternalStore` with external `SessionManager`, SSR

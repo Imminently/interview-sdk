@@ -112,8 +112,39 @@ function App() {
 For more control over the layout, use the compositional API:
 
 ```tsx
-import { Interview } from '@imminently/interview-ui';
+import { Interview, useInterview } from '@imminently/interview-ui';
 import { useMemo } from 'react';
+
+function InterviewLayout() {
+  const { state } = useInterview();
+
+  return (
+    <div className="flex flex-col h-screen">
+      <header className="p-4 bg-primary text-primary-foreground">
+        <h1>My Interview</h1>
+      </header>
+
+      <div className="flex-1 overflow-auto">
+        <Interview.Error />
+        <Interview.Loading />
+        {state === 'success' && (
+          <>
+            <Interview.Steps />
+            <Interview.Form />
+            <Interview.Validations />
+          </>
+        )}
+      </div>
+
+      <footer className="flex gap-2 p-4 border-t">
+        <Interview.Back />
+        <Interview.Reset />
+        <Interview.Progress />
+        <Interview.Next />
+      </footer>
+    </div>
+  );
+}
 
 function App() {
   const options = useMemo(() => ({
@@ -139,34 +170,15 @@ function App() {
 
   return (
     <Interview options={options}>
-      <div className="flex flex-col h-screen">
-        <header className="p-4 bg-primary text-primary-foreground">
-          <h1>My Interview</h1>
-        </header>
-        
-        <div className="flex-1 overflow-auto">
-          <Interview.Error />
-          <Interview.Loading />
-          <Interview.Content>
-            <Interview.Steps />
-            <Interview.Form />
-            <Interview.Validations />
-          </Interview.Content>
-        </div>
-        
-        <footer className="flex gap-2 p-4 border-t">
-          <Interview.Back />
-          <Interview.Reset />
-          <Interview.Progress />
-          <Interview.Next />
-        </footer>
-      </div>
+      <InterviewLayout />
     </Interview>
   );
 }
 ```
 
-`Interview.Form` owns submission. `Interview.Next` renders a submit button (`type="submit"`), so it should be used with an `Interview.Form` in the same layout rather than calling `manager.next()` itself.
+`InterviewProvider` renders the HTML `<form>` element and owns submission — when the form submits it calls `manager.next(data)` with the current form values. `Interview.Next` renders a `type="submit"` button that triggers this, so it should be used in a layout that includes `Interview.Form` rather than calling `manager.next()` directly.
+
+> **Important — button types:** Because `InterviewProvider` wraps everything in an HTML `<form>`, any `<button>` without an explicit `type` defaults to `type="submit"` and will unintentionally trigger form submission. Always set `type="button"` on any button that should not submit the interview (e.g. "Save draft", "Cancel", custom actions). `Interview.Next` is already `type="submit"`; `Interview.Back` and `Interview.Reset` are already `type="button"`.
 
 ## Core Components
 
@@ -195,19 +207,28 @@ function App() {
 
 ### Interview.Content
 
-Wrapper component that handles loading, error, and success states.
+Renders `null` when the session is not in the `success` state. When the session is `success`, renders a fixed default layout: title, form controls, validations, back, and next.
 
 ```tsx
-<Interview.Content>
-  <Interview.Form />
-</Interview.Content>
+<Interview.Content />
+```
+
+If you need a custom layout, use the individual components directly alongside `Interview.Loading` and `Interview.Error` for the non-success states:
+
+```tsx
+<Interview.Error />
+<Interview.Loading />
+<Interview.Form />
+<Interview.Validations />
+<Interview.Back />
+<Interview.Next />
 ```
 
 ### Interview.Form
 
-Renders the form controls for the current screen and owns form submission. When the form submits, it calls `manager.next(data)` with the current form values.
+Renders the controls for the current screen using React Hook Form. Form submission is handled by `InterviewProvider`, which renders the HTML `<form>` element — `Interview.Form` renders the fields inside it.
 
-`Interview.Next` is designed to work with this component by rendering a submit button, so clicking `Interview.Next` or pressing Enter inside the form submits `Interview.Form`.
+`Interview.Next` is `type="submit"` and triggers `InterviewProvider`'s submit handler, which calls `manager.next(data)` with the current form values. Clicking `Interview.Next` or pressing Enter inside the form both trigger this.
 
 ```tsx
 <Interview.Form />
@@ -215,10 +236,20 @@ Renders the form controls for the current screen and owns form submission. When 
 
 ### Interview.Steps
 
-Displays the interview step navigation in the default sidebar layout, including a progress bar in the footer.
+Displays interview steps in the default shadcn sidebar layout, including a progress bar footer.
+
+> **Requires `<SidebarProvider>` above it in the tree.** The default layout (`<Interview.Content />`) provides this automatically. If you are composing a custom layout and want to use `Interview.Steps`, you must wrap your layout in `<SidebarProvider>` (exported from `@imminently/interview-ui`). If you are providing your own sidebar shell, use `InterviewStepList` instead — it has no sidebar dependency.
 
 ```tsx
-<Interview.Steps />
+import { SidebarProvider, SidebarInset } from '@imminently/interview-ui';
+
+// Custom layout using Interview.Steps
+<SidebarProvider>
+  <Interview.Steps />
+  <SidebarInset>
+    {/* your content */}
+  </SidebarInset>
+</SidebarProvider>
 ```
 
 #### Sub-step support
@@ -260,7 +291,7 @@ Use `renderStep` to replace the default sidebar item markup. The function receiv
 
 #### InterviewStepList
 
-For advanced layouts — custom sidebars, drawers, sheets — use `InterviewStepList` directly instead of `Interview.Steps`. It renders only the step menu items without any sidebar chrome:
+For custom sidebars, drawers, or sheets — use `InterviewStepList` directly instead of `Interview.Steps`. It renders only the step list items with no sidebar chrome and no `SidebarProvider` dependency:
 
 ```tsx
 import { InterviewStepList } from '@imminently/interview-ui';
@@ -282,7 +313,7 @@ import { InterviewStepList } from '@imminently/interview-ui';
 
 Navigation buttons for moving through the interview or restarting it.
 
-`Interview.Next` does not advance the interview by itself. It renders a submit button and relies on the surrounding `Interview.Form` submit handler to perform `manager.next(data)`.
+`Interview.Next` does not advance the interview by itself. It renders a `type="submit"` button that triggers `InterviewProvider`'s form submit handler, which calls `manager.next(data)`. `Interview.Back` and `Interview.Reset` are `type="button"` and do not submit the form.
 
 ```tsx
 <Interview.Back className="custom-class" />
@@ -408,38 +439,45 @@ You can override any of these control types:
 If you're building custom controls, we provide form utilities to help:
 
 ```tsx
-import { FormField, FormControl, FormLabel, FormMessage, useFormField } from '@imminently/interview-ui';
-import type { TextControl } from '@imminently/interview-sdk';
+import { FormControl, FormLabel, FormDescription, FormMessage } from '@imminently/interview-ui';
 
 export const MyCustomTextInput = ({ field }: { field: any }) => {
   return (
     <>
       <FormLabel>{field.control.label}</FormLabel>
       <FormControl>
+        {/*
+          FormControl forwards the React Hook Form ref to its direct child via Radix Slot.
+          Native elements (input, textarea, select) receive it automatically.
+          Custom React components must use React.forwardRef so the ref reaches the
+          underlying DOM node — without it, shouldFocusError cannot auto-focus this
+          control when validation fails.
+        */}
         <input
           type="text"
           {...field}
           className="custom-input"
         />
       </FormControl>
+      <FormDescription />
       <FormMessage />
     </>
   );
 };
 ```
 
-> **Note** The core InterviewControl auto wraps everything in a `FormField` component. This means you only need to use `FormControl`, `FormLabel`, and `FormMessage` inside your custom control.
+> **Note** The parent `InterviewControl` already wraps your control in `FormField`, so you do not need to add it yourself.
 
 ### Form Components
 
 These components help you build custom controls that integrate with our form system:
 
-- `FormField` - Wrapper for form fields with context
-- `FormLabel` - Accessible label component
-- `FormControl` - Wrapper for input elements
-- `FormMessage` - Display validation messages
-- `FormDescription` - Display help text
-- `useFormField` - Hook to access field state and control data
+- `FormField` — wrapper providing form context (already applied by parent, do not add again)
+- `FormLabel` — accessible label
+- `FormControl` — wrapper for input elements
+- `FormDescription` — reads `control.longDescription` from context and renders it automatically; returns null if empty; do not pass children or check the field manually
+- `FormMessage` — shows the validation error if one exists, otherwise renders nothing
+- `useFormField` — hook to access field state and control data
 
 > **Note**: Some logic from our built-in controls may need to be re-implemented. We recommend using our controls as examples/guidance.
 
