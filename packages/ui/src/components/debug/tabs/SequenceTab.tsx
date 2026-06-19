@@ -1,7 +1,7 @@
 import { useInterview } from "@/interview/InterviewContext";
 import type { AttributeValues } from "@imminently/interview-sdk";
 import { Download, Loader2, Upload, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface ReplayScreen {
   id?: string;
@@ -52,19 +52,6 @@ export const SequenceTab = (): React.ReactElement => {
   const [dragging, setDragging] = useState(false);
   // When true, triggers manager.reset() in an effect so React commits state first.
   const [pendingReset, setPendingReset] = useState(false);
-  const prevSessionIdRef = useRef<string | undefined>(session?.sessionId);
-
-  // Reset questionIndex when a new session starts (after reset).
-  useEffect(() => {
-    const prev = prevSessionIdRef.current;
-    const current = session?.sessionId;
-    if (prev && current && prev !== current) {
-      setSubmitting(false);
-      sequenceMemory.questionIndex = 0;
-      setQuestionIndex(0);
-    }
-    prevSessionIdRef.current = current;
-  }, [session?.sessionId]);
 
   // Deferred reset: runs after React commits the state update that set pendingReset.
   useEffect(() => {
@@ -142,13 +129,15 @@ export const SequenceTab = (): React.ReactElement => {
     if (!currentQuestion) return;
     setSubmitting(true);
     setError(null);
+    const next = questionIndex + 1;
+    sequenceMemory.questionIndex = next;
+    setQuestionIndex(next);
     try {
       await manager.next(currentQuestion.response?.data ?? {});
-      const next = questionIndex + 1;
-      sequenceMemory.questionIndex = next;
-      setQuestionIndex(next);
     } catch (err) {
       console.error("Replay next failed:", err);
+      sequenceMemory.questionIndex = questionIndex;
+      setQuestionIndex(questionIndex);
       setError("Failed to advance to next step.");
     } finally {
       setSubmitting(false);

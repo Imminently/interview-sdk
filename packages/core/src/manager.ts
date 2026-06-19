@@ -40,7 +40,7 @@ import {
 import { replaceTemplatedText } from "./helpers";
 import { decompressGraph, graphFromJSON } from "./graphUtil";
 import { produce } from "immer";
-import { type GeneratePlaywrightTestOptions, generatePlaywrightTestCode } from "./playwright-test-generator";
+import { type GeneratePlaywrightTestOptions, exportTransformTimeline, generatePlaywrightTestCode } from "./playwright-test-generator";
 
 const BOOKMARK_KEY = "immi_cg_bookmark_3";
 
@@ -1388,7 +1388,7 @@ export class SessionManager {
       throw new Error("Timeline download requires a browser environment");
     }
 
-    const blob = new Blob([JSON.stringify(timeline, null, 2)], { type: "application/json;charset=utf-8" });
+    const blob = new Blob([JSON.stringify(exportTransformTimeline(timeline), null, 2)], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const element = document.createElement("a");
 

@@ -3,7 +3,9 @@ export interface TimelineControl {
   type: string;
   label?: string;
   attribute?: string;
-  // Generic children (data_container, repeating_container, entity template)
+  /** Present on number_of_instances controls — identifies which entity the count applies to. */
+  entity?: string;
+  // Generic children (data_container, repeating_container)
   controls?: TimelineControl[];
   // Entity instances — each carries the resolved full-path attribute controls
   instances?: Array<{ id: string; controls: TimelineControl[] }>;
@@ -40,6 +42,95 @@ export interface GeneratePlaywrightTestOptions {
 
 const FILL_CONTROL_TYPES = new Set(["text", "number", "currency", "date", "number_of_instances"]);
 const SELECT_CONTROL_TYPES = new Set(["options", "radio"]);
+
+/**
+ * Flattens entity-nested response data into a map of full attribute paths.
+ *
+ * Handles two forms for entity data:
+ *   Array form (raw API): { users: [{ "@id": "abc", "attr1": "val" }] }
+ *   Normalized form (exported): { users: 1 }
+ *
+ * Array form is expanded into full-path attribute keys and an entity count.
+ * Normalized number form goes straight into entityCounts.
+ * Non-array, non-number keys are kept as-is for top-level attributes.
+ */
+function buildLookupMaps(data: Record<string, unknown>): {
+  attributes: Record<string, unknown>;
+  entityCounts: Record<string, number>;
+} {
+  const attributes: Record<string, unknown> = {};
+  const entityCounts: Record<string, number> = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    if (Array.isArray(value)) {
+      entityCounts[key] = value.length;
+      for (const instance of value) {
+        if (!instance || typeof instance !== "object") continue;
+        const obj = instance as Record<string, unknown>;
+        const id = obj["@id"];
+        if (typeof id !== "string") continue;
+        for (const [attrKey, attrValue] of Object.entries(obj)) {
+          if (attrKey === "@id") continue;
+          attributes[`${key}/${id}/${attrKey}`] = attrValue;
+        }
+      }
+    } else if (typeof value === "number") {
+      // Already normalized — number_of_instances count stored directly
+      entityCounts[key] = value;
+    } else {
+      attributes[key] = value;
+    }
+  }
+
+  return { attributes, entityCounts };
+}
+
+/**
+ * Normalizes an exported timeline so that number_of_instances response data
+ * is stored as a count rather than the post-transform array.
+ *
+ * transformResponse converts a submitted count (e.g. 1) into an array of
+ * stub instances (e.g. [{ "@id": "..." }]). The API stores and returns that
+ * array in the timeline. For replay and Playwright generation we need the
+ * count form, because manager.next() will call transformResponse again.
+ *
+ * Only top-level screen controls are checked, matching the behaviour of
+ * transformResponse itself (which also only reads session.screen.controls).
+ */
+export function exportTransformTimeline(timeline: InterviewTimeline): InterviewTimeline {
+  return {
+    ...timeline,
+    questions: timeline.questions.map((question) => {
+      if (!question.response?.data) return question;
+
+      const topLevelControls = question.asking.screen.controls ?? [];
+      const instanceControls = topLevelControls.filter(
+        (c) => c.type === "number_of_instances" && typeof c.entity === "string",
+      );
+
+      if (instanceControls.length === 0) return question;
+
+      const data = { ...question.response.data };
+      let changed = false;
+
+      for (const control of instanceControls) {
+        const entity = control.entity as string;
+        const value = data[entity];
+        if (Array.isArray(value)) {
+          data[entity] = value.length;
+          changed = true;
+        }
+      }
+
+      if (!changed) return question;
+
+      return {
+        ...question,
+        response: { ...question.response, data },
+      };
+    }),
+  };
+}
 
 /**
  * Recursively collects all controls from the tree.
@@ -111,7 +202,7 @@ export function generatePlaywrightTestCode(options: GeneratePlaywrightTestOption
   for (const question of questions) {
     const { screen } = question.asking;
     const { title, controls = [] } = screen;
-    const responseData = question.response?.data ?? {};
+    const { attributes, entityCounts } = buildLookupMaps(question.response?.data ?? {});
 
     if (title) {
       lines.push(`  // Step: "${title}"`);
@@ -119,9 +210,18 @@ export function generatePlaywrightTestCode(options: GeneratePlaywrightTestOption
     }
 
     for (const control of collectControls(controls)) {
-      if (!control.attribute || !control.label) continue;
-      const value = responseData[control.attribute];
+      if (!control.label) continue;
+
+      let value: unknown;
+
+      if (control.type === "number_of_instances" && control.entity) {
+        value = entityCounts[control.entity];
+      } else if (control.attribute) {
+        value = attributes[control.attribute];
+      }
+
       if (value === undefined) continue;
+
       const interaction = generateControlInteraction(control.label, control.type, value);
       if (interaction) lines.push(interaction);
     }
