@@ -9,9 +9,10 @@ import { ControlsTab } from "./tabs/ControlsTab";
 import { SessionTab } from "./tabs/SessionTab";
 import { SessionDataTab } from "./tabs/SessionDataTab";
 import { ValidationsTab } from "./tabs/ValidationsTab";
+import { SequenceTab } from "./tabs/SequenceTab";
 import { useDebugSettings } from "@/providers";
 
-type Tab = "overview" | "form" | "form-state" | "steps" | "controls" | "session" | "session-data" | "validations";
+type Tab = "overview" | "form" | "form-state" | "steps" | "controls" | "session" | "session-data" | "validations" | "sequence";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -22,6 +23,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "form-state", label: "Form state" },
   { id: "steps", label: "Steps" },
   { id: "controls", label: "Controls" },
+  { id: "sequence", label: "Sequence" },
 ];
 
 const DEFAULT_SIZE = { width: 600, height: 420 };
@@ -196,7 +198,7 @@ export const DebugPanel = () => {
           </div>
 
           {/* Tab bar */}
-          <div className="flex border-b border-gray-200 shrink-0 bg-gray-50 overflow-x-auto">
+          <div className="flex border-b border-gray-200 shrink-0 bg-gray-50 overflow-x-auto overflow-y-hidden">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -223,6 +225,7 @@ export const DebugPanel = () => {
             {activeTab === "form-state" && <FormStateTab />}
             {activeTab === "steps" && <StepsTab />}
             {activeTab === "controls" && <ControlsTab />}
+            {activeTab === "sequence" && <SequenceTab />}
           </div>
 
           {/* Resize handle — top-right (invisible) */}

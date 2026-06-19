@@ -23,3 +23,4 @@ export {
 } from "./util";
 
 export * from "./graphUtil";
+export * from "./playwright-test-generator";

@@ -40,6 +40,7 @@ import {
 import { replaceTemplatedText } from "./helpers";
 import { decompressGraph, graphFromJSON } from "./graphUtil";
 import { produce } from "immer";
+import { type GeneratePlaywrightTestOptions, generatePlaywrightTestCode } from "./playwright-test-generator";
 
 const BOOKMARK_KEY = "immi_cg_bookmark_3";
 
@@ -1387,7 +1388,7 @@ export class SessionManager {
       throw new Error("Timeline download requires a browser environment");
     }
 
-    const blob = new Blob([timeline], { type: "application/json;charset=utf-8" });
+    const blob = new Blob([JSON.stringify(timeline, null, 2)], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const element = document.createElement("a");
 
@@ -1398,6 +1399,44 @@ export class SessionManager {
       element.click();
     } catch (error) {
       throw error;
+    } finally {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  generatePlaywrightTest = async (): Promise<string> => {
+    const session = this.activeSession;
+    if (!session) {
+      throw new Error("No active session to generate test from");
+    }
+    const timeline = await this.exportTimeline();
+    const config = this.getSessionConfig(session.sessionId);
+    const options: GeneratePlaywrightTestOptions = {
+      project: session.model,
+      release: session.release,
+      timeline,
+      initialData: config?.initialData as Record<string, unknown> | undefined,
+    };
+    return generatePlaywrightTestCode(options);
+  };
+
+  downloadPlaywrightTest = async (fileName?: string): Promise<void> => {
+    if (typeof document === "undefined") {
+      throw new Error("Playwright test download requires a browser environment");
+    }
+    const session = this.activeSession;
+    const testCode = await this.generatePlaywrightTest();
+    const blob = new Blob([testCode], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const element = document.createElement("a");
+    try {
+      element.href = url;
+      element.download = fileName ?? `interview-${session?.interviewId || "test"} (${new Date().toISOString()}).spec.ts`;
+      document.body.appendChild(element);
+      element.click();
     } finally {
       if (element.parentNode) {
         element.parentNode.removeChild(element);

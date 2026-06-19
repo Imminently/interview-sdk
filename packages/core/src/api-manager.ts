@@ -13,6 +13,7 @@ import type {
   SimulateOptions,
   SubmitOptions
 } from "./types";
+import type { InterviewTimeline } from "./playwright-test-generator";
 import { buildUrl, createApiInstance } from "./util";
 
 const defaultPath = ["decisionapi", "session"];
@@ -207,7 +208,7 @@ export class ApiManager {
     const url = this.options.apiGetters?.exportTimeline
       ? this.options.apiGetters.exportTimeline(options)
       : buildUrl(session.model);
-    const res = await this.api.post<string>(
+    const res = await this.api.post<InterviewTimeline>(
       url,
       {
         exportTimeline: true,
