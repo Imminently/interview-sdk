@@ -890,9 +890,13 @@ export class SessionManager {
     this.notifyListeners();
   };
 
-  async runRulesEngine(debug?: boolean) {
+  /**
+   * Runs the client-side rules engine to calculate dynamic values and screen updates.
+   * Returns the result of the rules engine solve, or null if it cannot be run (e.g. no active session or client graph).
+   */
+  async runRulesEngine(debug?: boolean): Promise<any | null> {
     if (!this.activeSession || !this.clientGraph) {
-      return;
+      return null;
     }
     if (typeof window !== "undefined" && window.__INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__) {
       window.__INTERVIEW_HARNESS_CLIENT_SOLVE_PROMISE__ = new Promise((resolve) => {
@@ -928,9 +932,12 @@ export class SessionManager {
         goalsToSolveSet.add(stateItem.id);
       }
     }
+
     const roots = Array.from(goalsToSolveSet);
     if (!roots.length) {
-      return undefined;
+      // no goals to solve, ie we don't need to run client side
+      // running it will cause an error
+      return null;
     }
 
     const goal = roots[0];
@@ -976,8 +983,8 @@ export class SessionManager {
         throw new Error(result.error.message);
       }
     } catch (error: any) {
-      console.error(LogGroup, "Rules engine failed to load:", error);
-      this.setState("error", new Error("Rules engine failed to load"));
+      console.error(LogGroup, "Rules engine failed to solve:", error);
+      this.setState("error", new Error("Rules engine failed to solve"));
       throw error;
     }
 
@@ -1013,6 +1020,11 @@ export class SessionManager {
               typeof window !== "undefined" && window.__INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__,
             );
 
+            if(clientDynamicResult === null) {
+              this.log("Skipping client-side dynamic update. Either not needed or due to missing goals or client graph.");
+              return;
+            }
+
             if (!clientDynamicResult?.screen) {
               throw new Error("Client dynamic solve did not return a screen");
             }
@@ -1028,14 +1040,15 @@ export class SessionManager {
             this.internals.prevUserValues = structuredClone(this.internals.userValues);
             return;
           } catch (error) {
-            console.error(`[${LogGroup}] Error solving goal "${this.activeSession.goal}" client-side:`, error);
-            // surface error under validations, so the user knows something went wrong
-            // this ideally blocks progress until resolved
+            console.error(LogGroup, "Client-side dynamic:", error);
+            const message = error instanceof Error && error.message
+              ? error.message
+              : "An error occurred while processing your input. Please refresh and try again.";
             this.activeSession.validations = [{
               id: this.activeSession.goal,
               attributes: [],
               severity: "error",
-              message: "An error occurred while processing your input. Please refresh and try again.",
+              message,
               shown: true,
             }];
             this.updateSession(this.activeSession, "simulate");
