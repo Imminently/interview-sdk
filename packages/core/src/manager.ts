@@ -1,5 +1,4 @@
 import debounce from "lodash/debounce";
-import get from "lodash/get";
 import isEmpty from "lodash/isEmpty";
 import isEqual from "lodash/isEqual";
 import set from "lodash/set";
@@ -33,65 +32,15 @@ import {
   deepClone,
   flattenObject,
   iterateControls,
-  pathToNested,
   postProcessControl,
   transformResponse,
 } from "./util";
 import { replaceTemplatedText } from "./helpers";
 import { decompressGraph, graphFromJSON } from "./graphUtil";
-import { produce } from "immer";
 import { type GeneratePlaywrightTestOptions, exportTransformTimeline, generatePlaywrightTestCode } from "./playwright-test-generator";
+import { constructInputFromPreProcessed } from "./dynamic/constructInput";
 
 const BOOKMARK_KEY = "immi_cg_bookmark_3";
-
-/**
- * Constructs the input object from the preprocessed state for rules engine evaluation.
- * This function reconstructs the entity structure and applies user values and previous values.
- *
- * @param preProcessedState - The preprocessed state containing entity structure and nodes
- * @param data - The session data containing parent information
- * @param userValues - The current user input values
- * @param existingData - Optional existing data to merge into. It should come from the backend and contain information we might need.
- * @returns The constructed input object for rules engine evaluation
- */
-export const constructInputFromPreProcessed = (
-  preProcessedState: any,
-  data: Record<string, any> & { "@parent": string | undefined },
-  userValues: AttributeValues,
-  existingData?: any,
-): any => {
-  // reconstruct the entity structure from the existing data or preprocessed state
-  // IMPORANT make sure we do NOT mutate existingData or preProcessedState, or we are going to have a bad time
-  // this took forever to find
-  const input = produce(existingData ?? preProcessedState?.entityStructure ?? {}, (draft: any) => {
-    // Apply previous values from preprocessed nodes
-    if (preProcessedState?.nodes) {
-      for (const [key, value] of Object.entries(preProcessedState.nodes)) {
-        const prev = (value as any)?.previousValue;
-        if (prev !== undefined) {
-          const nestedPath = pathToNested(key, draft, true).split(".");
-          set(draft, nestedPath, prev);
-        }
-      }
-    }
-
-    // Apply user values to the appropriate parent context
-    const parent = data["@parent"];
-    if (parent) {
-      const nestedPath = pathToNested(parent, draft, true);
-      const existing = get(draft, nestedPath.split("."));
-
-      set(draft, nestedPath, {
-        ...existing,
-        ...userValues,
-      });
-    } else {
-      Object.assign(draft, userValues);
-    }
-  });
-
-  return input;
-};
 
 const LogGroup = "SessionManager";
 
