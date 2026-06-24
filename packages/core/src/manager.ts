@@ -158,8 +158,8 @@ declare global {
   interface Window {
     __INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__?: boolean;
     __INTERVIEW_HARNESS_LAST_CLIENT_SOLVE_RESPONSE__?: any;
-    __INTERVIEW_HARNESS_CLIENT_SOLVE_PROMISE__?: Promise<any>;
-    __INTERVIEW_HARNESS_RESOLVE_CLIENT_SOLVE__?: (response: any) => void;
+    __INTERVIEW_HARNESS_CLIENT_SOLVE_PROMISE__?: Promise<{ response: any | null; error?: any }>;
+    __INTERVIEW_HARNESS_RESOLVE_CLIENT_SOLVE__?: (result: { response: any | null; error?: any }) => void;
   }
 }
 
@@ -934,6 +934,10 @@ export class SessionManager {
     } catch (error: any) {
       console.error(LogGroup, "Rules engine failed to solve:", error);
       this.setState("error", new Error("Rules engine failed to solve"));
+      if (typeof window !== "undefined" && window.__INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__) {
+        window.__INTERVIEW_HARNESS_LAST_CLIENT_SOLVE_RESPONSE__ = null;
+        window.__INTERVIEW_HARNESS_RESOLVE_CLIENT_SOLVE__?.({ response: null, error });
+      }
       throw error;
     }
 
@@ -941,7 +945,7 @@ export class SessionManager {
 
     if (typeof window !== "undefined" && window.__INTERVIEW_HARNESS_CAPTURE_CLIENT_SOLVE__) {
       window.__INTERVIEW_HARNESS_LAST_CLIENT_SOLVE_RESPONSE__ = result;
-      window.__INTERVIEW_HARNESS_RESOLVE_CLIENT_SOLVE__?.(result);
+      window.__INTERVIEW_HARNESS_RESOLVE_CLIENT_SOLVE__?.({ response: result });
     }
 
     return result;
