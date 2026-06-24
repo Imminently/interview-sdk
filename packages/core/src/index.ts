@@ -7,6 +7,7 @@ export * from "./helpers";
 export * from "./manager-events";
 export * from "./manager";
 export * from "./dynamic";
+export * from "./dynamic/constructInput";
 // export * from "./init";
 export * from "./placeholders";
 export * from "./sidebars/sidebar";

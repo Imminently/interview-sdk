@@ -1,5 +1,5 @@
 import type { AxiosInstance, AxiosRequestConfig } from "axios";
-import get from "lodash/get";
+import get from "lodash/get.js";
 import { tryCatch } from "./try-catch";
 import { type AuthConfigGetter, getIdFromFileAttributeRef } from "./types";
 import { buildUrl, createApiInstance } from "./util";

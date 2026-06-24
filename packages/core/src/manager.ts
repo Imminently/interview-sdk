@@ -1,7 +1,7 @@
-import debounce from "lodash/debounce";
-import isEmpty from "lodash/isEmpty";
-import isEqual from "lodash/isEqual";
-import set from "lodash/set";
+import debounce from "lodash/debounce.js";
+import isEmpty from "lodash/isEmpty.js";
+import isEqual from "lodash/isEqual.js";
+import set from "lodash/set.js";
 import { ApiManager, type ApiManagerOptions } from "./api-manager";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, requiresSimulation } from "./dynamic";

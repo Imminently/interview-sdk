@@ -47,21 +47,7 @@ type InterviewFormProps = PropsWithChildren<{
 
 const InterviewForm = ({ formId, form, className, onSubmit, children }: InterviewFormProps) => {
   const methods = useForm(form);
-  // const handleSubmit = methods.handleSubmit();
-  const handleSubmit = (e: any) => {
-    console.log("submit event");
-    console.log("defaultPrevented before", e.defaultPrevented);
-
-    methods.handleSubmit(
-      (data) => {
-        console.log("valid");
-        onSubmit(data);
-      },
-      (errors) => console.log("invalid", errors)
-    )(e);
-
-    console.log("defaultPrevented after", e.defaultPrevented);
-  };
+  const handleSubmit = methods.handleSubmit(onSubmit);
 
   return (
     <FormProvider {...methods}>
