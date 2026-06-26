@@ -45,13 +45,17 @@ type InterviewFormProps = PropsWithChildren<{
   onSubmit: (data: any) => void;
 }>;
 
+// noValidate is required on the form: Base UI NumberField renders a hidden <input type="number" min={min}>
+// for a11y purposes. Without noValidate, browser native validation silently blocks submit when a number
+// field is untouched (value=0 < min). react-hook-form owns all validation here.
 const InterviewForm = ({ formId, form, className, onSubmit, children }: InterviewFormProps) => {
   const methods = useForm(form);
   const handleSubmit = methods.handleSubmit(onSubmit);
 
+  /* use noValidate to skip native, hook form handles it */
   return (
     <FormProvider {...methods}>
-      <form data-slot={"form"} className={cn("flex flex-1 min-h-0", className)} id={formId} onSubmit={handleSubmit}>
+      <form noValidate data-slot={"form"} className={cn("flex flex-1 min-h-0", className)} id={formId} onSubmit={handleSubmit}>
         {children}
       </form>
     </FormProvider>

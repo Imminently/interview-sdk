@@ -150,6 +150,7 @@ export const DebugPanel = () => {
 
   return createPortal(
     <div
+      data-slot="debug-panel"
       style={{
         position: "fixed",
         left: pos.x,
@@ -159,7 +160,15 @@ export const DebugPanel = () => {
         borderRadius: 8,
         zIndex: "var(--interview-ui-z-index-debug)" as unknown as number,
         transition,
+        // Ensure its pointer events are enabled so the panel can be interacted with
+        // Note that if the consumer is using radix modal, this is required
+        pointerEvents: "auto",
       }}
+      // Stop native wheel/touch events from reaching document-level scroll-lock listeners
+      // (e.g. react-remove-scroll inside Radix Dialog). Must be nativeEvent.stopPropagation
+      // because the document listener is a native handler, not a React one.
+      onWheel={e => e.nativeEvent.stopPropagation()}
+      onTouchMove={e => e.nativeEvent.stopPropagation()}
       className={`flex flex-col shadow-xl overflow-hidden ${
         expanded ? "bg-white border border-gray-200" : "bg-gray-900"
       }`}
