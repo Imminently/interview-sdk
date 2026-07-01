@@ -2,7 +2,11 @@ import debounce from "lodash/debounce.js";
 import isEmpty from "lodash/isEmpty.js";
 import isEqual from "lodash/isEqual.js";
 import set from "lodash/set.js";
-import { ApiManager, type ApiManagerOptions } from "./api-manager";
+import { SESSION_BACKEND_BRAND, type SessionBackend } from "./backend/backend";
+import {
+  RemoteSessionBackend,
+  type RemoteSessionBackendOptions,
+} from "./backend/remote-backend";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, requiresSimulation } from "./dynamic";
 import { FileManager, type FileManagerOptions } from "./file-manager";
@@ -137,7 +141,9 @@ export interface ManagerOptions {
   preCacheClient?: boolean;
   /** Enable experimental strict mode, which enforces null (uncertain) for values on screen */
   _experimental_strictMode?: boolean;
-  apiManager: ApiManager | ApiManagerOptions;
+  backend?: SessionBackend | RemoteSessionBackendOptions;
+  /** @deprecated Use `backend` instead. */
+  apiManager?: SessionBackend | RemoteSessionBackendOptions;
   fileManager: FileManager | FileManagerOptions;
   init?: (manager: SessionManager) => void | Promise<void>;
   /**
@@ -265,7 +271,7 @@ export class SessionManager {
   private error?: Error;
   private listeners: Set<() => void>;
   private _options: ManagerOptions;
-  private apiManager: ApiManager;
+  private backend: SessionBackend;
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
   private sessionConfigs: Record<string, StoredSessionConfig>;
@@ -300,11 +306,20 @@ export class SessionManager {
     this.sessionConfigs = {};
     this.events = new ManagerLifecycle(options.lifecycle);
 
-    // create the API manager
-    this.apiManager =
-      options.apiManager instanceof ApiManager
-        ? options.apiManager
-        : new ApiManager(options.apiManager as ApiManagerOptions);
+    const backendOption = options.backend ?? options.apiManager;
+    if (!backendOption) {
+      throw new Error("SessionManager requires a backend");
+    }
+
+    const isSessionBackend = (backend: typeof backendOption): backend is SessionBackend =>
+      (backend as SessionBackend)[SESSION_BACKEND_BRAND] === true;
+
+    const isRemoteSessionBackendOptions = (backend: typeof backendOption): backend is RemoteSessionBackendOptions =>
+      typeof (backend as RemoteSessionBackendOptions).host === "string";
+
+    this.backend = isSessionBackend(backendOption)
+      ? backendOption
+      : new RemoteSessionBackend(backendOption as RemoteSessionBackendOptions);
 
     // create the file manager
     if (options.fileManager instanceof FileManager) {
@@ -312,8 +327,7 @@ export class SessionManager {
     } else {
       const fm = options.fileManager as FileManagerOptions;
       // Attempt to inherit auth from the ApiManager options if not explicitly provided
-      const apiAuth =
-        options.apiManager instanceof ApiManager ? undefined : (options.apiManager as ApiManagerOptions)?.auth;
+      const apiAuth = isRemoteSessionBackendOptions(backendOption) ? backendOption.auth : undefined;
 
       if ("api" in fm) {
         this.fileManager = new FileManager(fm);
@@ -439,6 +453,11 @@ export class SessionManager {
 
   get options() {
     return this._options;
+  }
+
+  /** @deprecated Use `backend` configuration instead. */
+  get apiManager() {
+    return this.backend;
   }
 
   isOnScreen = (control: Control, screen?: Screen): boolean => {
@@ -603,7 +622,7 @@ export class SessionManager {
     try {
       this.log("Creating session:", config);
       this.setState("loading");
-      const session = await this.apiManager.create({
+      const session = await this.backend.create({
         ...config,
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
@@ -639,7 +658,7 @@ export class SessionManager {
     try {
       this.log("Loading session:", config);
       this.setState("loading");
-      const session = await this.apiManager.load({
+      const session = await this.backend.load({
         ...config,
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
@@ -1030,7 +1049,11 @@ export class SessionManager {
       throw new Error("No active session to load rules engine");
     }
     try {
-      const engine = await this.apiManager.getRulesEngine({ checksum: this.activeSession.rulesEngineChecksum });
+      if (this.backend.getRulesEngineRuntime) {
+        return await this.backend.getRulesEngineRuntime({ checksum: this.activeSession.rulesEngineChecksum });
+      }
+
+      const engine = await this.backend.getRulesEngine({ checksum: this.activeSession.rulesEngineChecksum });
       // biome-ignore lint: https://esbuild.github.io/content-types/#direct-eval
       return (0, eval)(engine);
     } catch (error: any) {
@@ -1061,7 +1084,7 @@ export class SessionManager {
 
     const requestId = this.internals.latestRequest;
 
-    const result = await this.apiManager.simulate({
+    const result = await this.backend.simulate({
       session: this.activeSession,
       payload: {
         goal: this.activeSession.goal,
@@ -1185,7 +1208,7 @@ export class SessionManager {
     }
     this.triggerUpdate(true);
     try {
-      const session = await this.apiManager.submit({
+      const session = await this.backend.submit({
         session: this.activeSession,
         data: transformResponse(this.activeSession, data as any),
         navigate,
@@ -1224,7 +1247,7 @@ export class SessionManager {
     }
     try {
       this.triggerUpdate(true);
-      const payload = await this.apiManager.chat({
+      const payload = await this.backend.chat({
         session: this.activeSession,
         message,
         goal,
@@ -1249,7 +1272,7 @@ export class SessionManager {
     this.triggerUpdate(true);
     try {
       this.updateSession(
-        await this.apiManager.navigate({
+        await this.backend.navigate({
           session: this.activeSession,
           step,
           overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
@@ -1281,7 +1304,7 @@ export class SessionManager {
         this.pop("pop");
       }
       this.updateSession(
-        await this.apiManager.back({
+        await this.backend.back({
           session: this.activeSession,
           overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
           readOnly: this.options.readOnly,
@@ -1317,7 +1340,7 @@ export class SessionManager {
         this.pop("pop");
       }
       this.updateSession(
-        await this.apiManager.submit({
+        await this.backend.submit({
           session: this.activeSession,
           data: transformResponse(this.activeSession, data as any),
           overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
@@ -1341,7 +1364,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to export timeline from");
       throw new Error("No active session to export timeline from");
     }
-    return this.apiManager.exportTimeline({ session: this.activeSession });
+    return this.backend.exportTimeline({ session: this.activeSession });
   };
 
   downloadTimeline = async (fileName?: string) => {
@@ -1424,7 +1447,7 @@ export class SessionManager {
   };
 
   get getConnectedData() {
-    return this.apiManager.getConnectedData;
+    return this.backend.getConnectedData;
   }
 
   // file management methods
