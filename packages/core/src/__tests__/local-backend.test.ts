@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import pako from "pako";
 import { LocalSessionBackend, type LocalSessionBackendStoredState } from "../backend/local-backend";
-import type { RulesEngine, Session } from "../types";
+import type { RulesEngine, Session, SessionConfig } from "../types";
 
 const releaseData = {
   id: "release-1",
@@ -288,6 +288,81 @@ describe("LocalSessionBackend", () => {
     });
 
     expect(session.interviewId).toBe("interview-1");
+  });
+
+  it("stores a remote-created local interview snapshot explicitly before local page turns", async () => {
+    const solveData: unknown[] = [];
+    const storageState: { current?: LocalSessionBackendStoredState } = {};
+    const storage = {
+      load: () => storageState.current,
+      save: (nextState: LocalSessionBackendStoredState) => {
+        storageState.current = nextState;
+      },
+    };
+    const backend = new LocalSessionBackend({
+      host: "https://api.example.com",
+      rulesEngine: {
+        solve: async (payload) => {
+          solveData.push(payload.session.data);
+          return createSolveResult({ data: { localAnswer: "yes" } });
+        },
+      },
+      storage,
+    });
+    const sessionConfig: SessionConfig = {
+      project: "model-1",
+      release: "release-1",
+      interview: "interview-1",
+      goal: "goal-1",
+    };
+    const remoteSession = createSession({
+      __deprecatedSessionData: {
+        event_days: [{ "@id": "2026-07-11", date: "2026-07-11" }],
+      },
+      clientGraph: "server-client-graph",
+    });
+
+    backend.storeSessionSnapshot(remoteSession, sessionConfig);
+    const nextSession = await backend.submit({
+      session: remoteSession,
+      data: attributeData({ answer: "yes" }),
+      navigate: true,
+    });
+
+    expect(storageState.current?.releaseData?.id).toBe("release-1");
+    expect(storageState.current?.session?.id).toBe("server-session");
+    expect(storageState.current?.interaction?.id).toBe("server-interaction");
+    expect(storageState.current?.session?.clientGraph).toBe("server-client-graph");
+    expect(storageState.current?.sessionMeta).toEqual(
+      expect.objectContaining({
+        model: "model-1",
+        release: "release-1",
+      }),
+    );
+    expect(storageState.current).not.toHaveProperty("sessionSnapshot");
+    expect(solveData).toEqual([
+      {
+        event_days: [{ "@id": "2026-07-11", date: "2026-07-11" }],
+      },
+    ]);
+    expect(nextSession.sessionId).toBe("server-session");
+  });
+
+  it("does not implicitly hydrate local storage from submit session options", async () => {
+    const backend = new LocalSessionBackend({
+      host: "https://api.example.com",
+      rulesEngine,
+    });
+
+    await expect(
+      backend.submit({
+        session: createSession({
+          __deprecatedSessionData: { answer: "server-data" },
+        }),
+        data: attributeData({ answer: "yes" }),
+        navigate: true,
+      }),
+    ).rejects.toThrow("No local session has been created");
   });
 
   it("uses server-provided full session data as the local baseline", async () => {

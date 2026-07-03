@@ -161,9 +161,12 @@ export interface ManagerOptions {
   readOnly?: boolean;
 }
 
-export interface SessionManagerCloneOptions {
+export interface CloneOptions {
   session?: Session;
+  backend?: SessionBackend | RemoteSessionBackendOptions;
 }
+
+export type SessionManagerCloneOptions = CloneOptions;
 
 declare global {
   interface Window {
@@ -596,9 +599,16 @@ export class SessionManager {
       throw new Error("SessionManager.clone requires a session");
     }
 
+    const backendOption = options.backend ?? this.backend;
+    const isSessionBackend = (backend: typeof backendOption): backend is SessionBackend =>
+      (backend as SessionBackend)[SESSION_BACKEND_BRAND] === true;
+    const backend = isSessionBackend(backendOption)
+      ? backendOption
+      : new RemoteSessionBackend(backendOption as RemoteSessionBackendOptions);
+
     const cloneOptions: ManagerOptions = {
       ...this._options,
-      backend: this.backend,
+      backend,
       apiManager: undefined,
       fileManager: this.fileManager,
       init: undefined,

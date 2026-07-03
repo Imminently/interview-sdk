@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { SESSION_BACKEND_BRAND, type SessionBackend } from "../backend/backend";
 import { LocalSessionBackend } from "../backend/local-backend";
 import { RemoteSessionBackend } from "../backend/remote-backend";
 import { SessionManager } from "../manager";
@@ -120,6 +121,37 @@ describe("SessionManager backend options", () => {
     expect(clone).toBeInstanceOf(SessionManager);
     expect(clone).not.toBe(manager);
     expect(clone.apiManager).toBe(backend);
+    expect(clone.activeSession).toEqual(session);
+    expect(clone.activeSession).not.toBe(session);
+  });
+
+  it("clones the manager with an overridden backend without mutating the backend", () => {
+    const originalBackend = new LocalSessionBackend({ rulesEngine });
+    const overrideBackend = {
+      [SESSION_BACKEND_BRAND]: true as const,
+      create: async () => session,
+      load: async () => session,
+      submit: async (options) => options.session,
+      chat: async () => ({}) as never,
+      navigate: async (options) => options.session,
+      back: async (options) => options.session,
+      simulate: async (options) => options.session,
+      exportTimeline: async () => ({ interview: "", goal: "", questions: [] }),
+      getRulesEngine: async () => "",
+      getConnectedData: async () => ({}),
+    } satisfies SessionBackend;
+    const manager = new SessionManager({
+      backend: originalBackend,
+      fileManager,
+      sessionStore: {
+        get: () => ({ sessions: [session], active: 0 }),
+        set: () => undefined,
+      },
+    });
+
+    const clone = manager.clone({ backend: overrideBackend });
+
+    expect(clone.apiManager).toBe(overrideBackend);
     expect(clone.activeSession).toEqual(session);
     expect(clone.activeSession).not.toBe(session);
   });
