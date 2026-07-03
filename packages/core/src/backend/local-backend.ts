@@ -134,9 +134,23 @@ export type LocalEngineSession = {
   clientGraphBookmark?: Session["clientGraphBookmark"];
 };
 
+export type LocalSessionMetadata = {
+  model?: string;
+  release?: string;
+  reportId?: string;
+  locale?: string;
+  rulesEngineChecksum?: string;
+  screenData?: UnknownRecord;
+  screenState?: unknown;
+  validations?: unknown;
+};
+
 export type LocalSessionBackendStoredState = {
+  releaseData?: ReleaseData;
   session?: LocalEngineSession;
   interaction?: LocalInteraction;
+  sessionMeta?: LocalSessionMetadata;
+  completedSessionSynced?: boolean;
 };
 
 export interface LocalSessionBackendStorage {
@@ -155,15 +169,10 @@ export const createLocalSessionBackendMemoryStorage = (): LocalSessionBackendSto
 };
 
 export class LocalSessionBackend extends BaseSessionBackend {
-  private releaseData: ReleaseData = {};
   private rulesEngine?: RulesEngine;
   private rulesEngineScript?: LocalSessionBackendOptions["rulesEngineScript"];
   private rulesEngineScriptPromise?: Promise<string>;
   private storage: LocalSessionBackendStorage;
-  private sessionSnapshot: Session | undefined;
-  private initialSessionId?: string;
-  private initialInteractionId?: string;
-  private completedSessionSynced = false;
 
   constructor(options: LocalSessionBackendOptions) {
     if (!options || typeof options !== "object") {
@@ -190,8 +199,6 @@ export class LocalSessionBackend extends BaseSessionBackend {
     this.storage = options.storage ?? createLocalSessionBackendMemoryStorage();
     this.rulesEngine = options.rulesEngine;
     this.rulesEngineScript = options.rulesEngineScript;
-    this.initialSessionId = options.sessionId;
-    this.initialInteractionId = options.interactionId;
   }
 
   private getLocalState() {
@@ -224,71 +231,54 @@ export class LocalSessionBackend extends BaseSessionBackend {
     });
   }
 
+  private get releaseData() {
+    return this.getLocalState().releaseData ?? {};
+  }
+
+  private set releaseData(releaseData: ReleaseData) {
+    this.saveLocalState({
+      ...this.getLocalState(),
+      releaseData,
+    });
+  }
+
+  private get sessionMeta() {
+    return this.getLocalState().sessionMeta;
+  }
+
+  private set sessionMeta(sessionMeta: LocalSessionMetadata | undefined) {
+    this.saveLocalState({
+      ...this.getLocalState(),
+      sessionMeta,
+    });
+  }
+
+  private get completedSessionSynced() {
+    return Boolean(this.getLocalState().completedSessionSynced);
+  }
+
+  private set completedSessionSynced(completedSessionSynced: boolean) {
+    this.saveLocalState({
+      ...this.getLocalState(),
+      completedSessionSynced,
+    });
+  }
+
   create = async (options: SessionConfig) => {
     const remoteSession = await this.createRemoteSession({
       ...options,
       localInterview: true,
     });
-    this.updateLocalReleaseData(remoteSession.localReleaseData);
-    const interaction = this.createInteraction({
-      ...options,
-      interview: remoteSession.interviewId ?? options.interview,
-      goal: remoteSession.goal ?? options.goal,
-    });
-    const interactionId = remoteSession.interactionId ?? options.interactionId ?? this.initialInteractionId ?? uuid();
+    this.storeSessionSnapshot(remoteSession, options);
 
-    this.session = {
-      id: remoteSession.sessionId,
-      goal: remoteSession.goal ?? options.sessionGoal ?? options.goal ?? interaction.goal,
-      data: deepClone((remoteSession.__deprecatedSessionData as UnknownRecord | undefined) ?? {}),
-      state: this.toLocalEngineState(remoteSession.state),
-      indices: options.index,
-      clientGraph: remoteSession.clientGraph,
-      clientGraphBookmark: remoteSession.clientGraphBookmark,
-    };
-    this.interaction = {
-      ...interaction,
-      id: interactionId,
-      status: remoteSession.status,
-      steps: remoteSession.steps,
-      current_step: this.findCurrentStepId(remoteSession.steps),
-    };
-    this.completedSessionSynced = false;
-    this.sessionSnapshot = deepClone(remoteSession);
-
-    return deepClone(this.sessionSnapshot);
+    return deepClone(remoteSession);
   };
 
   load = async (options: SessionConfig) => {
     const remoteSession = await this.loadRemoteSession(options);
-    this.updateLocalReleaseData(remoteSession.localReleaseData);
-    const interaction = this.createInteraction({
-      ...options,
-      interview: remoteSession.interviewId ?? options.interview,
-      interactionId: remoteSession.interactionId,
-      goal: remoteSession.goal ?? options.goal,
-    });
+    this.storeSessionSnapshot(remoteSession, options);
 
-    this.session = {
-      id: remoteSession.sessionId,
-      goal: remoteSession.goal ?? options.sessionGoal ?? options.goal ?? interaction.goal,
-      data: deepClone((remoteSession.__deprecatedSessionData as UnknownRecord | undefined) ?? {}),
-      state: this.toLocalEngineState(remoteSession.state),
-      indices: options.index,
-      clientGraph: remoteSession.clientGraph,
-      clientGraphBookmark: remoteSession.clientGraphBookmark,
-    };
-    this.interaction = {
-      ...interaction,
-      id: remoteSession.interactionId,
-      status: remoteSession.status,
-      steps: remoteSession.steps,
-      current_step: this.findCurrentStepId(remoteSession.steps),
-    };
-    this.completedSessionSynced = remoteSession.status === "complete";
-    this.sessionSnapshot = deepClone(remoteSession);
-
-    return deepClone(this.sessionSnapshot);
+    return deepClone(remoteSession);
   };
 
   submit = async (options: SubmitOptions) => {
@@ -348,25 +338,19 @@ export class LocalSessionBackend extends BaseSessionBackend {
       },
     });
 
-    if (!this.sessionSnapshot) {
+    if (!this.session || !this.interaction) {
       throw new Error("No local session has been created");
     }
 
-    this.sessionSnapshot = {
-      ...this.sessionSnapshot,
-      ...result,
-      data: this.sessionSnapshot.data,
-      screen: result.screen ?? this.sessionSnapshot.screen,
-      state: result.state ?? this.sessionSnapshot.state,
-      validations: result.validations ?? this.sessionSnapshot.validations,
-    };
+    const session = this.toSession(result as LocalInterviewResult, {
+      project: options.session.model,
+      release: options.session.release,
+      interview: options.session.interviewId,
+      goal: options.session.goal,
+    }, result.validations);
+    this.updateSessionMetaFromSession(session);
 
-    const sessionSnapshot = this.sessionSnapshot;
-    if (!sessionSnapshot) {
-      throw new Error("No local session has been created");
-    }
-
-    return deepClone(sessionSnapshot);
+    return deepClone(session);
   };
 
   chat = async (_options: ChatOptions): Promise<ChatResponse> => {
@@ -416,6 +400,47 @@ export class LocalSessionBackend extends BaseSessionBackend {
     return this.loadRulesEngine(options);
   };
 
+  storeSessionSnapshot = (session: Session, config: SessionConfig = {}) => {
+    this.updateLocalReleaseData(session.localReleaseData);
+    const interaction = this.createInteraction({
+      ...config,
+      project: config.project ?? session.model,
+      release: config.release ?? session.release,
+      interview: session.interviewId ?? config.interview,
+      goal: session.goal ?? config.goal,
+      interactionId: session.interactionId ?? config.interactionId,
+    });
+
+    this.session = {
+      id: session.sessionId,
+      goal: session.goal ?? config.sessionGoal ?? config.goal ?? interaction.goal,
+      data: deepClone((session.__deprecatedSessionData as UnknownRecord | undefined) ?? {}),
+      state: this.toLocalEngineState(session.state),
+      indices: config.index,
+      clientGraph: session.clientGraph,
+      clientGraphBookmark: session.clientGraphBookmark,
+    };
+    this.interaction = {
+      ...interaction,
+      id: session.interactionId ?? config.interactionId ?? uuid(),
+      status: session.status,
+      steps: session.steps,
+      current_step: this.findCurrentStepId(session.steps),
+      current_step_meta: (session as unknown as UnknownRecord).current_step_meta as string | undefined,
+    };
+    this.completedSessionSynced = session.status === "complete";
+    this.sessionMeta = {
+      model: session.model,
+      release: session.release,
+      reportId: session.reportId,
+      locale: session.locale,
+      rulesEngineChecksum: session.rulesEngineChecksum,
+      screenData: session.data as unknown as UnknownRecord,
+      screenState: session.state,
+      validations: session.validations,
+    };
+  };
+
   private createInteraction(options: SessionConfig): LocalInteraction {
     const interview = this.findInterview(options.interview);
     const goal = options.goal ?? interview?.goal;
@@ -426,7 +451,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
 
     if (options.interview === "autogen" || options.interview === "autogen_optimised") {
       return {
-        id: options.interactionId ?? this.initialInteractionId ?? uuid(),
+        id: options.interactionId ?? uuid(),
         goal,
         meta: { steps: [] },
         interviewId: "autogen",
@@ -449,7 +474,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
     };
 
     return {
-      id: options.interactionId ?? this.initialInteractionId ?? uuid(),
+      id: options.interactionId ?? uuid(),
       goal,
       meta,
       interviewId: interview.id,
@@ -552,14 +577,16 @@ export class LocalSessionBackend extends BaseSessionBackend {
     }
 
     this.applySolveUpdates(solveResult, interviewResult);
-    this.sessionSnapshot = this.toSession(interviewResult, options.sessionConfig, solveResult.validations);
+    let session = this.toSession(interviewResult, options.sessionConfig, solveResult.validations);
+    this.updateSessionMetaFromSession(session);
 
-    if (this.sessionSnapshot.status === "complete" && !this.completedSessionSynced) {
-      this.sessionSnapshot = await this.syncCompletedSession(this.sessionSnapshot, options);
+    if (session.status === "complete" && !this.completedSessionSynced) {
+      session = await this.syncCompletedSession(session, options);
       this.completedSessionSynced = true;
+      this.updateSessionMetaFromSession(session);
     }
 
-    return deepClone(this.sessionSnapshot);
+    return deepClone(session);
   }
 
   private createRemoteSession = async (options: SessionConfig) => {
@@ -648,7 +675,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
     }
 
     const rulesEngine = await this.loadRulesEngine({
-      checksum: this.sessionSnapshot?.rulesEngineChecksum,
+      checksum: this.sessionMeta?.rulesEngineChecksum,
     });
     const goal = options.goal ?? this.interaction.goal;
 
@@ -789,29 +816,42 @@ export class LocalSessionBackend extends BaseSessionBackend {
       interactionId: this.interaction.id,
       interviewId: interviewResult.interviewId ?? this.interaction.interviewId ?? config.interview ?? "autogen",
       goal: this.interaction.goal ?? config.goal ?? "",
-      model: String(config.project ?? this.releaseData.model ?? ""),
-      release: String(config.release ?? this.releaseData.id ?? ""),
-      reportId: "",
+      model: String(config.project ?? this.sessionMeta?.model ?? this.releaseData.model ?? ""),
+      release: String(config.release ?? this.sessionMeta?.release ?? this.releaseData.id ?? ""),
+      reportId: this.sessionMeta?.reportId ?? "",
       status: interviewResult.status ?? this.interaction.status ?? "in-progress",
       context: interviewResult.context,
-      data: interviewResult.data ?? this.sessionSnapshot?.data ?? {},
-      state: interviewResult.state,
+      data: interviewResult.data ?? this.sessionMeta?.screenData ?? {},
+      state: interviewResult.state ?? this.sessionMeta?.screenState,
       steps: interviewResult.steps ?? [],
       screen: interviewResult.screen,
       progress: interviewResult.progress,
       explanations: interviewResult.explanations,
-      locale: this.releaseData.locale,
-      validations,
+      locale: this.sessionMeta?.locale ?? this.releaseData.locale,
+      validations: validations ?? this.sessionMeta?.validations,
       clientGraph: interviewResult.clientGraph ?? this.session.clientGraph,
       clientGraphBookmark: interviewResult.clientGraphBookmark ?? this.session.clientGraphBookmark,
       relationships: this.releaseData.relationships,
       preProcessedState: interviewResult.preProcessedState,
       reporting: interviewResult.reporting,
       inferredOrder: this.releaseData.inferredOrder,
-      rulesEngineChecksum: interviewResult.rulesEngineChecksum,
+      rulesEngineChecksum: interviewResult.rulesEngineChecksum ?? this.sessionMeta?.rulesEngineChecksum,
       __deprecatedSessionData: interviewResult.__deprecatedSessionData,
       current_step: this.interaction.current_step,
       current_step_meta: this.interaction.current_step_meta,
     } as unknown as Session;
+  }
+
+  private updateSessionMetaFromSession(session: Session) {
+    this.sessionMeta = {
+      model: session.model,
+      release: session.release,
+      reportId: session.reportId,
+      locale: session.locale,
+      rulesEngineChecksum: session.rulesEngineChecksum,
+      screenData: session.data as unknown as UnknownRecord,
+      screenState: session.state,
+      validations: session.validations,
+    };
   }
 }
