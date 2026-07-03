@@ -30,6 +30,7 @@ import type {
   SessionConfig,
   Step,
   StepId,
+  NavigateTarget,
 } from "./types";
 import {
   createEntityPathedData,
@@ -158,6 +159,10 @@ export interface ManagerOptions {
   sessionStore?: Storage;
   lifecycle?: ManagerLifecycleOptions;
   readOnly?: boolean;
+}
+
+export interface SessionManagerCloneOptions {
+  session?: Session;
 }
 
 declare global {
@@ -583,6 +588,37 @@ export class SessionManager {
       activeIndex: this.active,
       source: "setActive",
     });
+  };
+
+  clone = (options: SessionManagerCloneOptions = {}) => {
+    const session = options.session ?? this.activeSession;
+    if (!session) {
+      throw new Error("SessionManager.clone requires a session");
+    }
+
+    const cloneOptions: ManagerOptions = {
+      ...this._options,
+      backend: this.backend,
+      apiManager: undefined,
+      fileManager: this.fileManager,
+      init: undefined,
+      sessionConfig: undefined,
+      sessionStore: undefined,
+    };
+    const manager = new SessionManager(cloneOptions);
+    const clonedSession = deepClone(session);
+    manager.sessions = [clonedSession];
+    manager.active = 0;
+    manager.state = "success";
+    manager.error = undefined;
+    manager.debugEnabled = this.debugEnabled;
+    manager.advancedDebugEnabled = this.advancedDebugEnabled;
+    manager._disableDynamic = this._disableDynamic;
+    const config = this.getSessionConfig(session.sessionId);
+    if (config) {
+      manager.setSessionConfig(clonedSession.sessionId, config);
+    }
+    return manager;
   };
 
   private handleClientGraphBookmark(session: Session) {
@@ -1229,9 +1265,8 @@ export class SessionManager {
 
   /** Save the current session data, without navigating */
   save = async (data: AttributeValues, overrides: Overrides = {}) => {
-    // this is just submit, with navigate set to the current screen
-    // so just invoke submit with navigate set to current screen id
-    return this.submit(data, this.activeSession?.screen.id, overrides);
+    const activeSession = this.activeSession as (Session & { current_step?: string; currentStep?: string }) | null;
+    return this.submit(data, activeSession?.current_step ?? activeSession?.currentStep ?? activeSession?.screen.id, overrides);
   }
 
   /** @experimental Generative AI chat is in exploration phase */
@@ -1263,7 +1298,7 @@ export class SessionManager {
   };
 
   /** Navigate to a specific step */
-  navigate = async (step: StepId, overrides: Overrides = {}) => {
+  navigate = async (step: NavigateTarget, overrides: Overrides = {}) => {
     this.log("navigate:", step, overrides);
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to navigate from");
