@@ -1,4 +1,5 @@
 import merge from "lodash/merge.js";
+import { decompressGraph } from "../graphUtil";
 import type { InterviewTimeline } from "../playwright-test-generator";
 import type {
   BackOptions,
@@ -6,7 +7,10 @@ import type {
   ChatResponse,
   ExportTimelineOptions,
   GetRulesEngineOptions,
+  Navigate,
   NavigateOptions,
+  NavigateTargetOptions,
+  AttributeValues,
   RulesEngine,
   Session,
   SessionConfig,
@@ -18,6 +22,11 @@ import { BaseSessionBackend, type BaseSessionBackendOptions } from "./backend";
 
 type UnknownRecord = Record<string, unknown>;
 type ResponseElement = UnknownRecord & { type?: string };
+type InterviewResponseElement = ResponseElement & {
+  navigate?: NavigateTargetOptions;
+  readOnly?: boolean;
+  sessionGoal?: string;
+};
 type LocalSolveResult = UnknownRecord & {
   interview?: LocalInterviewResult | LocalInterviewResult[];
   sessionUpdate?: UnknownRecord & {
@@ -28,6 +37,7 @@ type LocalSolveResult = UnknownRecord & {
   validations?: unknown;
 };
 type LocalInterviewResult = UnknownRecord & {
+  interviewId?: string;
   data?: UnknownRecord;
   state?: UnknownRecord;
   context?: unknown;
@@ -49,6 +59,44 @@ type LocalInterviewResult = UnknownRecord & {
   currentStep?: string;
   current_step_meta?: string;
   currentStepMeta?: string;
+};
+
+type LocalSessionBackendSharedOptions = Omit<Partial<BaseSessionBackendOptions>, "host"> & {
+  sessionId?: string;
+  interactionId?: string;
+  storage?: LocalSessionBackendStorage;
+};
+
+export type LocalSessionBackendOptions =
+  | (LocalSessionBackendSharedOptions & {
+      host: string;
+      rulesEngine?: RulesEngine;
+      rulesEngineScript?: string | (() => string | Promise<string>);
+    })
+  | (LocalSessionBackendSharedOptions & {
+      host?: string;
+      rulesEngine: RulesEngine;
+      rulesEngineScript?: string | (() => string | Promise<string>);
+    })
+  | (LocalSessionBackendSharedOptions & {
+      host?: string;
+      rulesEngine?: RulesEngine;
+      rulesEngineScript: string | (() => string | Promise<string>);
+    });
+
+export type LocalInteraction = UnknownRecord & {
+  id: string;
+  mode: "interview";
+  status: "in-progress" | "complete" | "error";
+  goal?: string;
+  interviewId?: string;
+  interviewName?: string;
+  meta?: ReleaseInterview;
+  steps?: unknown[];
+  journey?: unknown[];
+  timeline?: unknown[];
+  current_step?: string;
+  current_step_meta?: string;
 };
 
 type ReleaseInterview = UnknownRecord & {
@@ -73,67 +121,61 @@ type ReleaseData = UnknownRecord & {
   enums?: unknown[];
 };
 
-type LocalSessionBackendSharedOptions = Omit<Partial<BaseSessionBackendOptions>, "host"> & {
-  releaseData: ReleaseData;
-  sessionId?: string;
-  interactionId?: string;
+export type LocalEngineSession = {
+  id: string;
+  goal?: string;
+  data: UnknownRecord;
+  state: UnknownRecord;
+  indices?: string[];
+  indicesValues?: unknown;
+  scheduled?: unknown;
+  lastInteractionId?: string;
+  clientGraph?: Session["clientGraph"];
+  clientGraphBookmark?: Session["clientGraphBookmark"];
 };
 
-export type LocalSessionBackendOptions =
-  | (LocalSessionBackendSharedOptions & {
-      host: string;
-      rulesEngine?: RulesEngine;
-      rulesEngineScript?: string | (() => string | Promise<string>);
-    })
-  | (LocalSessionBackendSharedOptions & {
-      host?: string;
-      rulesEngine: RulesEngine;
-      rulesEngineScript?: string | (() => string | Promise<string>);
-    })
-  | (LocalSessionBackendSharedOptions & {
-      host?: string;
-      rulesEngine?: RulesEngine;
-      rulesEngineScript: string | (() => string | Promise<string>);
-    });
+export type LocalSessionBackendStoredState = {
+  session?: LocalEngineSession;
+  interaction?: LocalInteraction;
+};
 
-type LocalInteraction = UnknownRecord & {
-  id: string;
-  mode: "interview";
-  status: "in-progress" | "complete" | "error";
-  goal?: string;
-  interviewId?: string;
-  interviewName?: string;
-  meta?: ReleaseInterview;
-  steps?: unknown[];
-  journey?: unknown[];
-  timeline?: unknown[];
-  current_step?: string;
-  current_step_meta?: string;
+export interface LocalSessionBackendStorage {
+  load(): LocalSessionBackendStoredState | undefined;
+  save(state: LocalSessionBackendStoredState): void;
+}
+
+export const createLocalSessionBackendMemoryStorage = (): LocalSessionBackendStorage => {
+  let state: LocalSessionBackendStoredState = {};
+  return {
+    load: () => deepClone(state),
+    save: (nextState) => {
+      state = deepClone(nextState);
+    },
+  };
 };
 
 export class LocalSessionBackend extends BaseSessionBackend {
-  private releaseData: ReleaseData;
+  private releaseData: ReleaseData = {};
   private rulesEngine?: RulesEngine;
   private rulesEngineScript?: LocalSessionBackendOptions["rulesEngineScript"];
   private rulesEngineScriptPromise?: Promise<string>;
-  private session:
-    | {
-        id: string;
-        goal?: string;
-        data: UnknownRecord;
-        state: UnknownRecord;
-        indices?: string[];
-        indicesValues?: unknown;
-        scheduled?: unknown;
-        lastInteractionId?: string;
-      }
-    | undefined;
-  private interaction: LocalInteraction | undefined;
+  private storage: LocalSessionBackendStorage;
   private sessionSnapshot: Session | undefined;
   private initialSessionId?: string;
   private initialInteractionId?: string;
+  private completedSessionSynced = false;
 
   constructor(options: LocalSessionBackendOptions) {
+    if (!options || typeof options !== "object") {
+      throw new Error("LocalSessionBackend requires host, rulesEngine, or rulesEngineScript");
+    }
+
+    if ("releaseData" in (options as UnknownRecord)) {
+      throw new Error(
+        "LocalSessionBackend does not accept releaseData; localReleaseData must come from the backend session response",
+      );
+    }
+
     if (!options.host && !options.rulesEngine && !options.rulesEngineScript) {
       throw new Error("LocalSessionBackend requires host, rulesEngine, or rulesEngineScript");
     }
@@ -145,42 +187,108 @@ export class LocalSessionBackend extends BaseSessionBackend {
       overrides: options.overrides,
       apiGetters: options.apiGetters,
     });
-    this.releaseData = deepClone(options.releaseData);
+    this.storage = options.storage ?? createLocalSessionBackendMemoryStorage();
     this.rulesEngine = options.rulesEngine;
     this.rulesEngineScript = options.rulesEngineScript;
     this.initialSessionId = options.sessionId;
     this.initialInteractionId = options.interactionId;
   }
 
+  private getLocalState() {
+    return this.storage.load() ?? {};
+  }
+
+  private saveLocalState(state: LocalSessionBackendStoredState) {
+    this.storage.save(state);
+  }
+
+  private get session() {
+    return this.getLocalState().session;
+  }
+
+  private set session(session: LocalEngineSession | undefined) {
+    this.saveLocalState({
+      ...this.getLocalState(),
+      session,
+    });
+  }
+
+  private get interaction() {
+    return this.getLocalState().interaction;
+  }
+
+  private set interaction(interaction: LocalInteraction | undefined) {
+    this.saveLocalState({
+      ...this.getLocalState(),
+      interaction,
+    });
+  }
+
   create = async (options: SessionConfig) => {
-    const sessionId = options.sessionId ?? this.initialSessionId ?? uuid();
-    const interaction = this.createInteraction(options);
-    const initialData = merge(
-      {},
-      interaction.meta?.initialData,
-      interaction.meta?.initial_data,
-      options.initialData ?? {},
-    );
+    const remoteSession = await this.createRemoteSession({
+      ...options,
+      localInterview: true,
+    });
+    this.updateLocalReleaseData(remoteSession.localReleaseData);
+    const interaction = this.createInteraction({
+      ...options,
+      interview: remoteSession.interviewId ?? options.interview,
+      goal: remoteSession.goal ?? options.goal,
+    });
+    const interactionId = remoteSession.interactionId ?? options.interactionId ?? this.initialInteractionId ?? uuid();
 
     this.session = {
-      id: sessionId,
-      goal: options.sessionGoal ?? options.goal ?? interaction.goal,
-      data: deepClone(initialData),
-      state: { nodes: {} },
+      id: remoteSession.sessionId,
+      goal: remoteSession.goal ?? options.sessionGoal ?? options.goal ?? interaction.goal,
+      data: deepClone((remoteSession.__deprecatedSessionData as UnknownRecord | undefined) ?? {}),
+      state: this.toLocalEngineState(remoteSession.state),
       indices: options.index,
+      clientGraph: remoteSession.clientGraph,
+      clientGraphBookmark: remoteSession.clientGraphBookmark,
     };
-    this.interaction = interaction;
+    this.interaction = {
+      ...interaction,
+      id: interactionId,
+      status: remoteSession.status,
+      steps: remoteSession.steps,
+      current_step: this.findCurrentStepId(remoteSession.steps),
+    };
+    this.completedSessionSynced = false;
+    this.sessionSnapshot = deepClone(remoteSession);
 
-    return this.runInterview({
-      inputPayload: initialData,
-      response: options.response,
-      readOnly: options.readOnly,
-      sessionConfig: options,
-    });
+    return deepClone(this.sessionSnapshot);
   };
 
   load = async (options: SessionConfig) => {
-    return this.create(options);
+    const remoteSession = await this.loadRemoteSession(options);
+    this.updateLocalReleaseData(remoteSession.localReleaseData);
+    const interaction = this.createInteraction({
+      ...options,
+      interview: remoteSession.interviewId ?? options.interview,
+      interactionId: remoteSession.interactionId,
+      goal: remoteSession.goal ?? options.goal,
+    });
+
+    this.session = {
+      id: remoteSession.sessionId,
+      goal: remoteSession.goal ?? options.sessionGoal ?? options.goal ?? interaction.goal,
+      data: deepClone((remoteSession.__deprecatedSessionData as UnknownRecord | undefined) ?? {}),
+      state: this.toLocalEngineState(remoteSession.state),
+      indices: options.index,
+      clientGraph: remoteSession.clientGraph,
+      clientGraphBookmark: remoteSession.clientGraphBookmark,
+    };
+    this.interaction = {
+      ...interaction,
+      id: remoteSession.interactionId,
+      status: remoteSession.status,
+      steps: remoteSession.steps,
+      current_step: this.findCurrentStepId(remoteSession.steps),
+    };
+    this.completedSessionSynced = remoteSession.status === "complete";
+    this.sessionSnapshot = deepClone(remoteSession);
+
+    return deepClone(this.sessionSnapshot);
   };
 
   submit = async (options: SubmitOptions) => {
@@ -304,8 +412,8 @@ export class LocalSessionBackend extends BaseSessionBackend {
     return this.rulesEngineScriptPromise;
   };
 
-  getRulesEngineRuntime = async (_options?: GetRulesEngineOptions) => {
-    return this.loadRulesEngine();
+  getRulesEngineRuntime = async (options?: GetRulesEngineOptions) => {
+    return this.loadRulesEngine(options);
   };
 
   private createInteraction(options: SessionConfig): LocalInteraction {
@@ -335,19 +443,32 @@ export class LocalSessionBackend extends BaseSessionBackend {
       throw new Error(`Interview not found: ${options.interview ?? "default"}`);
     }
 
+    const meta = {
+      ...deepClone(interview),
+      serverSideDynamic: false,
+    };
+
     return {
       id: options.interactionId ?? this.initialInteractionId ?? uuid(),
       goal,
-      meta: deepClone(interview),
+      meta,
       interviewId: interview.id,
       interviewName: interview.name,
       sidebars: interview.sidebars,
-      serverSideDynamic: interview.serverSideDynamic,
+      serverSideDynamic: false,
       mode: "interview",
       status: "in-progress",
       journey: [],
       timeline: [],
     };
+  }
+
+  private updateLocalReleaseData(localReleaseData: Session["localReleaseData"]) {
+    if (!localReleaseData) {
+      throw new Error("LocalSessionBackend requires localReleaseData from the backend session response");
+    }
+
+    this.releaseData = deepClone(localReleaseData) as ReleaseData;
   }
 
   private findInterview(interviewIdOrName: string | undefined) {
@@ -364,16 +485,52 @@ export class LocalSessionBackend extends BaseSessionBackend {
     });
   }
 
+  private toLocalEngineState(state: unknown): UnknownRecord {
+    if (state && typeof state === "object" && !Array.isArray(state) && "nodes" in state) {
+      return state as UnknownRecord;
+    }
+
+    return { nodes: {} };
+  }
+
+  private findCurrentStepId(steps: Session["steps"] | undefined): string | undefined {
+    for (const step of steps ?? []) {
+      if (step.current) {
+        return step.id;
+      }
+      const childStep = this.findCurrentStepId(step.steps);
+      if (childStep) {
+        return childStep;
+      }
+    }
+    return undefined;
+  }
+
+  private describeSolveResult(solveResult: unknown) {
+    if (!solveResult || typeof solveResult !== "object") {
+      return `result type: ${typeof solveResult}`;
+    }
+
+    const result = solveResult as UnknownRecord;
+    const error = result.error;
+    if (error) {
+      return `keys: ${Object.keys(result).join(", ") || "none"}; error: ${JSON.stringify(error)}`;
+    }
+
+    return `keys: ${Object.keys(result).join(", ") || "none"}`;
+  }
+
   private async runInterview(options: {
     inputPayload?: UnknownRecord;
-    navigate?: string | boolean;
+    navigate?: Navigate;
     response?: ResponseElement[];
     readOnly?: boolean;
     sessionConfig: SessionConfig;
     clientGraphBookmark?: string;
   }) {
+    const navigate = this.normalizeNavigate(options.navigate);
     const responseElements = this.withInterviewResponseElement(options.response, {
-      navigate: typeof options.navigate === "string" ? options.navigate : undefined,
+      navigate,
       readOnly: options.readOnly,
       sessionGoal: this.session?.goal,
     });
@@ -389,14 +546,95 @@ export class LocalSessionBackend extends BaseSessionBackend {
     const interviewResult = Array.isArray(solveResult.interview) ? solveResult.interview[0] : solveResult.interview;
 
     if (!interviewResult) {
-      throw new Error("Local interview processing failed: no interview result returned");
+      throw new Error(
+        `Local interview processing failed: no interview result returned (${this.describeSolveResult(solveResult)})`,
+      );
     }
 
     this.applySolveUpdates(solveResult, interviewResult);
     this.sessionSnapshot = this.toSession(interviewResult, options.sessionConfig, solveResult.validations);
 
+    if (this.sessionSnapshot.status === "complete" && !this.completedSessionSynced) {
+      this.sessionSnapshot = await this.syncCompletedSession(this.sessionSnapshot, options);
+      this.completedSessionSynced = true;
+    }
+
     return deepClone(this.sessionSnapshot);
   }
+
+  private createRemoteSession = async (options: SessionConfig) => {
+    const { initialData, project, release, response, sessionId, ...rest } = options;
+    const url = this.options.apiGetters?.create ? this.options.apiGetters.create(options) : buildUrl(project, release);
+
+    const res = await this.api.post<Session>(
+      url,
+      {
+        data: initialData ?? {},
+        response,
+        ...rest,
+      },
+      sessionId ? { params: { session: sessionId } } : undefined,
+    );
+
+    return res.data;
+  };
+
+  private loadRemoteSession = async (options: SessionConfig) => {
+    const { project, sessionId, interactionId, initialData, response, clientGraphBookmark, ...rest } = options;
+    const url = this.options.apiGetters?.load ? this.options.apiGetters.load(options) : buildUrl(project);
+
+    const res = await this.api.patch<Session>(
+      url,
+      { data: initialData ?? {}, response, clientGraphBookmark, ...rest },
+      {
+        params: { session: sessionId, interaction: interactionId },
+      },
+    );
+
+    return res.data;
+  };
+
+  private syncCompletedSession = async (
+    session: Session,
+    options: {
+      navigate?: Navigate;
+      response?: ResponseElement[];
+      readOnly?: boolean;
+      clientGraphBookmark?: string;
+    },
+  ) => {
+    const submitOptions: SubmitOptions = {
+      session,
+      data: this.session?.data as unknown as AttributeValues,
+      navigate: this.normalizeNavigate(options.navigate),
+      overrides: options.response ? { response: options.response } : undefined,
+      clientGraphBookmark: options.clientGraphBookmark ?? session.clientGraphBookmark,
+      readOnly: options.readOnly,
+    };
+    const url = this.options.apiGetters?.submit
+      ? this.options.apiGetters.submit(submitOptions)
+      : buildUrl(session.model, session.release);
+
+    const res = await this.api.patch<Session>(
+      url,
+      {
+        data: this.session?.data ?? {},
+        navigate: submitOptions.navigate || undefined,
+        index: session.index,
+        clientGraphBookmark: submitOptions.clientGraphBookmark,
+        readOnly: options.readOnly,
+        ...submitOptions.overrides,
+      },
+      {
+        params: {
+          session: session.sessionId,
+          interaction: session.interactionId,
+        },
+      },
+    );
+
+    return res.data;
+  };
 
   private async runSolve(options: {
     inputPayload?: UnknownRecord;
@@ -409,7 +647,9 @@ export class LocalSessionBackend extends BaseSessionBackend {
       throw new Error("No local session has been created");
     }
 
-    const rulesEngine = await this.loadRulesEngine();
+    const rulesEngine = await this.loadRulesEngine({
+      checksum: this.sessionSnapshot?.rulesEngineChecksum,
+    });
     const goal = options.goal ?? this.interaction.goal;
 
     return rulesEngine.solve(
@@ -447,12 +687,12 @@ export class LocalSessionBackend extends BaseSessionBackend {
     );
   }
 
-  private async loadRulesEngine() {
+  private async loadRulesEngine(options?: GetRulesEngineOptions) {
     if (this.rulesEngine) {
       return this.rulesEngine;
     }
 
-    const script = await this.getRulesEngine();
+    const script = await this.getRulesEngine(options);
     // biome-ignore lint/security/noGlobalEval: Local interviews execute the same trusted rules-engine script used by the existing SDK runtime.
     this.rulesEngine = globalThis.eval(script) as RulesEngine;
     return this.rulesEngine;
@@ -462,7 +702,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
     return {
       getRelease: () => ({
         ...this.releaseData,
-        rule_graph: this.releaseData.rule_graph,
+        rule_graph: this.getRuleGraphForLocalSolve(),
       }),
       getInterview: (interviewId: string) => this.findInterview(interviewId) ?? null,
       findMapping: () => null,
@@ -471,7 +711,20 @@ export class LocalSessionBackend extends BaseSessionBackend {
     };
   }
 
-  private withInterviewResponseElement(response: ResponseElement[] | undefined, element: ResponseElement) {
+  private getRuleGraphForLocalSolve() {
+    const clientGraph = this.session?.clientGraph;
+    if (!clientGraph) {
+      return this.releaseData.rule_graph;
+    }
+
+    try {
+      return decompressGraph(clientGraph);
+    } catch {
+      return clientGraph;
+    }
+  }
+
+  private withInterviewResponseElement(response: ResponseElement[] | undefined, element: InterviewResponseElement) {
     const responseElements = [...(response ?? [])].filter((item) => item?.type !== "interview");
     responseElements.push({
       type: "interview",
@@ -482,6 +735,22 @@ export class LocalSessionBackend extends BaseSessionBackend {
     return responseElements;
   }
 
+  private normalizeNavigate(navigate: Navigate | undefined): NavigateTargetOptions | undefined {
+    if (typeof navigate === "string") {
+      return { stepId: navigate };
+    }
+
+    if (navigate && typeof navigate === "object") {
+      return navigate;
+    }
+
+    if (navigate !== true) {
+      return undefined;
+    }
+
+    return undefined;
+  }
+
   private applySolveUpdates(solveResult: LocalSolveResult, interviewResult: LocalInterviewResult) {
     if (!this.session || !this.interaction) {
       return;
@@ -490,9 +759,11 @@ export class LocalSessionBackend extends BaseSessionBackend {
     this.session = {
       ...this.session,
       ...solveResult.sessionUpdate,
-      data: solveResult.sessionUpdate?.data ?? interviewResult.data ?? this.session.data,
+      data: solveResult.sessionUpdate?.data ?? this.session.data,
       state: solveResult.sessionUpdate?.state ?? this.session.state,
       lastInteractionId: this.interaction.id,
+      clientGraph: interviewResult.clientGraph ?? this.session.clientGraph,
+      clientGraphBookmark: interviewResult.clientGraphBookmark ?? this.session.clientGraphBookmark,
     };
 
     this.interaction = {
@@ -516,14 +787,14 @@ export class LocalSessionBackend extends BaseSessionBackend {
     return {
       sessionId: this.session.id,
       interactionId: this.interaction.id,
-      interviewId: this.interaction.interviewId ?? config.interview ?? "autogen",
+      interviewId: interviewResult.interviewId ?? this.interaction.interviewId ?? config.interview ?? "autogen",
       goal: this.interaction.goal ?? config.goal ?? "",
       model: String(config.project ?? this.releaseData.model ?? ""),
       release: String(config.release ?? this.releaseData.id ?? ""),
       reportId: "",
       status: interviewResult.status ?? this.interaction.status ?? "in-progress",
       context: interviewResult.context,
-      data: interviewResult.data ?? this.session.data,
+      data: interviewResult.data ?? this.sessionSnapshot?.data ?? {},
       state: interviewResult.state,
       steps: interviewResult.steps ?? [],
       screen: interviewResult.screen,
@@ -531,14 +802,16 @@ export class LocalSessionBackend extends BaseSessionBackend {
       explanations: interviewResult.explanations,
       locale: this.releaseData.locale,
       validations,
-      clientGraph: interviewResult.clientGraph,
-      clientGraphBookmark: interviewResult.clientGraphBookmark,
+      clientGraph: interviewResult.clientGraph ?? this.session.clientGraph,
+      clientGraphBookmark: interviewResult.clientGraphBookmark ?? this.session.clientGraphBookmark,
       relationships: this.releaseData.relationships,
       preProcessedState: interviewResult.preProcessedState,
       reporting: interviewResult.reporting,
       inferredOrder: this.releaseData.inferredOrder,
       rulesEngineChecksum: interviewResult.rulesEngineChecksum,
       __deprecatedSessionData: interviewResult.__deprecatedSessionData,
+      current_step: this.interaction.current_step,
+      current_step_meta: this.interaction.current_step_meta,
     } as unknown as Session;
   }
 }
