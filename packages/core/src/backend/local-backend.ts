@@ -18,7 +18,8 @@ import type {
   SubmitOptions,
 } from "../types";
 import { buildUrl, deepClone, uuid } from "../util";
-import { BaseSessionBackend, type BaseSessionBackendOptions } from "./backend";
+import { BaseInterviewBackend, type BaseInterviewBackendOptions } from "./backend";
+import { RemoteInterviewBackend } from "./remote-interview-backend";
 
 type UnknownRecord = Record<string, unknown>;
 type ResponseElement = UnknownRecord & { type?: string };
@@ -34,6 +35,7 @@ type LocalSolveResult = UnknownRecord & {
     state?: UnknownRecord;
   };
   interactionUpdate?: UnknownRecord;
+  reporting?: unknown;
   validations?: unknown;
 };
 type LocalInterviewResult = UnknownRecord & {
@@ -61,24 +63,24 @@ type LocalInterviewResult = UnknownRecord & {
   currentStepMeta?: string;
 };
 
-type LocalSessionBackendSharedOptions = Omit<Partial<BaseSessionBackendOptions>, "host"> & {
+type LocalInterviewBackendSharedOptions = Omit<Partial<BaseInterviewBackendOptions>, "host"> & {
   sessionId?: string;
   interactionId?: string;
-  storage?: LocalSessionBackendStorage;
+  storage: LocalInterviewBackendStorage;
 };
 
-export type LocalSessionBackendOptions =
-  | (LocalSessionBackendSharedOptions & {
+export type LocalInterviewBackendOptions =
+  | (LocalInterviewBackendSharedOptions & {
       host: string;
       rulesEngine?: RulesEngine;
       rulesEngineScript?: string | (() => string | Promise<string>);
     })
-  | (LocalSessionBackendSharedOptions & {
+  | (LocalInterviewBackendSharedOptions & {
       host?: string;
       rulesEngine: RulesEngine;
       rulesEngineScript?: string | (() => string | Promise<string>);
     })
-  | (LocalSessionBackendSharedOptions & {
+  | (LocalInterviewBackendSharedOptions & {
       host?: string;
       rulesEngine?: RulesEngine;
       rulesEngineScript: string | (() => string | Promise<string>);
@@ -145,7 +147,7 @@ export type LocalSessionMetadata = {
   validations?: unknown;
 };
 
-export type LocalSessionBackendStoredState = {
+export type LocalInterviewBackendStoredState = {
   releaseData?: ReleaseData;
   session?: LocalEngineSession;
   interaction?: LocalInteraction;
@@ -153,13 +155,13 @@ export type LocalSessionBackendStoredState = {
   completedSessionSynced?: boolean;
 };
 
-export interface LocalSessionBackendStorage {
-  load(): LocalSessionBackendStoredState | undefined;
-  save(state: LocalSessionBackendStoredState): void;
+export interface LocalInterviewBackendStorage {
+  load(): LocalInterviewBackendStoredState | undefined;
+  save(state: LocalInterviewBackendStoredState): void;
 }
 
-export const createLocalSessionBackendMemoryStorage = (): LocalSessionBackendStorage => {
-  let state: LocalSessionBackendStoredState = {};
+export const createLocalInterviewBackendMemoryStorage = (): LocalInterviewBackendStorage => {
+  let state: LocalInterviewBackendStoredState = {};
   return {
     load: () => deepClone(state),
     save: (nextState) => {
@@ -168,35 +170,43 @@ export const createLocalSessionBackendMemoryStorage = (): LocalSessionBackendSto
   };
 };
 
-export class LocalSessionBackend extends BaseSessionBackend {
+export class LocalInterviewBackend extends BaseInterviewBackend {
+  private remoteBackend: RemoteInterviewBackend;
   private rulesEngine?: RulesEngine;
-  private rulesEngineScript?: LocalSessionBackendOptions["rulesEngineScript"];
+  private rulesEngineScript?: LocalInterviewBackendOptions["rulesEngineScript"];
   private rulesEngineScriptPromise?: Promise<string>;
-  private storage: LocalSessionBackendStorage;
+  private storage: LocalInterviewBackendStorage;
 
-  constructor(options: LocalSessionBackendOptions) {
+  constructor(options: LocalInterviewBackendOptions) {
     if (!options || typeof options !== "object") {
-      throw new Error("LocalSessionBackend requires host, rulesEngine, or rulesEngineScript");
+      throw new Error("LocalInterviewBackend requires host, rulesEngine, or rulesEngineScript");
     }
 
     if ("releaseData" in (options as UnknownRecord)) {
       throw new Error(
-        "LocalSessionBackend does not accept releaseData; localReleaseData must come from the backend session response",
+        "LocalInterviewBackend does not accept releaseData; localReleaseData must come from the backend session response",
       );
     }
 
     if (!options.host && !options.rulesEngine && !options.rulesEngineScript) {
-      throw new Error("LocalSessionBackend requires host, rulesEngine, or rulesEngineScript");
+      throw new Error("LocalInterviewBackend requires host, rulesEngine, or rulesEngineScript");
     }
 
-    super({
+    if (!options.storage) {
+      throw new Error("LocalInterviewBackend requires storage");
+    }
+
+    const backendOptions = {
       host: options.host ?? "",
       path: options.path,
       auth: options.auth,
       overrides: options.overrides,
       apiGetters: options.apiGetters,
-    });
-    this.storage = options.storage ?? createLocalSessionBackendMemoryStorage();
+    };
+
+    super(backendOptions);
+    this.remoteBackend = new RemoteInterviewBackend(backendOptions);
+    this.storage = options.storage;
     this.rulesEngine = options.rulesEngine;
     this.rulesEngineScript = options.rulesEngineScript;
   }
@@ -205,7 +215,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
     return this.storage.load() ?? {};
   }
 
-  private saveLocalState(state: LocalSessionBackendStoredState) {
+  private saveLocalState(state: LocalInterviewBackendStoredState) {
     this.storage.save(state);
   }
 
@@ -265,7 +275,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
   }
 
   create = async (options: SessionConfig) => {
-    const remoteSession = await this.createRemoteSession({
+    const remoteSession = await this.remoteBackend.create({
       ...options,
       localInterview: true,
     });
@@ -275,13 +285,17 @@ export class LocalSessionBackend extends BaseSessionBackend {
   };
 
   load = async (options: SessionConfig) => {
-    const remoteSession = await this.loadRemoteSession(options);
+    const remoteSession = await this.remoteBackend.load(options);
     this.storeSessionSnapshot(remoteSession, options);
 
     return deepClone(remoteSession);
   };
 
   submit = async (options: SubmitOptions) => {
+    if (options.remote) {
+      return this.remoteSubmit(options);
+    }
+
     return this.runInterview({
       inputPayload: options.data,
       navigate: options.navigate,
@@ -342,19 +356,25 @@ export class LocalSessionBackend extends BaseSessionBackend {
       throw new Error("No local session has been created");
     }
 
-    const session = this.toSession(result as LocalInterviewResult, {
+    const solveResult: LocalSolveResult = result.interview
+      ? result
+      : {
+          ...result,
+          interview: result as LocalInterviewResult,
+        };
+    const session = this.toSession(solveResult, {
       project: options.session.model,
       release: options.session.release,
       interview: options.session.interviewId,
       goal: options.session.goal,
-    }, result.validations);
+    });
     this.updateSessionMetaFromSession(session);
 
     return deepClone(session);
   };
 
   chat = async (_options: ChatOptions): Promise<ChatResponse> => {
-    throw new Error("LocalSessionBackend does not support chat");
+    throw new Error("LocalInterviewBackend does not support chat");
   };
 
   exportTimeline = async (_options: ExportTimelineOptions): Promise<InterviewTimeline> => {
@@ -398,6 +418,10 @@ export class LocalSessionBackend extends BaseSessionBackend {
 
   getRulesEngineRuntime = async (options?: GetRulesEngineOptions) => {
     return this.loadRulesEngine(options);
+  };
+
+  getStoredState = () => {
+    return this.getLocalState();
   };
 
   storeSessionSnapshot = (session: Session, config: SessionConfig = {}) => {
@@ -446,7 +470,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
     const goal = options.goal ?? interview?.goal;
 
     if (!goal) {
-      throw new Error("LocalSessionBackend requires a goal or an interview with a goal");
+      throw new Error("LocalInterviewBackend requires a goal or an interview with a goal");
     }
 
     if (options.interview === "autogen" || options.interview === "autogen_optimised") {
@@ -490,7 +514,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
 
   private updateLocalReleaseData(localReleaseData: Session["localReleaseData"]) {
     if (!localReleaseData) {
-      throw new Error("LocalSessionBackend requires localReleaseData from the backend session response");
+      throw new Error("LocalInterviewBackend requires localReleaseData from the backend session response");
     }
 
     this.releaseData = deepClone(localReleaseData) as ReleaseData;
@@ -568,7 +592,7 @@ export class LocalSessionBackend extends BaseSessionBackend {
       clientGraphBookmark: options.clientGraphBookmark,
     });
 
-    const interviewResult = Array.isArray(solveResult.interview) ? solveResult.interview[0] : solveResult.interview;
+    const interviewResult = this.getInterviewResult(solveResult);
 
     if (!interviewResult) {
       throw new Error(
@@ -576,8 +600,8 @@ export class LocalSessionBackend extends BaseSessionBackend {
       );
     }
 
-    this.applySolveUpdates(solveResult, interviewResult);
-    let session = this.toSession(interviewResult, options.sessionConfig, solveResult.validations);
+    this.applySolveUpdates(solveResult);
+    let session = this.toSession(solveResult, options.sessionConfig);
     this.updateSessionMetaFromSession(session);
 
     if (session.status === "complete" && !this.completedSessionSynced) {
@@ -588,38 +612,6 @@ export class LocalSessionBackend extends BaseSessionBackend {
 
     return deepClone(session);
   }
-
-  private createRemoteSession = async (options: SessionConfig) => {
-    const { initialData, project, release, response, sessionId, ...rest } = options;
-    const url = this.options.apiGetters?.create ? this.options.apiGetters.create(options) : buildUrl(project, release);
-
-    const res = await this.api.post<Session>(
-      url,
-      {
-        data: initialData ?? {},
-        response,
-        ...rest,
-      },
-      sessionId ? { params: { session: sessionId } } : undefined,
-    );
-
-    return res.data;
-  };
-
-  private loadRemoteSession = async (options: SessionConfig) => {
-    const { project, sessionId, interactionId, initialData, response, clientGraphBookmark, ...rest } = options;
-    const url = this.options.apiGetters?.load ? this.options.apiGetters.load(options) : buildUrl(project);
-
-    const res = await this.api.patch<Session>(
-      url,
-      { data: initialData ?? {}, response, clientGraphBookmark, ...rest },
-      {
-        params: { session: sessionId, interaction: interactionId },
-      },
-    );
-
-    return res.data;
-  };
 
   private syncCompletedSession = async (
     session: Session,
@@ -638,29 +630,13 @@ export class LocalSessionBackend extends BaseSessionBackend {
       clientGraphBookmark: options.clientGraphBookmark ?? session.clientGraphBookmark,
       readOnly: options.readOnly,
     };
-    const url = this.options.apiGetters?.submit
-      ? this.options.apiGetters.submit(submitOptions)
-      : buildUrl(session.model, session.release);
+    return this.remoteBackend.submit(submitOptions);
+  };
 
-    const res = await this.api.patch<Session>(
-      url,
-      {
-        data: this.session?.data ?? {},
-        navigate: submitOptions.navigate || undefined,
-        index: session.index,
-        clientGraphBookmark: submitOptions.clientGraphBookmark,
-        readOnly: options.readOnly,
-        ...submitOptions.overrides,
-      },
-      {
-        params: {
-          session: session.sessionId,
-          interaction: session.interactionId,
-        },
-      },
-    );
-
-    return res.data;
+  private remoteSubmit = async (options: SubmitOptions) => {
+    const remoteSession = await this.remoteBackend.submit(options);
+    this.updateSessionMetaFromSession(remoteSession);
+    return remoteSession;
   };
 
   private async runSolve(options: {
@@ -778,8 +754,21 @@ export class LocalSessionBackend extends BaseSessionBackend {
     return undefined;
   }
 
-  private applySolveUpdates(solveResult: LocalSolveResult, interviewResult: LocalInterviewResult) {
+  private getInterviewResult(solveResult: LocalSolveResult): LocalInterviewResult | undefined {
+    if (Array.isArray(solveResult.interview)) {
+      return solveResult.interview[0];
+    }
+
+    return solveResult.interview;
+  }
+
+  private applySolveUpdates(solveResult: LocalSolveResult) {
     if (!this.session || !this.interaction) {
+      return;
+    }
+
+    const interviewResult = this.getInterviewResult(solveResult);
+    if (!interviewResult) {
       return;
     }
 
@@ -806,9 +795,19 @@ export class LocalSessionBackend extends BaseSessionBackend {
     };
   }
 
-  private toSession(interviewResult: LocalInterviewResult, config: SessionConfig, validations: unknown): Session {
+  private toSession(
+    solveResult: LocalSolveResult,
+    config: SessionConfig,
+  ): Session {
     if (!this.session || !this.interaction) {
       throw new Error("No local session has been created");
+    }
+
+    const interviewResult = this.getInterviewResult(solveResult);
+    if (!interviewResult) {
+      throw new Error(
+        `Local interview processing failed: no interview result returned (${this.describeSolveResult(solveResult)})`,
+      );
     }
 
     return {
@@ -828,12 +827,12 @@ export class LocalSessionBackend extends BaseSessionBackend {
       progress: interviewResult.progress,
       explanations: interviewResult.explanations,
       locale: this.sessionMeta?.locale ?? this.releaseData.locale,
-      validations: validations ?? this.sessionMeta?.validations,
+      validations: solveResult.validations ?? this.sessionMeta?.validations,
       clientGraph: interviewResult.clientGraph ?? this.session.clientGraph,
       clientGraphBookmark: interviewResult.clientGraphBookmark ?? this.session.clientGraphBookmark,
       relationships: this.releaseData.relationships,
       preProcessedState: interviewResult.preProcessedState,
-      reporting: interviewResult.reporting,
+      reporting: solveResult.reporting,
       inferredOrder: this.releaseData.inferredOrder,
       rulesEngineChecksum: interviewResult.rulesEngineChecksum ?? this.sessionMeta?.rulesEngineChecksum,
       __deprecatedSessionData: interviewResult.__deprecatedSessionData,

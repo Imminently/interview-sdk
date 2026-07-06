@@ -49,7 +49,7 @@
     },
     "packages/core": {
       "name": "@imminently/interview-sdk",
-      "version": "5.0.0-alpha.3",
+      "version": "5.0.0-alpha.4",
       "dependencies": {
         "@dagrejs/graphlib": "^2.2.4",
         "@date-fns/utc": "^2.1.1",

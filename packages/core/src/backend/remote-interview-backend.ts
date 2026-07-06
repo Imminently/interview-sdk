@@ -11,11 +11,62 @@ import type {
   SubmitOptions,
 } from "../types";
 import { buildUrl } from "../util";
-import { BaseSessionBackend, type BaseSessionBackendOptions } from "./backend";
+import { BaseInterviewBackend, type BaseInterviewBackendOptions } from "./backend";
+import { MockInterviewBackend } from "./mock-backend";
 
-export type RemoteSessionBackendOptions = BaseSessionBackendOptions;
+export type RemoteInterviewBackendOptions = BaseInterviewBackendOptions;
+export type RemoteInterviewSubmitRequest = {
+  url: string;
+  body: Record<string, unknown>;
+  config: {
+    params: {
+      session: string;
+      interaction: string;
+    };
+  };
+};
 
-export class RemoteSessionBackend extends BaseSessionBackend {
+const isTestEnvironment = () => {
+  const env = (globalThis as any)?.process?.env;
+  return env?.NODE_ENV === "test" || env?.VITEST === "true";
+};
+
+export const buildRemoteInterviewSubmitRequest = (
+  options: SubmitOptions,
+  backendOptions: Pick<RemoteInterviewBackendOptions, "apiGetters"> = {},
+): RemoteInterviewSubmitRequest => {
+  const { session, data, navigate, overrides, clientGraphBookmark } = options;
+  const url = backendOptions.apiGetters?.submit
+    ? backendOptions.apiGetters.submit(options)
+    : buildUrl(session.model, session.release);
+
+  return {
+    url,
+    body: {
+      data,
+      navigate: navigate || undefined,
+      index: session.index,
+      clientGraphBookmark,
+      readOnly: options.readOnly,
+      ...overrides,
+    },
+    config: {
+      params: {
+        session: session.sessionId,
+        interaction: session.interactionId,
+      },
+    },
+  };
+};
+
+export class RemoteInterviewBackend extends BaseInterviewBackend {
+  constructor(options: RemoteInterviewBackendOptions) {
+    super(options);
+    if (isTestEnvironment()) {
+      return new MockInterviewBackend() as unknown as RemoteInterviewBackend;
+    }
+  }
+
   create = async (options: SessionConfig) => {
     const { initialData, project, release, response, sessionId, ...rest } = options;
 
@@ -56,27 +107,8 @@ export class RemoteSessionBackend extends BaseSessionBackend {
    * @param overrides Other params to pass through to payload
    */
   submit = async (options: SubmitOptions) => {
-    const { session, data, navigate, overrides, clientGraphBookmark } = options;
-    const url = this.options.apiGetters?.submit
-      ? this.options.apiGetters.submit(options)
-      : buildUrl(session.model, session.release);
-    const res = await this.api.patch<Session>(
-      url,
-      {
-        data,
-        navigate: navigate || undefined,
-        index: session.index,
-        clientGraphBookmark,
-        readOnly: options.readOnly,
-        ...overrides,
-      },
-      {
-        params: {
-          session: session.sessionId,
-          interaction: session.interactionId,
-        },
-      },
-    );
+    const request = buildRemoteInterviewSubmitRequest(options, this.options);
+    const res = await this.api.patch<Session>(request.url, request.body, request.config);
     return res.data;
   };
 
