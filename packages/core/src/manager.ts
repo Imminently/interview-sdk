@@ -4,9 +4,9 @@ import isEqual from "lodash/isEqual.js";
 import set from "lodash/set.js";
 import { INTERVIEW_BACKEND_BRAND, type InterviewBackend } from "./backend/backend";
 import {
-  RemoteInterviewBackend,
+  RemoteBackend,
   type RemoteInterviewBackendOptions,
-} from "./backend/remote-interview-backend";
+} from "./backend/remote-backend";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, requiresSimulation } from "./dynamic";
 import { FileManager, type FileManagerOptions } from "./file-manager";
@@ -325,7 +325,7 @@ export class SessionManager {
 
     this.backend = isInterviewBackend(backendOption)
       ? backendOption
-      : new RemoteInterviewBackend(backendOption as RemoteInterviewBackendOptions);
+      : new RemoteBackend(backendOption as RemoteInterviewBackendOptions);
 
     // create the file manager
     if (options.fileManager instanceof FileManager) {
@@ -601,7 +601,7 @@ export class SessionManager {
       (backend as InterviewBackend)[INTERVIEW_BACKEND_BRAND] === true;
     const backend = isInterviewBackend(backendOption)
       ? backendOption
-      : new RemoteInterviewBackend(backendOption as RemoteInterviewBackendOptions);
+      : new RemoteBackend(backendOption as RemoteInterviewBackendOptions);
 
     const cloneOptions: ManagerOptions = {
       ...this._options,

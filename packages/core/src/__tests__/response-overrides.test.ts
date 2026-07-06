@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { MockInterviewBackend } from "../backend/mock-backend";
-import { buildRemoteInterviewSubmitRequest } from "../backend/remote-interview-backend";
+import { buildRemoteInterviewSubmitRequest } from "../backend/remote-backend";
 import { SessionManager } from "../manager";
 import type { Session } from "../types";
 

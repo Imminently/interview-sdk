@@ -19,7 +19,7 @@ import type {
 } from "../types";
 import { buildUrl, deepClone, uuid } from "../util";
 import { BaseInterviewBackend, type BaseInterviewBackendOptions } from "./backend";
-import { RemoteInterviewBackend } from "./remote-interview-backend";
+import { RemoteBackend } from "./remote-backend";
 
 type UnknownRecord = Record<string, unknown>;
 type ResponseElement = UnknownRecord & { type?: string };
@@ -171,7 +171,7 @@ export const createLocalInterviewBackendMemoryStorage = (): LocalInterviewBacken
 };
 
 export class LocalInterviewBackend extends BaseInterviewBackend {
-  private remoteBackend: RemoteInterviewBackend;
+  private remoteBackend: RemoteBackend;
   private rulesEngine?: RulesEngine;
   private rulesEngineScript?: LocalInterviewBackendOptions["rulesEngineScript"];
   private rulesEngineScriptPromise?: Promise<string>;
@@ -205,7 +205,7 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
     };
 
     super(backendOptions);
-    this.remoteBackend = new RemoteInterviewBackend(backendOptions);
+    this.remoteBackend = new RemoteBackend(backendOptions);
     this.storage = options.storage;
     this.rulesEngine = options.rulesEngine;
     this.rulesEngineScript = options.rulesEngineScript;
