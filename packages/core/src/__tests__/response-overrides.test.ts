@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { ApiManager } from "../api-manager";
+import { MockInterviewBackend } from "../backend/mock-backend";
+import { buildRemoteInterviewSubmitRequest } from "../backend/remote-interview-backend";
 import { SessionManager } from "../manager";
 import type { Session } from "../types";
 
@@ -29,6 +30,7 @@ const createSession = (): Session => ({
   screen: {
     title: "Screen 1",
     id: "step-1",
+    context: { entity: "global" },
     controls: [],
     attributes: [],
     allAttributes: [],
@@ -37,6 +39,7 @@ const createSession = (): Session => ({
 
 describe("response override forwarding", () => {
   beforeEach(() => {
+    MockInterviewBackend.reset();
     Object.defineProperty(globalThis, "sessionStorage", {
       value: {
         getItem: jest.fn(() => null),
@@ -48,45 +51,39 @@ describe("response override forwarding", () => {
     });
   });
 
-  it("forwards response through ApiManager submit overrides", async () => {
-    const apiManager = new ApiManager({ host: "https://example.com" });
-    const patch = jest.fn(async () => ({ data: {} }));
-
-    (apiManager as any).api = {
-      patch,
-      post: jest.fn(),
-      get: jest.fn(),
-    };
-
-    await apiManager.submit({
+  it("forwards response through RemoteInterviewBackend submit overrides", async () => {
+    const request = buildRemoteInterviewSubmitRequest({
       session: createSession(),
       data: { field: "value" },
       overrides: { response: ["data", "screen"] },
     });
 
-    expect(patch).toHaveBeenCalledWith(
-      "model-1/release-1",
-      expect.objectContaining({
+    expect(request).toEqual({
+      url: "model-1/release-1",
+      body: expect.objectContaining({
+        data: { field: "value" },
         response: ["data", "screen"],
       }),
-      expect.objectContaining({
+      config: {
         params: {
           session: "session-1",
           interaction: "interaction-1",
         },
-      }),
-    );
+      },
+    });
   });
 
   it("falls back to the stored session response on submit overrides", async () => {
+    const submit = jest.fn(async () => createSession());
+    MockInterviewBackend.configure({
+      submit,
+    });
     const manager = new SessionManager({
-      apiManager: { host: "https://example.com" },
+      backend: { host: "https://example.com" },
       fileManager: { host: "https://example.com" },
     });
     const session = createSession();
-    const submit = jest.fn(async () => session);
 
-    (manager as any).apiManager.submit = submit;
     (manager as any).sessions = [session];
     (manager as any).active = 0;
     (manager as any).sessionConfigs[session.sessionId] = {

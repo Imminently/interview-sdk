@@ -1,6 +1,11 @@
-import { describe, expect, it } from "@jest/globals";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import pako from "pako";
-import { LocalSessionBackend, type LocalSessionBackendStoredState } from "../backend/local-backend";
+import { MockInterviewBackend } from "../backend/mock-backend";
+import {
+  createLocalInterviewBackendMemoryStorage,
+  LocalInterviewBackend,
+  type LocalInterviewBackendStoredState,
+} from "../backend/local-backend";
 import type { RulesEngine, Session, SessionConfig } from "../types";
 
 const releaseData = {
@@ -12,6 +17,7 @@ const releaseData = {
 const rulesEngine: RulesEngine = {
   solve: async () => ({}),
 };
+const createStorage = () => createLocalInterviewBackendMemoryStorage();
 const sessionData = (data: Record<string, unknown>) => data as Session["data"];
 const attributeData = (data: Record<string, unknown>) => data as never;
 const compressGraph = (graph: Record<string, unknown>) =>
@@ -71,11 +77,7 @@ const createSolveResult = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const createBackendWithApi = (solve: RulesEngine["solve"], interviewOverrides: Record<string, unknown> = {}) => {
-  const backend = new LocalSessionBackend({
-    host: "https://api.example.com",
-    rulesEngine: { solve },
-  });
-  const post = async () => ({
+  const post = async (..._args: unknown[]) => ({
     data: createSession({
       data: sessionData({ serverStarted: true }),
       clientGraph: "server-client-graph",
@@ -93,54 +95,125 @@ const createBackendWithApi = (solve: RulesEngine["solve"], interviewOverrides: R
       },
     }),
   });
-  const patch = async () => ({ data: createSession({ status: "complete", data: sessionData({ finalAnswer: "yes" }) }) });
+  const patch = async (..._args: unknown[]) => ({ data: createSession({ status: "complete", data: sessionData({ finalAnswer: "yes" }) }) });
+  const api = { post, patch };
+  MockInterviewBackend.configure({
+    create: async (options) => {
+      const { initialData, project, release, response, sessionId, ...rest } = options;
+      const result = await api.post(
+        [project, release].filter(Boolean).join("/"),
+        {
+          data: initialData ?? {},
+          response,
+          ...rest,
+        },
+        sessionId ? { params: { session: sessionId } } : undefined,
+      );
+      return result.data;
+    },
+    load: async (options) => {
+      const { project, sessionId, interactionId, initialData, response, clientGraphBookmark, ...rest } = options;
+      const result = await api.patch(
+        project,
+        { data: initialData ?? {}, response, clientGraphBookmark, ...rest },
+        { params: { session: sessionId, interaction: interactionId } },
+      );
+      return result.data;
+    },
+    submit: async (options) => {
+      const { session, data, navigate, overrides, clientGraphBookmark } = options;
+      const result = await api.patch(
+        [session.model, session.release].filter(Boolean).join("/"),
+        {
+          data,
+          navigate: navigate || undefined,
+          index: session.index,
+          clientGraphBookmark,
+          readOnly: options.readOnly,
+          ...overrides,
+        },
+        {
+          params: {
+            session: session.sessionId,
+            interaction: session.interactionId,
+          },
+        },
+      );
+      return result.data;
+    },
+  });
+  const backend = new LocalInterviewBackend({
+    host: "https://api.example.com",
+    rulesEngine: { solve },
+    storage: createStorage(),
+  });
 
   (backend as unknown as { api: { post: typeof post; patch: typeof patch } }).api = {
-    post,
-    patch,
+    get post() {
+      return api.post;
+    },
+    set post(nextPost) {
+      api.post = nextPost;
+    },
+    get patch() {
+      return api.patch;
+    },
+    set patch(nextPatch) {
+      api.patch = nextPatch;
+    },
   };
 
   return {
     backend,
-    api: (backend as unknown as { api: { post: typeof post; patch: typeof patch } }).api,
+    api,
   };
 };
 
-describe("LocalSessionBackend", () => {
+describe("LocalInterviewBackend", () => {
+  beforeEach(() => {
+    MockInterviewBackend.reset();
+  });
+
   it("requires a host, rulesEngine, or rulesEngineScript", () => {
-    expect(() => new LocalSessionBackend({} as never)).toThrow(
-      "LocalSessionBackend requires host, rulesEngine, or rulesEngineScript",
+    expect(() => new LocalInterviewBackend({} as never)).toThrow(
+      "LocalInterviewBackend requires host, rulesEngine, or rulesEngineScript",
     );
   });
 
   it("does not accept release data", () => {
-    expect(() => new LocalSessionBackend({ host: "http://localhost:3000", releaseData } as never)).toThrow(
-      "LocalSessionBackend does not accept releaseData",
+    expect(() => new LocalInterviewBackend({ host: "http://localhost:3000", releaseData } as never)).toThrow(
+      "LocalInterviewBackend does not accept releaseData",
+    );
+  });
+
+  it("requires storage", () => {
+    expect(() => new LocalInterviewBackend({ host: "http://localhost:3000" } as never)).toThrow(
+      "LocalInterviewBackend requires storage",
     );
   });
 
   it("can be constructed with a host", () => {
-    expect(() => new LocalSessionBackend({ host: "http://localhost:3000" })).not.toThrow();
+    expect(() => new LocalInterviewBackend({ host: "http://localhost:3000", storage: createStorage() })).not.toThrow();
   });
 
   it("can be constructed with a rules engine", () => {
-    expect(() => new LocalSessionBackend({ rulesEngine })).not.toThrow();
+    expect(() => new LocalInterviewBackend({ rulesEngine, storage: createStorage() })).not.toThrow();
   });
 
   it("can be constructed with a rules engine script", () => {
-    expect(() => new LocalSessionBackend({ rulesEngineScript: "({ solve: async () => ({}) })" })).not.toThrow();
+    expect(() => new LocalInterviewBackend({ rulesEngineScript: "({ solve: async () => ({}) })", storage: createStorage() })).not.toThrow();
   });
 
   it("stores local session and interaction state in the provided storage", async () => {
-    let state: LocalSessionBackendStoredState | undefined;
+    let state: LocalInterviewBackendStoredState | undefined;
     const storage = {
       load: () => state,
-      save: (nextState: LocalSessionBackendStoredState) => {
+      save: (nextState: LocalInterviewBackendStoredState) => {
         state = nextState;
       },
     };
     const { backend } = createBackendWithApi(async () => createSolveResult({ data: { localAnswer: "yes" } }));
-    const backendWithStorage = new LocalSessionBackend({
+    const backendWithStorage = new LocalInterviewBackend({
       host: "https://api.example.com",
       rulesEngine: {
         solve: async () => createSolveResult({ data: { localAnswer: "yes" } }),
@@ -148,6 +221,9 @@ describe("LocalSessionBackend", () => {
       storage,
     });
     (backendWithStorage as unknown as { api: unknown }).api = (backend as unknown as { api: unknown }).api;
+    (backendWithStorage as unknown as { remoteBackend: { api: unknown } }).remoteBackend.api = (
+      backend as unknown as { remoteBackend: { api: unknown } }
+    ).remoteBackend.api;
 
     const session = await backendWithStorage.create({
       project: "model-1",
@@ -169,7 +245,8 @@ describe("LocalSessionBackend", () => {
 
   it("loads a rules engine script function once", async () => {
     let loadCount = 0;
-    const backend = new LocalSessionBackend({
+    const backend = new LocalInterviewBackend({
+      storage: createStorage(),
       rulesEngineScript: () => {
         loadCount += 1;
         return "({ solve: async () => ({}) })";
@@ -184,8 +261,9 @@ describe("LocalSessionBackend", () => {
   });
 
   it("uses the session rules engine checksum when loading the local runtime", async () => {
-    const backend = new LocalSessionBackend({
+    const backend = new LocalInterviewBackend({
       host: "https://api.example.com",
+      storage: createStorage(),
     });
     const getCalls: unknown[][] = [];
     (backend as unknown as { api: { get: (...args: unknown[]) => Promise<{ data: string }> } }).api = {
@@ -256,10 +334,6 @@ describe("LocalSessionBackend", () => {
   });
 
   it("uses server-provided local release data when constructed without release data", async () => {
-    const backend = new LocalSessionBackend({
-      host: "https://api.example.com",
-      rulesEngine,
-    });
     const post = async () => ({
       data: createSession({
         localReleaseData: {
@@ -276,10 +350,15 @@ describe("LocalSessionBackend", () => {
       }),
     });
     const patch = async () => ({ data: createSession({ status: "complete" }) });
-    (backend as unknown as { api: { post: typeof post; patch: typeof patch } }).api = {
-      post,
-      patch,
-    };
+    MockInterviewBackend.configure({
+      create: async () => (await post()).data,
+      submit: async () => (await patch()).data,
+    });
+    const backend = new LocalInterviewBackend({
+      host: "https://api.example.com",
+      rulesEngine,
+      storage: createStorage(),
+    });
 
     const session = await backend.create({
       project: "model-1",
@@ -292,22 +371,22 @@ describe("LocalSessionBackend", () => {
 
   it("stores a remote-created local interview snapshot explicitly before local page turns", async () => {
     const solveData: unknown[] = [];
-    const storageState: { current?: LocalSessionBackendStoredState } = {};
+    const storageState: { current?: LocalInterviewBackendStoredState } = {};
     const storage = {
       load: () => storageState.current,
-      save: (nextState: LocalSessionBackendStoredState) => {
+      save: (nextState: LocalInterviewBackendStoredState) => {
         storageState.current = nextState;
       },
     };
-    const backend = new LocalSessionBackend({
+    const backend = new LocalInterviewBackend({
       host: "https://api.example.com",
+      storage,
       rulesEngine: {
         solve: async (payload) => {
           solveData.push(payload.session.data);
           return createSolveResult({ data: { localAnswer: "yes" } });
         },
       },
-      storage,
     });
     const sessionConfig: SessionConfig = {
       project: "model-1",
@@ -349,9 +428,10 @@ describe("LocalSessionBackend", () => {
   });
 
   it("does not implicitly hydrate local storage from submit session options", async () => {
-    const backend = new LocalSessionBackend({
+    const backend = new LocalInterviewBackend({
       host: "https://api.example.com",
       rulesEngine,
+      storage: createStorage(),
     });
 
     await expect(
@@ -406,10 +486,10 @@ describe("LocalSessionBackend", () => {
   });
 
   it("keeps parent-scoped screen data separate from canonical stored session data", async () => {
-    let state: LocalSessionBackendStoredState | undefined;
+    let state: LocalInterviewBackendStoredState | undefined;
     const storage = {
       load: () => state,
-      save: (nextState: LocalSessionBackendStoredState) => {
+      save: (nextState: LocalInterviewBackendStoredState) => {
         state = nextState;
       },
     };
@@ -422,12 +502,15 @@ describe("LocalSessionBackend", () => {
         },
       }),
     );
-    const backendWithStorage = new LocalSessionBackend({
+    const backendWithStorage = new LocalInterviewBackend({
       host: "https://api.example.com",
       rulesEngine: (backend as unknown as { rulesEngine: RulesEngine }).rulesEngine ?? rulesEngine,
       storage,
     });
     (backendWithStorage as unknown as { api: unknown }).api = (backend as unknown as { api: unknown }).api;
+    (backendWithStorage as unknown as { remoteBackend: { api: unknown } }).remoteBackend.api = (
+      backend as unknown as { remoteBackend: { api: unknown } }
+    ).remoteBackend.api;
     api.post = async () => ({
       data: createSession({
         data: sessionData({
@@ -494,10 +577,10 @@ describe("LocalSessionBackend", () => {
   });
 
   it("updates canonical stored session data only from local sessionUpdate data", async () => {
-    let state: LocalSessionBackendStoredState | undefined;
+    let state: LocalInterviewBackendStoredState | undefined;
     const storage = {
       load: () => state,
-      save: (nextState: LocalSessionBackendStoredState) => {
+      save: (nextState: LocalInterviewBackendStoredState) => {
         state = nextState;
       },
     };
@@ -527,12 +610,15 @@ describe("LocalSessionBackend", () => {
         } : undefined,
       };
     });
-    const backendWithStorage = new LocalSessionBackend({
+    const backendWithStorage = new LocalInterviewBackend({
       host: "https://api.example.com",
       rulesEngine: (backend as unknown as { rulesEngine: RulesEngine }).rulesEngine ?? rulesEngine,
       storage,
     });
     (backendWithStorage as unknown as { api: unknown }).api = (backend as unknown as { api: unknown }).api;
+    (backendWithStorage as unknown as { remoteBackend: { api: unknown } }).remoteBackend.api = (
+      backend as unknown as { remoteBackend: { api: unknown } }
+    ).remoteBackend.api;
     api.post = async () => ({
       data: createSession({
         data: sessionData({
@@ -772,6 +858,50 @@ describe("LocalSessionBackend", () => {
     expect(patchCalls).toHaveLength(0);
   });
 
+  it("submits caller-provided data when explicitly submitting remotely", async () => {
+    let solveCount = 0;
+    const { backend, api } = createBackendWithApi(async () => {
+      solveCount += 1;
+      return {
+        ...createSolveResult({ data: { screenAnswer: "yes" } }),
+        sessionUpdate: {
+          data: {
+            finalAnswer: "yes",
+          },
+        },
+      };
+    });
+    const patchCalls: unknown[][] = [];
+    api.patch = async (...args) => {
+      patchCalls.push(args);
+      return { data: createSession({ status: "in-progress", data: sessionData({ finalAnswer: "yes" }) }) };
+    };
+
+    const session = await backend.create({
+      project: "model-1",
+      release: "release-1",
+      interview: "interview-1",
+    });
+    const localSession = await backend.submit({
+      session,
+      data: attributeData({ screenAnswer: "yes" }),
+      navigate: true,
+    });
+    await backend.submit({
+      session: localSession,
+      data: attributeData({ explicitAnswer: "caller-data" }),
+      remote: true,
+    });
+
+    expect(solveCount).toBe(1);
+    expect(patchCalls).toHaveLength(1);
+    expect(patchCalls[0][1]).toEqual(
+      expect.objectContaining({
+        data: { explicitAnswer: "caller-data" },
+      }),
+    );
+  });
+
   it("omits submit navigate true so Rust performs default next navigation", async () => {
     const responseElements: unknown[] = [];
     const { backend } = createBackendWithApi(async (payload) => {
@@ -839,6 +969,43 @@ describe("LocalSessionBackend", () => {
         },
       }),
     ]);
+  });
+
+  it("maps top-level solve reporting onto the returned local session", async () => {
+    const { backend } = createBackendWithApi(async () => ({
+      ...createSolveResult({
+        reporting: {
+          stale: {
+            value: "nested-interview-reporting",
+          },
+        },
+      }),
+      reporting: {
+        "role-usage": {
+          value: 2,
+        },
+      },
+    }));
+
+    const session = await backend.create({
+      project: "model-1",
+      release: "release-1",
+      interview: "interview-1",
+    });
+    const nextSession = await backend.submit({
+      session,
+      data: attributeData({ answer: "yes" }),
+      navigate: "step-1",
+      overrides: {
+        response: [{ type: "attributes", ids: ["role-usage"] }],
+      },
+    });
+
+    expect(nextSession.reporting).toEqual({
+      "role-usage": {
+        value: 2,
+      },
+    });
   });
 
   it("updates the server once when the local interview completes", async () => {

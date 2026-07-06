@@ -17,11 +17,11 @@ import type {
 } from "../types";
 import { buildUrl, createApiInstance } from "../util";
 
-export const SESSION_BACKEND_BRAND = "deci.api_manager" as const;
+export const INTERVIEW_BACKEND_BRAND = "deci.api_manager" as const;
 
 const defaultPath = ["decisionapi", "session"];
 
-export interface SessionBackendApiGetters {
+export interface InterviewBackendApiGetters {
   create?: (options: SessionConfig) => string;
   load?: (options: SessionConfig) => string;
   submit?: (options: SubmitOptions) => string;
@@ -34,17 +34,17 @@ export interface SessionBackendApiGetters {
   getConnectedData?: (options: AsyncOptions) => string;
 }
 
-export interface BaseSessionBackendOptions {
+export interface BaseInterviewBackendOptions {
   host: string;
   path?: string | string[];
   auth?: AuthConfigGetter;
   overrides?: AxiosRequestConfig;
   /** API getters for each function */
-  apiGetters?: SessionBackendApiGetters;
+  apiGetters?: InterviewBackendApiGetters;
 }
 
-export interface SessionBackend {
-  readonly [SESSION_BACKEND_BRAND]: true;
+export interface InterviewBackend {
+  readonly [INTERVIEW_BACKEND_BRAND]: true;
   create(options: SessionConfig): Promise<Session>;
   load(options: SessionConfig): Promise<Session>;
   submit(options: SubmitOptions): Promise<Session>;
@@ -58,12 +58,12 @@ export interface SessionBackend {
   getConnectedData<T = unknown>(options: AsyncOptions): Promise<T>;
 }
 
-export abstract class BaseSessionBackend implements SessionBackend {
-  readonly [SESSION_BACKEND_BRAND] = true;
+export abstract class BaseInterviewBackend implements InterviewBackend {
+  readonly [INTERVIEW_BACKEND_BRAND] = true;
   protected api: AxiosInstance;
-  protected options: BaseSessionBackendOptions;
+  protected options: BaseInterviewBackendOptions;
 
-  constructor(options: BaseSessionBackendOptions) {
+  constructor(options: BaseInterviewBackendOptions) {
     const { host, auth, overrides = {}, path = defaultPath } = options;
     const baseUrl = buildUrl(host, ...(typeof path === "string" ? [path] : path));
     this.api = createApiInstance(baseUrl, auth, overrides);

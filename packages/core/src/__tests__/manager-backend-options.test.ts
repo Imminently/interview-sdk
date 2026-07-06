@@ -1,14 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
-import { SESSION_BACKEND_BRAND, type SessionBackend } from "../backend/backend";
-import { LocalSessionBackend } from "../backend/local-backend";
-import { RemoteSessionBackend } from "../backend/remote-backend";
+import { INTERVIEW_BACKEND_BRAND, type InterviewBackend } from "../backend/backend";
+import { MockInterviewBackend } from "../backend/mock-backend";
 import { SessionManager } from "../manager";
-import type { RulesEngine, Session, SubmitOptions } from "../types";
+import type { Session, SubmitOptions } from "../types";
 
 const fileManager = { host: "https://files.example.com" };
-const rulesEngine: RulesEngine = {
-  solve: async () => ({}),
-};
 const session = {
   sessionId: "session-1",
   interactionId: "interaction-1",
@@ -19,7 +15,7 @@ const session = {
   reportId: "",
   status: "in-progress",
   context: { entity: "global" },
-  data: {},
+  data: { "@parent": "global" },
   state: [],
   steps: [],
   screen: {
@@ -30,73 +26,29 @@ const session = {
     attributes: [],
     allAttributes: [],
   },
-} as Session;
+} as unknown as Session;
 
 describe("SessionManager backend options", () => {
-  it("supports the deprecated apiManager options object", () => {
-    const manager = new SessionManager({
-      apiManager: { host: "https://api.example.com" },
-      fileManager,
-    });
-
-    expect(manager.apiManager).toBeInstanceOf(RemoteSessionBackend);
-  });
-
   it("supports the backend options object", () => {
     const manager = new SessionManager({
       backend: { host: "https://api.example.com" },
       fileManager,
     });
 
-    expect(manager.apiManager).toBeInstanceOf(RemoteSessionBackend);
-  });
-
-  it("supports the deprecated apiManager backend instance", () => {
-    const backend = new LocalSessionBackend({ rulesEngine });
-    const manager = new SessionManager({
-      apiManager: backend,
-      fileManager,
-    });
-
-    expect(manager.apiManager).toBe(backend);
+    expect(manager.interviewBackend).toBeInstanceOf(MockInterviewBackend);
   });
 
   it("supports the backend instance", () => {
-    const backend = new LocalSessionBackend({ rulesEngine });
+    const backend = new MockInterviewBackend({ session });
     const manager = new SessionManager({
       backend,
       fileManager,
     });
 
-    expect(manager.apiManager).toBe(backend);
+    expect(manager.interviewBackend).toBe(backend);
   });
 
-  it("prefers backend over deprecated apiManager when both are provided", () => {
-    const backend = new LocalSessionBackend({ rulesEngine });
-    const apiManager = new LocalSessionBackend({ rulesEngine });
-    const manager = new SessionManager({
-      backend,
-      apiManager,
-      fileManager,
-    });
-
-    expect(manager.apiManager).toBe(backend);
-  });
-
-  it("does not construct a remote backend from undefined apiManager when backend is provided", () => {
-    const backend = new LocalSessionBackend({ rulesEngine });
-
-    expect(
-      () =>
-        new SessionManager({
-          backend,
-          apiManager: undefined,
-          fileManager,
-        }),
-    ).not.toThrow();
-  });
-
-  it("throws clearly when neither backend nor deprecated apiManager is provided", () => {
+  it("throws clearly when backend is not provided", () => {
     expect(
       () =>
         new SessionManager({
@@ -106,7 +58,7 @@ describe("SessionManager backend options", () => {
   });
 
   it("clones the manager around a session snapshot without creating a new backend", () => {
-    const backend = new LocalSessionBackend({ rulesEngine });
+    const backend = new MockInterviewBackend({ session });
     const manager = new SessionManager({
       backend,
       fileManager,
@@ -120,15 +72,15 @@ describe("SessionManager backend options", () => {
 
     expect(clone).toBeInstanceOf(SessionManager);
     expect(clone).not.toBe(manager);
-    expect(clone.apiManager).toBe(backend);
+    expect(clone.interviewBackend).toBe(backend);
     expect(clone.activeSession).toEqual(session);
     expect(clone.activeSession).not.toBe(session);
   });
 
   it("clones the manager with an overridden backend without mutating the backend", () => {
-    const originalBackend = new LocalSessionBackend({ rulesEngine });
+    const originalBackend = new MockInterviewBackend({ session });
     const overrideBackend = {
-      [SESSION_BACKEND_BRAND]: true as const,
+      [INTERVIEW_BACKEND_BRAND]: true as const,
       create: async () => session,
       load: async () => session,
       submit: async (options) => options.session,
@@ -138,8 +90,8 @@ describe("SessionManager backend options", () => {
       simulate: async (options) => options.session,
       exportTimeline: async () => ({ interview: "", goal: "", questions: [] }),
       getRulesEngine: async () => "",
-      getConnectedData: async () => ({}),
-    } satisfies SessionBackend;
+      getConnectedData: async <T = unknown>() => ({} as T),
+    } satisfies InterviewBackend;
     const manager = new SessionManager({
       backend: originalBackend,
       fileManager,
@@ -151,7 +103,7 @@ describe("SessionManager backend options", () => {
 
     const clone = manager.clone({ backend: overrideBackend });
 
-    expect(clone.apiManager).toBe(overrideBackend);
+    expect(clone.interviewBackend).toBe(overrideBackend);
     expect(clone.activeSession).toEqual(session);
     expect(clone.activeSession).not.toBe(session);
   });
@@ -163,12 +115,7 @@ describe("SessionManager backend options", () => {
       },
       configurable: true,
     });
-    const backend = new LocalSessionBackend({ rulesEngine });
     let submitOptions: SubmitOptions | undefined;
-    backend.submit = async (options) => {
-      submitOptions = options;
-      return options.session;
-    };
     const generatedSession = {
       ...session,
       data: {
@@ -180,6 +127,13 @@ describe("SessionManager backend options", () => {
         id: "event_days/2026-07-11/day-info/2026-07-11",
       },
     } as Session & { current_step: string };
+    const backend = new MockInterviewBackend({
+      session: generatedSession,
+      submit: (options) => {
+        submitOptions = options;
+        return options.session;
+      },
+    });
     const manager = new SessionManager({
       backend,
       fileManager,

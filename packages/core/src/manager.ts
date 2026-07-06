@@ -2,11 +2,11 @@ import debounce from "lodash/debounce.js";
 import isEmpty from "lodash/isEmpty.js";
 import isEqual from "lodash/isEqual.js";
 import set from "lodash/set.js";
-import { SESSION_BACKEND_BRAND, type SessionBackend } from "./backend/backend";
+import { INTERVIEW_BACKEND_BRAND, type InterviewBackend } from "./backend/backend";
 import {
-  RemoteSessionBackend,
-  type RemoteSessionBackendOptions,
-} from "./backend/remote-backend";
+  RemoteInterviewBackend,
+  type RemoteInterviewBackendOptions,
+} from "./backend/remote-interview-backend";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, requiresSimulation } from "./dynamic";
 import { FileManager, type FileManagerOptions } from "./file-manager";
@@ -142,9 +142,7 @@ export interface ManagerOptions {
   preCacheClient?: boolean;
   /** Enable experimental strict mode, which enforces null (uncertain) for values on screen */
   _experimental_strictMode?: boolean;
-  backend?: SessionBackend | RemoteSessionBackendOptions;
-  /** @deprecated Use `backend` instead. */
-  apiManager?: SessionBackend | RemoteSessionBackendOptions;
+  backend?: InterviewBackend | RemoteInterviewBackendOptions;
   fileManager: FileManager | FileManagerOptions;
   init?: (manager: SessionManager) => void | Promise<void>;
   /**
@@ -163,7 +161,7 @@ export interface ManagerOptions {
 
 export interface CloneOptions {
   session?: Session;
-  backend?: SessionBackend | RemoteSessionBackendOptions;
+  backend?: InterviewBackend | RemoteInterviewBackendOptions;
 }
 
 export type SessionManagerCloneOptions = CloneOptions;
@@ -279,7 +277,7 @@ export class SessionManager {
   private error?: Error;
   private listeners: Set<() => void>;
   private _options: ManagerOptions;
-  private backend: SessionBackend;
+  private backend: InterviewBackend;
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
   private sessionConfigs: Record<string, StoredSessionConfig>;
@@ -314,28 +312,28 @@ export class SessionManager {
     this.sessionConfigs = {};
     this.events = new ManagerLifecycle(options.lifecycle);
 
-    const backendOption = options.backend ?? options.apiManager;
+    const backendOption = options.backend;
     if (!backendOption) {
       throw new Error("SessionManager requires a backend");
     }
 
-    const isSessionBackend = (backend: typeof backendOption): backend is SessionBackend =>
-      (backend as SessionBackend)[SESSION_BACKEND_BRAND] === true;
+    const isInterviewBackend = (backend: typeof backendOption): backend is InterviewBackend =>
+      (backend as InterviewBackend)[INTERVIEW_BACKEND_BRAND] === true;
 
-    const isRemoteSessionBackendOptions = (backend: typeof backendOption): backend is RemoteSessionBackendOptions =>
-      typeof (backend as RemoteSessionBackendOptions).host === "string";
+    const isRemoteInterviewBackendOptions = (backend: typeof backendOption): backend is RemoteInterviewBackendOptions =>
+      typeof (backend as RemoteInterviewBackendOptions).host === "string";
 
-    this.backend = isSessionBackend(backendOption)
+    this.backend = isInterviewBackend(backendOption)
       ? backendOption
-      : new RemoteSessionBackend(backendOption as RemoteSessionBackendOptions);
+      : new RemoteInterviewBackend(backendOption as RemoteInterviewBackendOptions);
 
     // create the file manager
     if (options.fileManager instanceof FileManager) {
       this.fileManager = options.fileManager;
     } else {
       const fm = options.fileManager as FileManagerOptions;
-      // Attempt to inherit auth from the ApiManager options if not explicitly provided
-      const apiAuth = isRemoteSessionBackendOptions(backendOption) ? backendOption.auth : undefined;
+      // Attempt to inherit auth from the backend options if not explicitly provided
+      const apiAuth = isRemoteInterviewBackendOptions(backendOption) ? backendOption.auth : undefined;
 
       if ("api" in fm) {
         this.fileManager = new FileManager(fm);
@@ -463,8 +461,7 @@ export class SessionManager {
     return this._options;
   }
 
-  /** @deprecated Use `backend` configuration instead. */
-  get apiManager() {
+  get interviewBackend() {
     return this.backend;
   }
 
@@ -600,16 +597,15 @@ export class SessionManager {
     }
 
     const backendOption = options.backend ?? this.backend;
-    const isSessionBackend = (backend: typeof backendOption): backend is SessionBackend =>
-      (backend as SessionBackend)[SESSION_BACKEND_BRAND] === true;
-    const backend = isSessionBackend(backendOption)
+    const isInterviewBackend = (backend: typeof backendOption): backend is InterviewBackend =>
+      (backend as InterviewBackend)[INTERVIEW_BACKEND_BRAND] === true;
+    const backend = isInterviewBackend(backendOption)
       ? backendOption
-      : new RemoteSessionBackend(backendOption as RemoteSessionBackendOptions);
+      : new RemoteInterviewBackend(backendOption as RemoteInterviewBackendOptions);
 
     const cloneOptions: ManagerOptions = {
       ...this._options,
       backend,
-      apiManager: undefined,
       fileManager: this.fileManager,
       init: undefined,
       sessionConfig: undefined,
@@ -1254,13 +1250,15 @@ export class SessionManager {
     }
     this.triggerUpdate(true);
     try {
+      const { remote, ...submitOverrides } = overrides as Overrides & { remote?: boolean };
       const session = await this.backend.submit({
         session: this.activeSession,
         data: transformResponse(this.activeSession, data as any),
         navigate,
-        overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
+        overrides: this.getSessionOverrides(this.activeSession.sessionId, submitOverrides),
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
+        remote,
       });
       this.updateSession(session, "submit");
     } catch (error: any) {
@@ -1380,6 +1378,7 @@ export class SessionManager {
     }
     this.triggerUpdate(true);
     try {
+      const { remote, ...submitOverrides } = overrides as Overrides & { remote?: boolean };
       if (this.isSubInterview && isComplete(this.activeSession)) {
         // pop the session, then we will invoke next on the parent
         this.pop("pop");
@@ -1388,9 +1387,10 @@ export class SessionManager {
         await this.backend.submit({
           session: this.activeSession,
           data: transformResponse(this.activeSession, data as any),
-          overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
+          overrides: this.getSessionOverrides(this.activeSession.sessionId, submitOverrides),
           clientGraphBookmark: this.getClientGraphBookmark(),
           readOnly: this.options.readOnly,
+          remote,
         }),
         "next",
       );

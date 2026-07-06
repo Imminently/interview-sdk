@@ -324,7 +324,7 @@ export interface ChatResponse {
   processed: ChatProcessed;
 }
 
-// ApiManager options object types
+// Remote interview backend options object types
 export interface SubmitOptions {
   session: Session;
   data: AttributeValues;
@@ -333,6 +333,8 @@ export interface SubmitOptions {
   clientGraphBookmark?: string;
   /** If true, do not mutate state server-side */
   readOnly?: boolean;
+  /** If true, submit via the backend's remote transport instead of local processing. */
+  remote?: boolean;
 }
 
 export interface ChatOptions {
