@@ -1,6 +1,6 @@
 // core library files
 export * from "./backend/backend";
-export * from "./backend/remote-interview-backend";
+export * from "./backend/remote-backend";
 export * from "./backend/local-backend";
 export * from "./backend/mock-backend";
 export * from "./constants";
