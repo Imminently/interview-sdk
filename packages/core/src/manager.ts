@@ -1025,6 +1025,10 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to process dynamic values");
       return;
     }
+    if (isComplete(this.activeSession)) {
+      this.triggerUpdate(false);
+      return;
+    }
     const { state, locale, data, screen } = this.activeSession;
     this.internals.latestRequest = Date.now();
 

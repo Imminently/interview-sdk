@@ -15,6 +15,7 @@ import type {
   Session,
   SessionConfig,
   SimulateOptions,
+  Step,
   SubmitOptions,
 } from "../types";
 import { buildUrl, deepClone, uuid } from "../util";
@@ -426,6 +427,7 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
 
   storeSessionSnapshot = (session: Session, config: SessionConfig = {}) => {
     this.updateLocalReleaseData(session.localReleaseData);
+    const status = this.getLocalSessionStatus(session);
     const interaction = this.createInteraction({
       ...config,
       project: config.project ?? session.model,
@@ -447,12 +449,12 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
     this.interaction = {
       ...interaction,
       id: session.interactionId ?? config.interactionId ?? uuid(),
-      status: session.status,
+      status,
       steps: session.steps,
       current_step: this.findCurrentStepId(session.steps),
       current_step_meta: (session as unknown as UnknownRecord).current_step_meta as string | undefined,
     };
-    this.completedSessionSynced = session.status === "complete";
+    this.completedSessionSynced = status === "complete";
     this.sessionMeta = {
       model: session.model,
       release: session.release,
@@ -555,6 +557,81 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
     return undefined;
   }
 
+  private findStepById(steps: Session["steps"] | undefined, stepId: string | undefined): Step | undefined {
+    if (!stepId) {
+      return undefined;
+    }
+
+    for (const step of steps ?? []) {
+      if (step.id === stepId) {
+        return step;
+      }
+
+      const childStep = this.findStepById(step.steps, stepId);
+      if (childStep) {
+        return childStep;
+      }
+    }
+
+    return undefined;
+  }
+
+  private isCompleteStep(step: Step | undefined): boolean {
+    const special = (step as UnknownRecord | undefined)?.special;
+    return special === "complete" || (typeof special === "object" && special !== null && (special as UnknownRecord).type === "complete");
+  }
+
+  private isCompleteScreenSession(session: Session): boolean {
+    if (session.screen?.id === "complete_screen") {
+      return true;
+    }
+
+    const currentStepId = this.findCurrentStepId(session.steps) ?? session.screen?.id;
+    return this.isCompleteStep(this.findStepById(session.steps, currentStepId));
+  }
+
+  private findCompleteStepId(steps: Session["steps"] | undefined): string | undefined {
+    for (const step of steps ?? []) {
+      if (this.isCompleteStep(step)) {
+        return step.id;
+      }
+
+      const childStepId = this.findCompleteStepId(step.steps);
+      if (childStepId) {
+        return childStepId;
+      }
+    }
+
+    return undefined;
+  }
+
+  private getLocalSessionStatus(session: Session): Session["status"] {
+    if (session.status === "complete" && !this.isCompleteScreenSession(session)) {
+      return "in-progress";
+    }
+
+    return session.status;
+  }
+
+  private normalizeLocalSessionStatus(session: Session): Session {
+    const status = this.getLocalSessionStatus(session);
+    if (status === session.status) {
+      return session;
+    }
+
+    if (this.interaction?.status === "complete") {
+      this.interaction = {
+        ...this.interaction,
+        status,
+      };
+    }
+
+    return {
+      ...session,
+      status,
+    };
+  }
+
   private describeSolveResult(solveResult: unknown) {
     if (!solveResult || typeof solveResult !== "object") {
       return `result type: ${typeof solveResult}`;
@@ -604,8 +681,20 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
     let session = this.toSession(solveResult, options.sessionConfig);
     this.updateSessionMetaFromSession(session);
 
-    if (session.status === "complete" && !this.completedSessionSynced) {
-      session = await this.syncCompletedSession(session, options);
+    const completeScreenSession = session.status === "complete" && this.isCompleteScreenSession(session);
+    const canSyncEarlyComplete = options.navigate === undefined || options.navigate === true;
+    const completeStepId =
+      canSyncEarlyComplete && session.status === "complete" && !completeScreenSession ? this.findCompleteStepId(session.steps) : undefined;
+    if (!completeScreenSession && !completeStepId) {
+      session = this.normalizeLocalSessionStatus(session);
+      this.completedSessionSynced = false;
+    }
+
+    if ((completeScreenSession || completeStepId) && !this.completedSessionSynced) {
+      session = await this.syncCompletedSession(session, {
+        ...options,
+        navigate: completeStepId ? { stepId: completeStepId } : options.navigate,
+      });
       this.completedSessionSynced = true;
       this.updateSessionMetaFromSession(session);
     }
@@ -622,12 +711,18 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
       clientGraphBookmark?: string;
     },
   ) => {
+    // Local page turns have already advanced this browser session, while the server still points at the
+    // previous persisted interaction. Align the server directly to the local final screen.
+    const navigate = this.normalizeNavigate(options.navigate) ?? (session.screen?.id ? { stepId: session.screen.id } : undefined);
     const submitOptions: SubmitOptions = {
       session,
       data: this.session?.data as unknown as AttributeValues,
-      navigate: this.normalizeNavigate(options.navigate),
+      navigate,
       overrides: options.response ? { response: options.response } : undefined,
       clientGraphBookmark: options.clientGraphBookmark ?? session.clientGraphBookmark,
+      localInterview: {
+        steps: session.steps,
+      },
       readOnly: options.readOnly,
     };
     return this.remoteBackend.submit(submitOptions);
