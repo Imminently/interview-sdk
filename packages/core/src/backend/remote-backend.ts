@@ -59,11 +59,11 @@ export const buildRemoteInterviewSubmitRequest = (
   };
 };
 
-export class RemoteBackend extends BaseInterviewBackend {
+export class RemoteInterviewBackend extends BaseInterviewBackend {
   constructor(options: RemoteInterviewBackendOptions) {
     super(options);
     if (isTestEnvironment()) {
-      return new MockInterviewBackend() as unknown as RemoteBackend;
+      return new MockInterviewBackend() as unknown as RemoteInterviewBackend;
     }
   }
 

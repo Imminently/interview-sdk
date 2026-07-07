@@ -4,7 +4,7 @@ import isEqual from "lodash/isEqual.js";
 import set from "lodash/set.js";
 import { INTERVIEW_BACKEND_BRAND, type InterviewBackend } from "./backend/backend";
 import {
-  RemoteBackend,
+  RemoteInterviewBackend,
   type RemoteInterviewBackendOptions,
 } from "./backend/remote-backend";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
@@ -143,6 +143,8 @@ export interface ManagerOptions {
   /** Enable experimental strict mode, which enforces null (uncertain) for values on screen */
   _experimental_strictMode?: boolean;
   backend?: InterviewBackend | RemoteInterviewBackendOptions;
+  /** @deprecated Use `backend` instead. */
+  apiManager?: InterviewBackend | RemoteInterviewBackendOptions;
   fileManager: FileManager | FileManagerOptions;
   init?: (manager: SessionManager) => void | Promise<void>;
   /**
@@ -312,7 +314,7 @@ export class SessionManager {
     this.sessionConfigs = {};
     this.events = new ManagerLifecycle(options.lifecycle);
 
-    const backendOption = options.backend;
+    const backendOption = options.backend ?? options.apiManager;
     if (!backendOption) {
       throw new Error("SessionManager requires a backend");
     }
@@ -325,7 +327,7 @@ export class SessionManager {
 
     this.backend = isInterviewBackend(backendOption)
       ? backendOption
-      : new RemoteBackend(backendOption as RemoteInterviewBackendOptions);
+      : new RemoteInterviewBackend(backendOption as RemoteInterviewBackendOptions);
 
     // create the file manager
     if (options.fileManager instanceof FileManager) {
@@ -465,6 +467,11 @@ export class SessionManager {
     return this.backend;
   }
 
+  /** @deprecated Use `interviewBackend` instead. */
+  get apiManager() {
+    return this.backend;
+  }
+
   isOnScreen = (control: Control, screen?: Screen): boolean => {
     if (!screen && !this.activeSession) return false;
     // const { screen } = this.activeSession;
@@ -601,11 +608,12 @@ export class SessionManager {
       (backend as InterviewBackend)[INTERVIEW_BACKEND_BRAND] === true;
     const backend = isInterviewBackend(backendOption)
       ? backendOption
-      : new RemoteBackend(backendOption as RemoteInterviewBackendOptions);
+      : new RemoteInterviewBackend(backendOption as RemoteInterviewBackendOptions);
 
     const cloneOptions: ManagerOptions = {
       ...this._options,
       backend,
+      apiManager: undefined,
       fileManager: this.fileManager,
       init: undefined,
       sessionConfig: undefined,
