@@ -10,5 +10,4 @@
 ### Changed
 
 - Reworked `SessionManager` to use the `InterviewBackend` abstraction across remote, local, and mock interview backends.
-- `RemoteBackend` now swaps to `MockInterviewBackend` in test environments so tests can use the real SDK surface without HTTP calls.
-
+- `RemoteInterviewBackend` now swaps to `MockInterviewBackend` in test environments so tests can use the real SDK surface without HTTP calls.

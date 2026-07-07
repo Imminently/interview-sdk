@@ -48,6 +48,17 @@ describe("SessionManager backend options", () => {
     expect(manager.interviewBackend).toBe(backend);
   });
 
+  it("supports the deprecated apiManager option alias", () => {
+    const backend = new MockInterviewBackend({ session });
+    const manager = new SessionManager({
+      apiManager: backend,
+      fileManager,
+    });
+
+    expect(manager.interviewBackend).toBe(backend);
+    expect(manager.apiManager).toBe(backend);
+  });
+
   it("throws clearly when backend is not provided", () => {
     expect(
       () =>
