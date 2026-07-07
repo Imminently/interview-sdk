@@ -121,7 +121,7 @@ const createBackendWithApi = (solve: RulesEngine["solve"], interviewOverrides: R
       return result.data;
     },
     submit: async (options) => {
-      const { session, data, navigate, overrides, clientGraphBookmark } = options;
+      const { session, data, navigate, overrides, clientGraphBookmark, localInterview } = options;
       const result = await api.patch(
         [session.model, session.release].filter(Boolean).join("/"),
         {
@@ -129,6 +129,7 @@ const createBackendWithApi = (solve: RulesEngine["solve"], interviewOverrides: R
           navigate: navigate || undefined,
           index: session.index,
           clientGraphBookmark,
+          localInterview,
           readOnly: options.readOnly,
           ...overrides,
         },
@@ -1016,6 +1017,31 @@ describe("LocalInterviewBackend", () => {
         ...createSolveResult({
           status: solveCount === 1 ? "in-progress" : "complete",
           data: { finalAnswer: "yes" },
+          ...(solveCount === 1
+            ? {}
+            : {
+                screen: {
+                  id: "step-complete",
+                  title: "Complete",
+                  context: { entity: "global" },
+                  controls: [],
+                  attributes: [],
+                  allAttributes: [],
+                },
+                steps: [
+                  {
+                    id: "step-complete",
+                    title: "Complete",
+                    context: { entity: "global" },
+                    current: true,
+                    complete: false,
+                    visited: false,
+                    skipped: false,
+                    visitable: true,
+                    special: { type: "complete" },
+                  },
+                ],
+              }),
         }),
         sessionUpdate: {
           data: { finalAnswer: "yes" },
@@ -1059,5 +1085,415 @@ describe("LocalInterviewBackend", () => {
         },
       }),
     );
+  });
+
+  it("does not sync to the server when complete status is reported without a complete screen", async () => {
+    const { backend, api } = createBackendWithApi(async () => ({
+      ...createSolveResult({
+        status: "complete",
+        data: { userAnswer: "yes" },
+        screen: {
+          id: "user-input",
+          title: "User input",
+          context: { entity: "global" },
+          controls: [],
+          attributes: [],
+          allAttributes: [],
+        },
+        steps: [
+          {
+            id: "user-input",
+            title: "User input",
+            context: { entity: "global" },
+            current: true,
+            complete: false,
+            visited: false,
+            skipped: false,
+            visitable: true,
+          },
+        ],
+      }),
+      sessionUpdate: {
+        data: { userAnswer: "yes" },
+      },
+    }));
+    const patchCalls: unknown[][] = [];
+    api.patch = async (...args) => {
+      patchCalls.push(args);
+      return {
+        data: createSession({
+          status: "complete",
+          data: sessionData({ userAnswer: "yes" }),
+          screen: {
+            id: "step-complete",
+            title: "Complete",
+            context: { entity: "global" },
+            controls: [],
+            attributes: [],
+            allAttributes: [],
+          },
+        }),
+      };
+    };
+
+    const session = await backend.create({
+      project: "model-1",
+      release: "release-1",
+      interview: "interview-1",
+    });
+    const localSession = await backend.submit({
+      session,
+      data: attributeData({ userAnswer: "yes" }),
+      navigate: true,
+    });
+
+    expect(localSession.status).toBe("in-progress");
+    expect(localSession.screen?.id).toBe("user-input");
+    expect(patchCalls).toHaveLength(0);
+  });
+
+  it("syncs to the complete step when goal resolution reports complete before local navigation", async () => {
+    let solveCount = 0;
+    const { backend, api } = createBackendWithApi(async () => {
+      solveCount += 1;
+      return {
+        ...createSolveResult({
+          status: "complete",
+          data: { userAnswer: "yes" },
+          screen: {
+            id: "user-input",
+            title: "User input",
+            context: { entity: "global" },
+            controls: [],
+            attributes: [],
+            allAttributes: [],
+          },
+          steps: [
+            {
+              id: "user-input",
+              title: "User input",
+              context: { entity: "global" },
+              current: true,
+              complete: false,
+              visited: false,
+              skipped: false,
+              visitable: true,
+            },
+            {
+              id: "step-complete",
+              title: "Complete",
+              context: { entity: "global" },
+              current: false,
+              complete: false,
+              visited: false,
+              skipped: false,
+              visitable: true,
+              special: { type: "complete" },
+            },
+          ],
+        }),
+        sessionUpdate: {
+          data: { userAnswer: "yes" },
+        },
+      };
+    });
+    const patchCalls: unknown[][] = [];
+    api.patch = async (...args) => {
+      patchCalls.push(args);
+      return {
+        data: createSession({
+          status: "complete",
+          data: sessionData({ userAnswer: "yes" }),
+          screen: {
+            id: "step-complete",
+            title: "Complete",
+            context: { entity: "global" },
+            controls: [],
+            attributes: [],
+            allAttributes: [],
+          },
+        }),
+      };
+    };
+
+    const session = await backend.create({
+      project: "model-1",
+      release: "release-1",
+      interview: "interview-1",
+    });
+    const completeSession = await backend.submit({
+      session,
+      data: attributeData({ userAnswer: "yes" }),
+      navigate: true,
+    });
+
+    expect(solveCount).toBe(1);
+    expect(completeSession.status).toBe("complete");
+    expect(completeSession.screen?.id).toBe("step-complete");
+    expect(patchCalls).toHaveLength(1);
+    expect(patchCalls[0][1]).toEqual(expect.objectContaining({ navigate: { stepId: "step-complete" } }));
+    expect(patchCalls[0][1]).toEqual(
+      expect.objectContaining({
+        localInterview: {
+          steps: expect.arrayContaining([
+            expect.objectContaining({
+              id: "user-input",
+              current: true,
+            }),
+          ]),
+        },
+      }),
+    );
+  });
+
+  it("syncs completion with a single explicit complete-step submit", async () => {
+    const { backend, api } = createBackendWithApi(async () => ({
+      ...createSolveResult({
+        status: "complete",
+        data: { finalAnswer: "yes" },
+        screen: {
+          id: "complete_screen",
+          title: "Complete",
+          context: { entity: "global" },
+          controls: [],
+          attributes: [],
+          allAttributes: [],
+        },
+        steps: [
+          {
+            id: "user-input",
+            title: "User input",
+            context: { entity: "global" },
+            current: false,
+            complete: true,
+            visited: true,
+            skipped: false,
+            visitable: true,
+          },
+          {
+            id: "complete_screen",
+            title: "Complete",
+            context: { entity: "global" },
+            current: true,
+            complete: false,
+            visited: false,
+            skipped: false,
+            visitable: true,
+            special: { type: "complete" },
+          },
+        ],
+      }),
+      sessionUpdate: {
+        data: { finalAnswer: "yes" },
+      },
+    }));
+    const patchCalls: unknown[][] = [];
+    api.patch = async (...args) => {
+      patchCalls.push(args);
+      return {
+        data: createSession({
+          status: "complete",
+          data: sessionData({ finalAnswer: "yes" }),
+          screen: {
+            id: "complete_screen",
+            title: "Complete",
+            context: { entity: "global" },
+            controls: [],
+            attributes: [],
+            allAttributes: [],
+          },
+        }),
+      };
+    };
+
+    const session = await backend.create({
+      project: "model-1",
+      release: "release-1",
+      interview: "interview-1",
+    });
+    const completeSession = await backend.submit({
+      session,
+      data: attributeData({ finalAnswer: "yes" }),
+      navigate: true,
+    });
+
+    expect(completeSession.status).toBe("complete");
+    expect(patchCalls).toHaveLength(1);
+    expect(patchCalls[0][1]).toEqual(expect.objectContaining({ navigate: { stepId: "complete_screen" } }));
+    expect(patchCalls[0][1]).toEqual(
+      expect.objectContaining({
+        localInterview: {
+          steps: expect.arrayContaining([
+            expect.objectContaining({
+              id: "user-input",
+              visited: true,
+            }),
+          ]),
+        },
+      }),
+    );
+  });
+
+  it("syncs again after navigating back from the complete screen and completing again", async () => {
+    const solveResults = [
+      {
+        ...createSolveResult({
+          status: "complete",
+          data: { userAnswer: "first" },
+          screen: {
+            id: "step-complete",
+            title: "Complete",
+            context: { entity: "global" },
+            controls: [],
+            attributes: [],
+            allAttributes: [],
+          },
+          steps: [
+            {
+              id: "user-input",
+              title: "User input",
+              context: { entity: "global" },
+              current: false,
+              complete: true,
+              visited: true,
+              skipped: false,
+              visitable: true,
+            },
+            {
+              id: "step-complete",
+              title: "Complete",
+              context: { entity: "global" },
+              current: true,
+              complete: false,
+              visited: false,
+              skipped: false,
+              visitable: true,
+              special: { type: "complete" },
+            },
+          ],
+        }),
+        sessionUpdate: { data: { userAnswer: "first" } },
+      },
+      {
+        ...createSolveResult({
+          status: "complete",
+          data: { userAnswer: "first" },
+          screen: {
+            id: "user-input",
+            title: "User input",
+            context: { entity: "global" },
+            controls: [],
+            attributes: [],
+            allAttributes: [],
+          },
+          steps: [
+            {
+              id: "user-input",
+              title: "User input",
+              context: { entity: "global" },
+              current: true,
+              complete: false,
+              visited: false,
+              skipped: false,
+              visitable: true,
+            },
+            {
+              id: "step-complete",
+              title: "Complete",
+              context: { entity: "global" },
+              current: false,
+              complete: false,
+              visited: false,
+              skipped: false,
+              visitable: true,
+              special: { type: "complete" },
+            },
+          ],
+        }),
+        sessionUpdate: { data: { userAnswer: "first" } },
+      },
+      {
+        ...createSolveResult({
+          status: "complete",
+          data: { userAnswer: "second" },
+          screen: {
+            id: "step-complete",
+            title: "Complete",
+            context: { entity: "global" },
+            controls: [],
+            attributes: [],
+            allAttributes: [],
+          },
+          steps: [
+            {
+              id: "user-input",
+              title: "User input",
+              context: { entity: "global" },
+              current: false,
+              complete: true,
+              visited: true,
+              skipped: false,
+              visitable: true,
+            },
+            {
+              id: "step-complete",
+              title: "Complete",
+              context: { entity: "global" },
+              current: true,
+              complete: false,
+              visited: false,
+              skipped: false,
+              visitable: true,
+              special: { type: "complete" },
+            },
+          ],
+        }),
+        sessionUpdate: { data: { userAnswer: "second" } },
+      },
+    ];
+    const { backend, api } = createBackendWithApi(async () => solveResults.shift());
+    const patchCalls: unknown[][] = [];
+    api.patch = async (...args) => {
+      patchCalls.push(args);
+      return {
+        data: createSession({
+          status: "complete",
+          data: sessionData((args[1] as { data?: Record<string, unknown> }).data ?? {}),
+          screen: {
+            id: "step-complete",
+            title: "Complete",
+            context: { entity: "global" },
+            controls: [],
+            attributes: [],
+            allAttributes: [],
+          },
+        }),
+      };
+    };
+
+    const session = await backend.create({
+      project: "model-1",
+      release: "release-1",
+      interview: "interview-1",
+    });
+    const firstCompleteSession = await backend.submit({
+      session,
+      data: attributeData({ userAnswer: "first" }),
+      navigate: true,
+    });
+    const backSession = await backend.back({
+      session: firstCompleteSession,
+    });
+    const secondCompleteSession = await backend.submit({
+      session: backSession,
+      data: attributeData({ userAnswer: "second" }),
+      navigate: true,
+    });
+
+    expect(backSession.status).toBe("in-progress");
+    expect(secondCompleteSession.status).toBe("complete");
+    expect(patchCalls).toHaveLength(2);
+    expect(patchCalls[0][1]).toEqual(expect.objectContaining({ data: { userAnswer: "first" } }));
+    expect(patchCalls[1][1]).toEqual(expect.objectContaining({ data: { userAnswer: "second" } }));
   });
 });

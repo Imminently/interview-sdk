@@ -331,6 +331,10 @@ export interface SubmitOptions {
   navigate?: Navigate;
   overrides?: Overrides;
   clientGraphBookmark?: string;
+  /** Local interview state to sync with the server when local page turns are persisted. */
+  localInterview?: {
+    steps?: Step[];
+  };
   /** If true, do not mutate state server-side */
   readOnly?: boolean;
   /** If true, submit via the backend's remote transport instead of local processing. */
