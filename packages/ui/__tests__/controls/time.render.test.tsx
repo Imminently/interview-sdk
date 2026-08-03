@@ -47,4 +47,47 @@ describe("TimeFormControl render", () => {
     });
     expect(screen.getByText("Pick a time")).toBeInTheDocument();
   });
+
+  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+    renderControl(timeControl({ longDescription: "Extra help text" } as any));
+    expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
+  });
+
+  describe("aria / WCAG compliance", () => {
+    test("associates the label with the input via id", () => {
+      renderControl(timeControl());
+      const label = document.querySelector("label") as HTMLLabelElement;
+      const input = document.querySelector('input[type="time"]') as HTMLInputElement;
+      expect(label.htmlFor).toBe(input.id);
+      expect(input.id).toBeTruthy();
+    });
+
+    test("marks the actual input aria-invalid when there is a validation error", () => {
+      renderControl(timeControl(), {
+        validations: [
+          { id: "v1", message: "Pick a time", severity: "error", attributes: ["appointment"], shown: true },
+        ],
+      });
+      const input = document.querySelector('input[type="time"]') as HTMLInputElement;
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+    });
+
+    // WCAG gap: required is visually shown but never exposed to assistive technology.
+    test("does not expose required state to assistive technology (known gap)", () => {
+      renderControl(timeControl({ required: true }));
+      const input = document.querySelector('input[type="time"]') as HTMLInputElement;
+      expect(input.getAttribute("aria-required")).toBeNull();
+      expect(input.hasAttribute("required")).toBe(false);
+    });
+
+    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+      renderControl(timeControl({ longDescription: "Extra help text" } as any));
+      const input = document.querySelector('input[type="time"]') as HTMLInputElement;
+      const describedBy = input.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+      for (const id of (describedBy ?? "").split(" ")) {
+        expect(document.getElementById(id)).toBeNull();
+      }
+    });
+  });
 });

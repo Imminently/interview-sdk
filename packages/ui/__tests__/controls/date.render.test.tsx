@@ -68,4 +68,44 @@ describe("DateFormControl render", () => {
     });
     expect(screen.getByText("Date of birth is required")).toBeInTheDocument();
   });
+
+  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+    renderControl(dateControl({ longDescription: "Extra help text" } as any));
+    expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
+  });
+
+  describe("aria / WCAG compliance", () => {
+    test("associates the label with the trigger button via id", () => {
+      renderControl(dateControl());
+      const label = document.querySelector("label") as HTMLLabelElement;
+      const button = screen.getByRole("button");
+      expect(label.htmlFor).toBe(button.id);
+      expect(button.id).toBeTruthy();
+    });
+
+    test("marks the actual trigger button aria-invalid when there is a validation error", () => {
+      renderControl(dateControl(), {
+        validations: [
+          { id: "v1", message: "Date of birth is required", severity: "error", attributes: ["dob"], shown: true },
+        ],
+      });
+      expect(screen.getByRole("button").getAttribute("aria-invalid")).toBe("true");
+    });
+
+    // WCAG gap: required is visually shown but never exposed to assistive technology.
+    test("does not expose required state to assistive technology (known gap)", () => {
+      renderControl(dateControl({ required: true }));
+      expect(screen.getByRole("button").getAttribute("aria-required")).toBeNull();
+    });
+
+    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+      renderControl(dateControl({ longDescription: "Extra help text" } as any));
+      const button = screen.getByRole("button");
+      const describedBy = button.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+      for (const id of (describedBy ?? "").split(" ")) {
+        expect(document.getElementById(id)).toBeNull();
+      }
+    });
+  });
 });

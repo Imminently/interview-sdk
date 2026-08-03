@@ -35,9 +35,7 @@ describe("numberOfInstancesValidator", () => {
       const result = schema.safeParse("3");
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe(
-          "Please specify a valid positive integer. E.g. 5",
-        );
+        expect(result.error.issues[0].message).toBe("Please specify a valid positive integer. E.g. 5");
       }
     });
 

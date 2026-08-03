@@ -52,4 +52,53 @@ describe("TextFormControl render", () => {
     });
     expect(screen.getByText("Name is required")).toBeInTheDocument();
   });
+
+  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+    renderControl(textControl({ longDescription: "Extra help text" } as any));
+    expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
+  });
+
+  describe("aria / WCAG compliance", () => {
+    test("associates the label with the input via id", () => {
+      renderControl(textControl());
+      const label = document.querySelector("label") as HTMLLabelElement;
+      const input = document.querySelector("input") as HTMLInputElement;
+      expect(label.htmlFor).toBe(input.id);
+      expect(input.id).toBeTruthy();
+    });
+
+    // Unlike Number/Currency, Text's Input is a plain forwardRef around a native <input> with no
+    // wrapper div, so aria-invalid/aria-describedby land on the actual focusable element - compliant.
+    test("marks the actual input aria-invalid when there is a validation error", () => {
+      renderControl(textControl(), {
+        validations: [{ id: "v1", message: "Name is required", severity: "error", attributes: ["name"], shown: true }],
+      });
+      const input = document.querySelector("input") as HTMLInputElement;
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+    });
+
+    test("aria-invalid is false on the input when there is no error", () => {
+      renderControl(textControl());
+      const input = document.querySelector("input") as HTMLInputElement;
+      expect(input.getAttribute("aria-invalid")).toBe("false");
+    });
+
+    // WCAG gap: required is visually shown but never exposed to assistive technology.
+    test("does not expose required state to assistive technology (known gap)", () => {
+      renderControl(textControl({ required: true }));
+      const input = document.querySelector("input") as HTMLInputElement;
+      expect(input.getAttribute("aria-required")).toBeNull();
+      expect(input.hasAttribute("required")).toBe(false);
+    });
+
+    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+      renderControl(textControl({ longDescription: "Extra help text" } as any));
+      const input = document.querySelector("input") as HTMLInputElement;
+      const describedBy = input.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+      for (const id of (describedBy ?? "").split(" ")) {
+        expect(document.getElementById(id)).toBeNull();
+      }
+    });
+  });
 });
