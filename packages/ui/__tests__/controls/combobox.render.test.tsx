@@ -78,15 +78,14 @@ describe("ComboboxFormControl render", () => {
       expect(screen.getByRole("button").getAttribute("aria-invalid")).toBe("true");
     });
 
-    // WCAG gap: required is visually shown but never exposed to assistive technology.
-    test("does not expose required state to assistive technology (known gap)", () => {
+    test("exposes required state to assistive technology via aria-required", () => {
       renderControl(
         selectControl({
           required: true,
           asyncOptions: { connection: "c1", responseMapping: "m1", path: "/", query: "" },
         }),
       );
-      expect(screen.getByRole("button").getAttribute("aria-required")).toBeNull();
+      expect(screen.getByRole("button")).toHaveAttribute("aria-required", "true");
     });
 
     // Unlike every other control, longDescription actually renders here, so aria-describedby

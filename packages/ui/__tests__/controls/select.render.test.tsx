@@ -37,8 +37,13 @@ describe("SelectFormControl render", () => {
     expect(screen.getByText("Pick a country")).toBeInTheDocument();
   });
 
-  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+  test("renders the longDescription text when set", () => {
     renderControl(selectControl({ longDescription: "Extra help text" } as any));
+    expect(screen.getByText("Extra help text")).toBeInTheDocument();
+  });
+
+  test("does not render a description when longDescription is not set", () => {
+    renderControl(selectControl());
     expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
   });
 
@@ -58,19 +63,19 @@ describe("SelectFormControl render", () => {
       expect(screen.getByRole("combobox").getAttribute("aria-invalid")).toBe("true");
     });
 
-    // WCAG gap: required is visually shown but never exposed to assistive technology.
-    test("does not expose required state to assistive technology (known gap)", () => {
+    // Select's Radix Root exposes its own `required` prop, which the trigger maps to aria-required.
+    test("exposes required state to assistive technology via aria-required", () => {
       renderControl(selectControl({ required: true }));
-      expect(screen.getByRole("combobox").getAttribute("aria-required")).toBeNull();
+      expect(screen.getByRole("combobox")).toHaveAttribute("aria-required", "true");
     });
 
-    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+    test("aria-describedby on the trigger resolves to the rendered description", () => {
       renderControl(selectControl({ longDescription: "Extra help text" } as any));
       const trigger = screen.getByRole("combobox");
       const describedBy = trigger.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
       for (const id of (describedBy ?? "").split(" ")) {
-        expect(document.getElementById(id)).toBeNull();
+        expect(document.getElementById(id)).not.toBeNull();
       }
     });
   });

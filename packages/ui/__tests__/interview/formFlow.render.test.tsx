@@ -52,9 +52,8 @@ describe("full form submit/focus flow", () => {
     await waitFor(() => expect(focusedControlId()).toBe("c-number"));
     expect(manager.next).not.toHaveBeenCalled();
 
-    // every field except radio (which has no FormMessage - see radio.render.test.tsx) shows an
-    // error message; every field is marked invalid somewhere (input, wrapper, or group).
-    expect(container.querySelectorAll('[data-slot="form-message"]').length).toBe(8);
+    // every field shows an error message and is marked invalid (on its input, or on the group for radio).
+    expect(container.querySelectorAll('[data-slot="form-message"]').length).toBe(9);
     expect(container.querySelectorAll('[aria-invalid="true"]').length).toBe(9);
   });
 

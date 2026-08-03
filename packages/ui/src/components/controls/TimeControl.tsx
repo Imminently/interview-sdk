@@ -1,7 +1,7 @@
 import { useTheme } from "@/providers";
 import type { TimeControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Time } from "../ui/time";
 import { Explanation } from "./Explanation";
 
@@ -118,9 +118,11 @@ export const TimeFormControl = ({ field }: UseControllerReturn) => {
           value={field.value ?? ""}
           onChange={(e) => field.onChange(e.target.value)}
           disabled={field.disabled || control.readOnly}
+          required={!!control.required}
           step={specifiedIncrement ? (control.minutes_increment as number) * 60 : undefined}
         />
       </FormControl>
+      <FormDescription />
       <FormMessage />
     </>
   );

@@ -69,8 +69,13 @@ describe("DateFormControl render", () => {
     expect(screen.getByText("Date of birth is required")).toBeInTheDocument();
   });
 
-  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+  test("renders the longDescription text when set", () => {
     renderControl(dateControl({ longDescription: "Extra help text" } as any));
+    expect(screen.getByText("Extra help text")).toBeInTheDocument();
+  });
+
+  test("does not render a description when longDescription is not set", () => {
+    renderControl(dateControl());
     expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
   });
 
@@ -92,19 +97,20 @@ describe("DateFormControl render", () => {
       expect(screen.getByRole("button").getAttribute("aria-invalid")).toBe("true");
     });
 
-    // WCAG gap: required is visually shown but never exposed to assistive technology.
-    test("does not expose required state to assistive technology (known gap)", () => {
+    // The trigger is a <button>, which doesn't support the native required attribute, so this
+    // uses aria-required explicitly.
+    test("exposes required state to assistive technology via aria-required", () => {
       renderControl(dateControl({ required: true }));
-      expect(screen.getByRole("button").getAttribute("aria-required")).toBeNull();
+      expect(screen.getByRole("button")).toHaveAttribute("aria-required", "true");
     });
 
-    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+    test("aria-describedby on the trigger resolves to the rendered description", () => {
       renderControl(dateControl({ longDescription: "Extra help text" } as any));
       const button = screen.getByRole("button");
       const describedBy = button.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
       for (const id of (describedBy ?? "").split(" ")) {
-        expect(document.getElementById(id)).toBeNull();
+        expect(document.getElementById(id)).not.toBeNull();
       }
     });
   });

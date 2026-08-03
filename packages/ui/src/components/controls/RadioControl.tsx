@@ -1,10 +1,10 @@
 import { useTheme } from "@/providers";
+import { cn } from "@/util";
 import type { OptionsControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
-import { FormControl, FormLabel, useFormField } from "../ui/form";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { cn } from "@/util";
 
 const parse = (v: string) => {
   if (v === "true") return true;
@@ -36,7 +36,7 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
 
   const handleChange = (value: string) => {
     field.onChange(parse(value));
-  }
+  };
 
   return (
     <>
@@ -44,6 +44,7 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
       <FormControl>
         <RadioGroup
           disabled={field.disabled || control.readOnly}
+          required={!!control.required}
           value={field.value !== undefined ? String(field.value) : ""}
           onValueChange={handleChange}
           className="flex flex-col"
@@ -70,10 +71,8 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
                   htmlFor={id}
                   className={cn(
                     "font-normal",
-                    control.readOnly
-                      ? "cursor-default text-foreground"
-                      : "cursor-pointer",
-                    control.readOnly && isSelected && "font-medium"
+                    control.readOnly ? "cursor-default text-foreground" : "cursor-pointer",
+                    control.readOnly && isSelected && "font-medium",
                   )}
                 >
                   {t(option.label)}
@@ -83,6 +82,8 @@ export const RadioFormControl = ({ field }: UseControllerReturn) => {
           })}
         </RadioGroup>
       </FormControl>
+      <FormDescription />
+      <FormMessage />
     </>
   );
 };

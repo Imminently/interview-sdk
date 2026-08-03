@@ -51,8 +51,13 @@ describe("CurrencyFormControl render", () => {
     expect(screen.getByText("Too low")).toBeInTheDocument();
   });
 
-  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+  test("renders the longDescription text when set", () => {
     renderControl(currencyControl({ longDescription: "Extra help text" } as any));
+    expect(screen.getByText("Extra help text")).toBeInTheDocument();
+  });
+
+  test("does not render a description when longDescription is not set", () => {
+    renderControl(currencyControl());
     expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
   });
 
@@ -65,40 +70,35 @@ describe("CurrencyFormControl render", () => {
       expect(input.id).toBeTruthy();
     });
 
-    test("marks the form-control wrapper aria-invalid when there is a validation error", () => {
-      renderControl(currencyControl(), {
-        validations: [{ id: "v1", message: "Too low", severity: "error", attributes: ["salary"], shown: true }],
-      });
-      const wrapper = document.querySelector('[data-slot="form-control"]') as HTMLElement;
-      expect(wrapper.getAttribute("aria-invalid")).toBe("true");
-    });
-
-    // WCAG gap: same as NumberFormControl - aria-invalid/aria-describedby land on the NumberField
-    // wrapper div, not the actual focusable <input>, since base-ui only threads `id` down.
-    test("does not set aria-invalid on the actual input, only on its wrapper (known gap)", () => {
+    test("marks the actual input aria-invalid when there is a validation error", () => {
       renderControl(currencyControl(), {
         validations: [{ id: "v1", message: "Too low", severity: "error", attributes: ["salary"], shown: true }],
       });
       const input = document.querySelector("input") as HTMLInputElement;
-      expect(input.getAttribute("aria-invalid")).toBeNull();
+      expect(input.getAttribute("aria-invalid")).toBe("true");
     });
 
-    // WCAG gap: required is visually shown but never exposed to assistive technology.
-    test("does not expose required state to assistive technology (known gap)", () => {
+    test("aria-invalid is false on the input when there is no error", () => {
+      renderControl(currencyControl());
+      const input = document.querySelector("input") as HTMLInputElement;
+      expect(input.getAttribute("aria-invalid")).toBe("false");
+    });
+
+    test("exposes required state to assistive technology via the native required attribute", () => {
       renderControl(currencyControl({ required: true }));
       const input = document.querySelector("input") as HTMLInputElement;
-      expect(input.getAttribute("aria-required")).toBeNull();
+      expect(input.required).toBe(true);
       const requiredMarker = document.querySelector("[data-required]");
       expect(requiredMarker?.getAttribute("aria-hidden")).toBe("true");
     });
 
-    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+    test("aria-describedby on the input resolves to the rendered description", () => {
       renderControl(currencyControl({ longDescription: "Extra help text" } as any));
-      const wrapper = document.querySelector('[data-slot="form-control"]') as HTMLElement;
-      const describedBy = wrapper.getAttribute("aria-describedby");
+      const input = document.querySelector("input") as HTMLInputElement;
+      const describedBy = input.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
       for (const id of (describedBy ?? "").split(" ")) {
-        expect(document.getElementById(id)).toBeNull();
+        expect(document.getElementById(id)).not.toBeNull();
       }
     });
   });

@@ -1,15 +1,19 @@
 import { useInterview } from "@/interview";
 import { useTheme } from "@/providers";
-import type { UseControllerReturn } from "react-hook-form";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
-import { Button } from "../ui/button";
-import { Explanation } from "./Explanation";
 import type { FileControl } from "@imminently/interview-sdk";
-import { getNameFromFileAttributeRef, isFileAttributeValue, type FileAttributeValue } from "@imminently/interview-sdk";
+import { type FileAttributeValue, getNameFromFileAttributeRef, isFileAttributeValue } from "@imminently/interview-sdk";
 import { Download, Loader2, Paperclip, Trash2 } from "lucide-react";
 import React from "react";
+import type { UseControllerReturn } from "react-hook-form";
+import { Button } from "../ui/button";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { Explanation } from "./Explanation";
 
-type LoadingState = { type: "idle" } | { type: "add" } | { type: "remove"; ref: string } | { type: "download"; ref: string };
+type LoadingState =
+  | { type: "idle" }
+  | { type: "add" }
+  | { type: "remove"; ref: string }
+  | { type: "download"; ref: string };
 
 const TEST_READ_ONLY = false; // **WARN** leave as `false`....
 const TEST_MAX = undefined; // **WARN** leave as `undefined`...
@@ -24,8 +28,13 @@ const toBase64 = (file: File): Promise<string> =>
 
 export const FileFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
-  const { control } = useFormField<FileControl>();
+  const { control, error, hasDescription, formDescriptionId, formMessageId } = useFormField<FileControl>();
   const { manager } = useInterview();
+
+  // The wrapper <FormControl> div isn't focusable, so also apply the invalid/required/description
+  // state directly to the "Add file" button - the actual interactive element a user tabs to.
+  const addButtonAriaDescribedBy =
+    [hasDescription ? formDescriptionId : null, error ? formMessageId : null].filter(Boolean).join(" ") || undefined;
 
   const [loading, setLoading] = React.useState<LoadingState>({ type: "idle" });
   const [localError, setLocalError] = React.useState<string | undefined>(undefined);
@@ -38,13 +47,12 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
   }, []);
 
   const normalizedValue: FileAttributeValue = React.useMemo(() => {
-
     if (TEST_READ_ONLY) {
       // Dummy data for testing read-only mode
       const dummyFileRefs = [
         "data:id=123e4567-e89b-12d3-a456-426614174000;base64,UXVvdGF0aW9uIFJlcXVlc3QucGRm",
         "data:id=987fcdeb-51a2-43d1-9c8e-123456789abc;base64,SW52b2ljZS5kb2N4",
-        "data:id=456789ab-cdef-1234-5678-90abcdef1234;base64,UmVjZWlwdC5qcGc="
+        "data:id=456789ab-cdef-1234-5678-90abcdef1234;base64,UmVjZWlwdC5qcGc=",
       ];
       return isFileAttributeValue(field.value) ? field.value : { fileRefs: dummyFileRefs };
     }
@@ -203,7 +211,10 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
                       {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <span className="text-sm font-medium text-foreground flex-1 truncate flex items-center leading-none" title={name}>
+                  <span
+                    className="text-sm font-medium text-foreground flex-1 truncate flex items-center leading-none"
+                    title={name}
+                  >
                     {name}
                   </span>
                 </div>
@@ -218,6 +229,9 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
                 onClick={triggerFileDialog}
                 disabled={!canAddMore}
                 aria-label={t("form.file_add")}
+                aria-invalid={!!error}
+                aria-required={!!control.required}
+                aria-describedby={addButtonAriaDescribedBy}
               >
                 {loading.type === "add" ? <Loader2 className="animate-spin" /> : <Paperclip />}
                 <span className="text-sm">{t("form.file_select_prompt")}</span>
@@ -226,7 +240,9 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
           )}
 
           {max > 1 && (
-            <span className="text-muted-foreground text-xs">{normalizedValue.fileRefs.length} / {max}</span>
+            <span className="text-muted-foreground text-xs">
+              {normalizedValue.fileRefs.length} / {max}
+            </span>
           )}
 
           {readOnly && normalizedValue.fileRefs.length === 0 && (
@@ -236,6 +252,7 @@ export const FileFormControl = ({ field }: UseControllerReturn) => {
           {localError && <p className="text-destructive text-sm">{localError}</p>}
         </div>
       </FormControl>
+      <FormDescription />
       <FormMessage />
     </>
   );

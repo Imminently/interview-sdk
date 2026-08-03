@@ -39,17 +39,20 @@ describe("RadioFormControl render", () => {
     }
   });
 
-  // Gap: unlike every other control, RadioFormControl never renders <FormMessage/>, so a
-  // validation error is silently invisible to sighted and screen reader users alike.
-  test("does not show a validation error message (known gap - RadioFormControl has no FormMessage)", () => {
+  test("shows the validation error message when the session has one for this attribute", () => {
     renderControl(radioControl(), {
       validations: [{ id: "v1", message: "Pick a colour", severity: "error", attributes: ["color"], shown: true }],
     });
-    expect(screen.queryByText("Pick a colour")).not.toBeInTheDocument();
+    expect(screen.getByText("Pick a colour")).toBeInTheDocument();
   });
 
-  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+  test("renders the longDescription text when set", () => {
     renderControl(radioControl({ longDescription: "Extra help text" } as any));
+    expect(screen.getByText("Extra help text")).toBeInTheDocument();
+  });
+
+  test("does not render a description when longDescription is not set", () => {
+    renderControl(radioControl());
     expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
   });
 
@@ -68,32 +71,33 @@ describe("RadioFormControl render", () => {
       expect(group.id).toBeTruthy();
     });
 
-    // Gap: aria-invalid/aria-describedby land on the radiogroup container, not on the individual
-    // focusable radio buttons, so a screen reader focused on a specific option won't hear them.
-    test("marks the group (not the individual radio items) aria-invalid on error", () => {
+    // aria-invalid on the radiogroup container (rather than each item) is spec-compliant - WAI-ARIA
+    // supports aria-invalid on the radiogroup role, and repeating it on every option would just
+    // announce "invalid" once per item as a user tabs through them.
+    test("marks the group aria-invalid on error", () => {
       renderControl(radioControl(), {
         validations: [{ id: "v1", message: "Pick a colour", severity: "error", attributes: ["color"], shown: true }],
       });
       expect(screen.getByRole("radiogroup").getAttribute("aria-invalid")).toBe("true");
-      for (const radio of screen.getAllByRole("radio")) {
-        expect(radio.getAttribute("aria-invalid")).toBeNull();
-      }
     });
 
-    // Real bug: Radix sets aria-required="false" on the group unconditionally (we never pass a
-    // `required` prop through), regardless of control.required - actively wrong, not just absent.
-    test("aria-required is always false regardless of control.required (known bug)", () => {
+    test("aria-required reflects control.required", () => {
       renderControl(radioControl({ required: true }));
+      expect(screen.getByRole("radiogroup")).toHaveAttribute("aria-required", "true");
+    });
+
+    test("aria-required is false when the control is not required", () => {
+      renderControl(radioControl());
       expect(screen.getByRole("radiogroup")).toHaveAttribute("aria-required", "false");
     });
 
-    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+    test("aria-describedby on the group resolves to the rendered description", () => {
       renderControl(radioControl({ longDescription: "Extra help text" } as any));
       const group = screen.getByRole("radiogroup");
       const describedBy = group.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
       for (const id of (describedBy ?? "").split(" ")) {
-        expect(document.getElementById(id)).toBeNull();
+        expect(document.getElementById(id)).not.toBeNull();
       }
     });
   });

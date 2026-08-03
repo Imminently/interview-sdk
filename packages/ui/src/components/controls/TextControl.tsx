@@ -3,7 +3,7 @@ import { getNumericalStep, parseNumericOption } from "@/util";
 import type { NumericalOptions } from "@/util";
 import type { TextControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Input } from "../ui/input";
 import { NumberInput } from "../ui/numericalinput";
 import { Textarea } from "../ui/textarea";
@@ -37,6 +37,7 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
             value={field.value ?? ""}
             onChange={(e) => field.onChange(e.target.value)}
             disabled={disabled}
+            required={!!control.required}
             placeholder={t("form.text_placeholder")}
           />
         ) : isNumberType ? (
@@ -44,6 +45,7 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
             value={field.value}
             onChange={(value) => field.onChange(value?.toString() ?? "")}
             disabled={disabled}
+            required={!!control.required}
             placeholder={t("form.text_placeholder")}
             min={minVal}
             max={maxVal}
@@ -57,10 +59,12 @@ export const TextFormControl = ({ field }: UseControllerReturn) => {
             value={field.value ?? ""}
             onChange={(e) => field.onChange(e.target.value)}
             disabled={disabled}
+            required={!!control.required}
             placeholder={t("form.text_placeholder")}
           />
         )}
       </FormControl>
+      <FormDescription />
       <FormMessage />
     </>
   );

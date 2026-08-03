@@ -1,7 +1,7 @@
 import { useTheme } from "@/providers";
 import type { OptionsControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
 
 export const SelectFormControl = ({ field }: UseControllerReturn) => {
@@ -17,9 +17,10 @@ export const SelectFormControl = ({ field }: UseControllerReturn) => {
         value={field.value}
         onValueChange={control.readOnly ? undefined : field.onChange}
         disabled={options?.length === 0 || field.disabled || control.readOnly}
+        required={!!control.required}
       >
         <FormControl>
-          <SelectTrigger className={`w-full ${control.readOnly ? 'cursor-default' : ''}`}>
+          <SelectTrigger className={`w-full ${control.readOnly ? "cursor-default" : ""}`}>
             {t(
               field.value ? options?.find((option) => option.value === field.value)?.label : "form.select_placeholder",
             )}
@@ -36,6 +37,7 @@ export const SelectFormControl = ({ field }: UseControllerReturn) => {
           ))}
         </SelectContent>
       </Select>
+      <FormDescription />
       <FormMessage />
     </>
   );

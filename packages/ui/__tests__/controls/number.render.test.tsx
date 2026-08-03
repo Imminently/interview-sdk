@@ -74,8 +74,13 @@ describe("NumberFormControl render", () => {
     expect(document.querySelector('[data-slot="form-message"]')).not.toBeInTheDocument();
   });
 
-  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+  test("renders the longDescription text when set", () => {
     renderControl(numberControl({ longDescription: "Extra help text" } as any));
+    expect(screen.getByText("Extra help text")).toBeInTheDocument();
+  });
+
+  test("does not render a description when longDescription is not set", () => {
+    renderControl(numberControl());
     expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
   });
 
@@ -88,55 +93,45 @@ describe("NumberFormControl render", () => {
       expect(input.id).toBeTruthy();
     });
 
-    test("marks the form-control wrapper aria-invalid when there is a validation error", () => {
-      renderControl(numberControl(), {
-        validations: [{ id: "v1", message: "Age is required", severity: "error", attributes: ["age"], shown: true }],
-      });
-      const wrapper = document.querySelector('[data-slot="form-control"]') as HTMLElement;
-      expect(wrapper.getAttribute("aria-invalid")).toBe("true");
-    });
-
-    test("aria-invalid is false on the wrapper when there is no error", () => {
-      renderControl(numberControl());
-      const wrapper = document.querySelector('[data-slot="form-control"]') as HTMLElement;
-      expect(wrapper.getAttribute("aria-invalid")).toBe("false");
-    });
-
-    // WCAG gap: aria-invalid/aria-describedby land on the NumberField wrapper div (via the shared
-    // FormControl Slot), not on the actual focusable <input> - base-ui's NumberField only threads
-    // `id` down to the real input, not the other aria-* props. A screen reader focused on the
-    // input itself won't hear the invalid/description state. Documents current behavior.
-    test("does not set aria-invalid on the actual input, only on its wrapper (known gap)", () => {
+    test("marks the actual input aria-invalid when there is a validation error", () => {
       renderControl(numberControl(), {
         validations: [{ id: "v1", message: "Age is required", severity: "error", attributes: ["age"], shown: true }],
       });
       const input = document.querySelector("input") as HTMLInputElement;
-      expect(input.getAttribute("aria-invalid")).toBeNull();
+      expect(input.getAttribute("aria-invalid")).toBe("true");
     });
 
-    // WCAG gap: the visual "*" required marker is aria-hidden and no aria-required (or native
-    // required) attribute is set anywhere, so screen reader users get no indication the field
-    // is required. Documents current (non-compliant) behavior rather than the ideal one.
-    test("does not expose required state to assistive technology (known gap)", () => {
+    test("aria-invalid is false on the input when there is no error", () => {
+      renderControl(numberControl());
+      const input = document.querySelector("input") as HTMLInputElement;
+      expect(input.getAttribute("aria-invalid")).toBe("false");
+    });
+
+    // base-ui's NumberField exposes required as its own Root prop, which it maps to a native
+    // `required` attribute on the real input - the standard, preferred way to convey required
+    // state (browsers/AT map native `required` to the accessibility tree automatically).
+    test("exposes required state to assistive technology via the native required attribute", () => {
       renderControl(numberControl({ required: true }));
       const input = document.querySelector("input") as HTMLInputElement;
-      expect(input.getAttribute("aria-required")).toBeNull();
-      expect(input.hasAttribute("required")).toBe(false);
+      expect(input.required).toBe(true);
+      // the visual "*" marker stays decorative/aria-hidden since the native attribute now covers it
       const requiredMarker = document.querySelector("[data-required]");
       expect(requiredMarker?.getAttribute("aria-hidden")).toBe("true");
     });
 
-    // WCAG 4.1.1: aria-describedby must only reference ids that exist in the DOM. Number doesn't
-    // render a FormDescription, but the shared FormControl computes aria-describedby generically
-    // off `"longDescription" in control` regardless - so setting longDescription here produces a
-    // dangling reference. Documents current (non-compliant) behavior.
-    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+    test("does not mark the input required when the control is not required", () => {
+      renderControl(numberControl());
+      const input = document.querySelector("input") as HTMLInputElement;
+      expect(input.required).toBe(false);
+    });
+
+    test("aria-describedby on the input resolves to the rendered description", () => {
       renderControl(numberControl({ longDescription: "Extra help text" } as any));
-      const wrapper = document.querySelector('[data-slot="form-control"]') as HTMLElement;
-      const describedBy = wrapper.getAttribute("aria-describedby");
+      const input = document.querySelector("input") as HTMLInputElement;
+      const describedBy = input.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
       for (const id of (describedBy ?? "").split(" ")) {
-        expect(document.getElementById(id)).toBeNull();
+        expect(document.getElementById(id)).not.toBeNull();
       }
     });
   });

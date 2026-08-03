@@ -59,8 +59,13 @@ describe("FileFormControl render", () => {
     expect(screen.getByText("A resume is required")).toBeInTheDocument();
   });
 
-  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+  test("renders the longDescription text when set", () => {
     renderControl(fileControl({ longDescription: "Extra help text" } as any));
+    expect(screen.getByText("Extra help text")).toBeInTheDocument();
+  });
+
+  test("does not render a description when longDescription is not set", () => {
+    renderControl(fileControl());
     expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
   });
 
@@ -73,39 +78,30 @@ describe("FileFormControl render", () => {
       expect(wrapper.id).toBeTruthy();
     });
 
-    // Worst case among all controls: aria-invalid/aria-describedby land on a plain wrapping <div>
-    // with no role and no tabindex - it is never focusable, so assistive technology has no route
-    // to discover the invalid/description state at all (unlike e.g. Number, where it's at least
-    // on a div a screen reader could still browse to). The real "Add file"/download/delete
-    // buttons inside carry none of these attributes either.
-    test("aria-invalid sits on a non-interactive wrapper div, not on any actual button (known gap)", () => {
-      renderControl(fileControl({ value: { fileRefs: [fileRef("resume.pdf")] } }), {
+    // The wrapper div itself isn't focusable, so the invalid/required/description state is also
+    // applied directly to the "Add file" button - the actual interactive element a user tabs to
+    // in order to satisfy the field.
+    test("marks the Add file button aria-invalid when there is a validation error", () => {
+      renderControl(fileControl(), {
         validations: [
           { id: "v1", message: "A resume is required", severity: "error", attributes: ["resume"], shown: true },
         ],
       });
-      const wrapper = document.querySelector('[data-slot="form-control"]') as HTMLElement;
-      expect(wrapper.getAttribute("aria-invalid")).toBe("true");
-      expect(wrapper.getAttribute("role")).toBeNull();
-      expect(wrapper.hasAttribute("tabindex")).toBe(false);
-      expect(screen.getByLabelText("Delete file").getAttribute("aria-invalid")).toBeNull();
-      expect(screen.getByLabelText("Download file").getAttribute("aria-invalid")).toBeNull();
+      expect(screen.getByLabelText("Add file")).toHaveAttribute("aria-invalid", "true");
     });
 
-    // WCAG gap: required is visually shown but never exposed to assistive technology.
-    test("does not expose required state to assistive technology (known gap)", () => {
+    test("exposes required state to assistive technology via aria-required on the Add file button", () => {
       renderControl(fileControl({ required: true }));
-      const wrapper = document.querySelector('[data-slot="form-control"]') as HTMLElement;
-      expect(wrapper.getAttribute("aria-required")).toBeNull();
+      expect(screen.getByLabelText("Add file")).toHaveAttribute("aria-required", "true");
     });
 
-    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+    test("aria-describedby on the Add file button resolves to the rendered description", () => {
       renderControl(fileControl({ longDescription: "Extra help text" } as any));
-      const wrapper = document.querySelector('[data-slot="form-control"]') as HTMLElement;
-      const describedBy = wrapper.getAttribute("aria-describedby");
+      const button = screen.getByLabelText("Add file");
+      const describedBy = button.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
       for (const id of (describedBy ?? "").split(" ")) {
-        expect(document.getElementById(id)).toBeNull();
+        expect(document.getElementById(id)).not.toBeNull();
       }
     });
   });

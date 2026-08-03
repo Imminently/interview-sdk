@@ -74,10 +74,9 @@ describe("BooleanFormControl render", () => {
       expect(screen.getByRole("checkbox").getAttribute("aria-invalid")).toBe("true");
     });
 
-    // WCAG gap: required is visually shown but never exposed to assistive technology.
-    test("does not expose required state to assistive technology (known gap)", () => {
+    test("exposes required state to assistive technology via aria-required", () => {
       renderControl(booleanControl({ required: true }));
-      expect(screen.getByRole("checkbox").getAttribute("aria-required")).toBeNull();
+      expect(screen.getByRole("checkbox")).toHaveAttribute("aria-required", "true");
     });
 
     // Combobox/description linkage is compliant here since Boolean actually renders it.
@@ -91,14 +90,11 @@ describe("BooleanFormControl render", () => {
       }
     });
 
-    // Real bug: the checkbox's aria-label uses the RAW control.label instead of the translated
-    // t(control.label), unlike the visible FormLabel text which is translated. Using a label
-    // that is itself a real translation key (but a different string once translated) exposes the
-    // mismatch: the visible text reads "Next" but a screen reader announces "form.next".
-    test("aria-label on the checkbox is untranslated, unlike the visible label text (known bug)", () => {
+    // aria-label on the checkbox must match the translated visible label text, not the raw key.
+    test("aria-label on the checkbox is translated, matching the visible label text", () => {
       renderControl(booleanControl({ label: "form.next" }));
       expect(screen.getByText("Next")).toBeInTheDocument();
-      expect(screen.getByRole("checkbox")).toHaveAttribute("aria-label", "form.next");
+      expect(screen.getByRole("checkbox")).toHaveAttribute("aria-label", "Next");
     });
   });
 });

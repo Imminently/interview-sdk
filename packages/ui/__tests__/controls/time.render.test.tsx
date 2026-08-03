@@ -48,8 +48,13 @@ describe("TimeFormControl render", () => {
     expect(screen.getByText("Pick a time")).toBeInTheDocument();
   });
 
-  test("does not render a description, even when longDescription is set (control type doesn't support it)", () => {
+  test("renders the longDescription text when set", () => {
     renderControl(timeControl({ longDescription: "Extra help text" } as any));
+    expect(screen.getByText("Extra help text")).toBeInTheDocument();
+  });
+
+  test("does not render a description when longDescription is not set", () => {
+    renderControl(timeControl());
     expect(document.querySelector('[data-slot="form-description"]')).not.toBeInTheDocument();
   });
 
@@ -72,21 +77,19 @@ describe("TimeFormControl render", () => {
       expect(input.getAttribute("aria-invalid")).toBe("true");
     });
 
-    // WCAG gap: required is visually shown but never exposed to assistive technology.
-    test("does not expose required state to assistive technology (known gap)", () => {
+    test("exposes required state to assistive technology via the native required attribute", () => {
       renderControl(timeControl({ required: true }));
       const input = document.querySelector('input[type="time"]') as HTMLInputElement;
-      expect(input.getAttribute("aria-required")).toBeNull();
-      expect(input.hasAttribute("required")).toBe(false);
+      expect(input.required).toBe(true);
     });
 
-    test("aria-describedby dangles when longDescription is set (known WCAG 4.1.1 gap)", () => {
+    test("aria-describedby on the input resolves to the rendered description", () => {
       renderControl(timeControl({ longDescription: "Extra help text" } as any));
       const input = document.querySelector('input[type="time"]') as HTMLInputElement;
       const describedBy = input.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
       for (const id of (describedBy ?? "").split(" ")) {
-        expect(document.getElementById(id)).toBeNull();
+        expect(document.getElementById(id)).not.toBeNull();
       }
     });
   });
