@@ -1,7 +1,7 @@
 import type { NumberOfInstancesControl } from "@imminently/interview-sdk";
 import { z } from "zod";
-import { parseNumericOption } from "../numerical";
 import { requiredErrStr } from "../global";
+import { parseNumericOption } from "../numerical";
 
 export const numberOfInstancesValidator = (c: NumberOfInstancesControl): z.ZodTypeAny => {
   const max = parseNumericOption(c.max);
@@ -12,11 +12,9 @@ export const numberOfInstancesValidator = (c: NumberOfInstancesControl): z.ZodTy
     .nullable()
     .optional();
 
-  // number_of_instances is always required
-  schema = schema.refine(
-    (v: unknown) => v !== undefined && v !== null,
-    requiredErrStr,
-  );
+  if (c.required !== undefined) {
+    schema = schema.refine((v: unknown) => v !== undefined && v !== null, requiredErrStr);
+  }
 
   if (max !== undefined) {
     schema = schema.refine(
