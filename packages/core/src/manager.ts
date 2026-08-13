@@ -2,7 +2,11 @@ import debounce from "lodash/debounce.js";
 import isEmpty from "lodash/isEmpty.js";
 import isEqual from "lodash/isEqual.js";
 import set from "lodash/set.js";
-import { ApiManager, type ApiManagerOptions } from "./api-manager";
+import { INTERVIEW_BACKEND_BRAND, type InterviewBackend } from "./backend/backend";
+import {
+  RemoteInterviewBackend,
+  type RemoteInterviewBackendOptions,
+} from "./backend/remote-backend";
 // import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, requiresSimulation } from "./dynamic";
 import { FileManager, type FileManagerOptions } from "./file-manager";
@@ -26,6 +30,7 @@ import type {
   SessionConfig,
   Step,
   StepId,
+  NavigateTarget,
 } from "./types";
 import {
   createEntityPathedData,
@@ -137,7 +142,9 @@ export interface ManagerOptions {
   preCacheClient?: boolean;
   /** Enable experimental strict mode, which enforces null (uncertain) for values on screen */
   _experimental_strictMode?: boolean;
-  apiManager: ApiManager | ApiManagerOptions;
+  backend?: InterviewBackend | RemoteInterviewBackendOptions;
+  /** @deprecated Use `backend` instead. */
+  apiManager?: InterviewBackend | RemoteInterviewBackendOptions;
   fileManager: FileManager | FileManagerOptions;
   init?: (manager: SessionManager) => void | Promise<void>;
   /**
@@ -153,6 +160,13 @@ export interface ManagerOptions {
   lifecycle?: ManagerLifecycleOptions;
   readOnly?: boolean;
 }
+
+export interface CloneOptions {
+  session?: Session;
+  backend?: InterviewBackend | RemoteInterviewBackendOptions;
+}
+
+export type SessionManagerCloneOptions = CloneOptions;
 
 declare global {
   interface Window {
@@ -265,7 +279,7 @@ export class SessionManager {
   private error?: Error;
   private listeners: Set<() => void>;
   private _options: ManagerOptions;
-  private apiManager: ApiManager;
+  private backend: InterviewBackend;
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
   private sessionConfigs: Record<string, StoredSessionConfig>;
@@ -300,20 +314,28 @@ export class SessionManager {
     this.sessionConfigs = {};
     this.events = new ManagerLifecycle(options.lifecycle);
 
-    // create the API manager
-    this.apiManager =
-      options.apiManager instanceof ApiManager
-        ? options.apiManager
-        : new ApiManager(options.apiManager as ApiManagerOptions);
+    const backendOption = options.backend ?? options.apiManager;
+    if (!backendOption) {
+      throw new Error("SessionManager requires a backend");
+    }
+
+    const isInterviewBackend = (backend: typeof backendOption): backend is InterviewBackend =>
+      (backend as InterviewBackend)[INTERVIEW_BACKEND_BRAND] === true;
+
+    const isRemoteInterviewBackendOptions = (backend: typeof backendOption): backend is RemoteInterviewBackendOptions =>
+      typeof (backend as RemoteInterviewBackendOptions).host === "string";
+
+    this.backend = isInterviewBackend(backendOption)
+      ? backendOption
+      : new RemoteInterviewBackend(backendOption as RemoteInterviewBackendOptions);
 
     // create the file manager
     if (options.fileManager instanceof FileManager) {
       this.fileManager = options.fileManager;
     } else {
       const fm = options.fileManager as FileManagerOptions;
-      // Attempt to inherit auth from the ApiManager options if not explicitly provided
-      const apiAuth =
-        options.apiManager instanceof ApiManager ? undefined : (options.apiManager as ApiManagerOptions)?.auth;
+      // Attempt to inherit auth from the backend options if not explicitly provided
+      const apiAuth = isRemoteInterviewBackendOptions(backendOption) ? backendOption.auth : undefined;
 
       if ("api" in fm) {
         this.fileManager = new FileManager(fm);
@@ -441,6 +463,15 @@ export class SessionManager {
     return this._options;
   }
 
+  get interviewBackend() {
+    return this.backend;
+  }
+
+  /** @deprecated Use `interviewBackend` instead. */
+  get apiManager() {
+    return this.backend;
+  }
+
   isOnScreen = (control: Control, screen?: Screen): boolean => {
     if (!screen && !this.activeSession) return false;
     // const { screen } = this.activeSession;
@@ -566,6 +597,44 @@ export class SessionManager {
     });
   };
 
+  clone = (options: SessionManagerCloneOptions = {}) => {
+    const session = options.session ?? this.activeSession;
+    if (!session) {
+      throw new Error("SessionManager.clone requires a session");
+    }
+
+    const backendOption = options.backend ?? this.backend;
+    const isInterviewBackend = (backend: typeof backendOption): backend is InterviewBackend =>
+      (backend as InterviewBackend)[INTERVIEW_BACKEND_BRAND] === true;
+    const backend = isInterviewBackend(backendOption)
+      ? backendOption
+      : new RemoteInterviewBackend(backendOption as RemoteInterviewBackendOptions);
+
+    const cloneOptions: ManagerOptions = {
+      ...this._options,
+      backend,
+      apiManager: undefined,
+      fileManager: this.fileManager,
+      init: undefined,
+      sessionConfig: undefined,
+      sessionStore: undefined,
+    };
+    const manager = new SessionManager(cloneOptions);
+    const clonedSession = deepClone(session);
+    manager.sessions = [clonedSession];
+    manager.active = 0;
+    manager.state = "success";
+    manager.error = undefined;
+    manager.debugEnabled = this.debugEnabled;
+    manager.advancedDebugEnabled = this.advancedDebugEnabled;
+    manager._disableDynamic = this._disableDynamic;
+    const config = this.getSessionConfig(session.sessionId);
+    if (config) {
+      manager.setSessionConfig(clonedSession.sessionId, config);
+    }
+    return manager;
+  };
+
   private handleClientGraphBookmark(session: Session) {
     if (session.clientGraphBookmark) {
       if (!session.clientGraph) {
@@ -603,7 +672,7 @@ export class SessionManager {
     try {
       this.log("Creating session:", config);
       this.setState("loading");
-      const session = await this.apiManager.create({
+      const session = await this.backend.create({
         ...config,
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
@@ -639,7 +708,7 @@ export class SessionManager {
     try {
       this.log("Loading session:", config);
       this.setState("loading");
-      const session = await this.apiManager.load({
+      const session = await this.backend.load({
         ...config,
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
@@ -956,6 +1025,10 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to process dynamic values");
       return;
     }
+    if (isComplete(this.activeSession)) {
+      this.triggerUpdate(false);
+      return;
+    }
     const { state, locale, data, screen } = this.activeSession;
     this.internals.latestRequest = Date.now();
 
@@ -1030,7 +1103,11 @@ export class SessionManager {
       throw new Error("No active session to load rules engine");
     }
     try {
-      const engine = await this.apiManager.getRulesEngine({ checksum: this.activeSession.rulesEngineChecksum });
+      if (this.backend.getRulesEngineRuntime) {
+        return await this.backend.getRulesEngineRuntime({ checksum: this.activeSession.rulesEngineChecksum });
+      }
+
+      const engine = await this.backend.getRulesEngine({ checksum: this.activeSession.rulesEngineChecksum });
       // biome-ignore lint: https://esbuild.github.io/content-types/#direct-eval
       return (0, eval)(engine);
     } catch (error: any) {
@@ -1061,7 +1138,7 @@ export class SessionManager {
 
     const requestId = this.internals.latestRequest;
 
-    const result = await this.apiManager.simulate({
+    const result = await this.backend.simulate({
       session: this.activeSession,
       payload: {
         goal: this.activeSession.goal,
@@ -1185,13 +1262,15 @@ export class SessionManager {
     }
     this.triggerUpdate(true);
     try {
-      const session = await this.apiManager.submit({
+      const { remote, ...submitOverrides } = overrides as Overrides & { remote?: boolean };
+      const session = await this.backend.submit({
         session: this.activeSession,
         data: transformResponse(this.activeSession, data as any),
         navigate,
-        overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
+        overrides: this.getSessionOverrides(this.activeSession.sessionId, submitOverrides),
         clientGraphBookmark: this.getClientGraphBookmark(),
         readOnly: this.options.readOnly,
+        remote,
       });
       this.updateSession(session, "submit");
     } catch (error: any) {
@@ -1206,9 +1285,8 @@ export class SessionManager {
 
   /** Save the current session data, without navigating */
   save = async (data: AttributeValues, overrides: Overrides = {}) => {
-    // this is just submit, with navigate set to the current screen
-    // so just invoke submit with navigate set to current screen id
-    return this.submit(data, this.activeSession?.screen.id, overrides);
+    const activeSession = this.activeSession as (Session & { current_step?: string; currentStep?: string }) | null;
+    return this.submit(data, activeSession?.current_step ?? activeSession?.currentStep ?? activeSession?.screen.id, overrides);
   }
 
   /** @experimental Generative AI chat is in exploration phase */
@@ -1224,7 +1302,7 @@ export class SessionManager {
     }
     try {
       this.triggerUpdate(true);
-      const payload = await this.apiManager.chat({
+      const payload = await this.backend.chat({
         session: this.activeSession,
         message,
         goal,
@@ -1240,7 +1318,7 @@ export class SessionManager {
   };
 
   /** Navigate to a specific step */
-  navigate = async (step: StepId, overrides: Overrides = {}) => {
+  navigate = async (step: NavigateTarget, overrides: Overrides = {}) => {
     this.log("navigate:", step, overrides);
     if (!this.activeSession) {
       console.warn(LogGroup, "No active session to navigate from");
@@ -1249,7 +1327,7 @@ export class SessionManager {
     this.triggerUpdate(true);
     try {
       this.updateSession(
-        await this.apiManager.navigate({
+        await this.backend.navigate({
           session: this.activeSession,
           step,
           overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
@@ -1281,7 +1359,7 @@ export class SessionManager {
         this.pop("pop");
       }
       this.updateSession(
-        await this.apiManager.back({
+        await this.backend.back({
           session: this.activeSession,
           overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
           readOnly: this.options.readOnly,
@@ -1312,17 +1390,19 @@ export class SessionManager {
     }
     this.triggerUpdate(true);
     try {
+      const { remote, ...submitOverrides } = overrides as Overrides & { remote?: boolean };
       if (this.isSubInterview && isComplete(this.activeSession)) {
         // pop the session, then we will invoke next on the parent
         this.pop("pop");
       }
       this.updateSession(
-        await this.apiManager.submit({
+        await this.backend.submit({
           session: this.activeSession,
           data: transformResponse(this.activeSession, data as any),
-          overrides: this.getSessionOverrides(this.activeSession.sessionId, overrides),
+          overrides: this.getSessionOverrides(this.activeSession.sessionId, submitOverrides),
           clientGraphBookmark: this.getClientGraphBookmark(),
           readOnly: this.options.readOnly,
+          remote,
         }),
         "next",
       );
@@ -1341,7 +1421,7 @@ export class SessionManager {
       console.warn(LogGroup, "No active session to export timeline from");
       throw new Error("No active session to export timeline from");
     }
-    return this.apiManager.exportTimeline({ session: this.activeSession });
+    return this.backend.exportTimeline({ session: this.activeSession });
   };
 
   downloadTimeline = async (fileName?: string) => {
@@ -1424,7 +1504,7 @@ export class SessionManager {
   };
 
   get getConnectedData() {
-    return this.apiManager.getConnectedData;
+    return this.backend.getConnectedData;
   }
 
   // file management methods
