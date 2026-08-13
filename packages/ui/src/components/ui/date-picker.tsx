@@ -14,6 +14,7 @@ interface DatePickerProps {
   minDate?: Date;
   maxDate?: Date;
   ref?: React.Ref<HTMLButtonElement>;
+  "aria-required"?: boolean;
 }
 
 // Helper function to parse YYYY-MM-DD as local time

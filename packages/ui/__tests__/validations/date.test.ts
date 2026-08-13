@@ -93,7 +93,9 @@ describe("dateValidator", () => {
       const result = schema.safeParse("2025-01-01");
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe(`Should be before or equal to ${formatDateForValidationMessage("2024-12-31")}`);
+        expect(result.error.issues[0].message).toBe(
+          `Should be before or equal to ${formatDateForValidationMessage("2024-12-31")}`,
+        );
       }
     });
   });
@@ -113,7 +115,9 @@ describe("dateValidator", () => {
       const result = schema.safeParse("2023-12-31");
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe(`Should be after or equal to ${formatDateForValidationMessage("2024-01-01")}`);
+        expect(result.error.issues[0].message).toBe(
+          `Should be after or equal to ${formatDateForValidationMessage("2024-01-01")}`,
+        );
       }
     });
   });

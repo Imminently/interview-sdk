@@ -1,23 +1,28 @@
-import { describe, expect, test, beforeEach } from "bun:test";
-import { t, setTranslateFn } from "../../src/util/translate-fn";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { setTranslateFn, t } from "../../src/util/translate-fn";
+
+// setTranslateFn mutates module-level state that persists for the lifetime of the bun test
+// process (not just this file), so every test that swaps it must restore this default -
+// otherwise later test files render blank labels/placeholders.
+const restoreDefaultTranslateFn = () => {
+  setTranslateFn((key, params) => {
+    // reimport the default behaviour inline so tests are self-contained
+    const { get } = require("lodash-es");
+    const en = require("../../src/i18n/en.json");
+    if (!key) return "";
+    let str = get(en, key, key);
+    if (params) {
+      for (const k of Object.keys(params)) {
+        str = str.replace(`{{${k}}}`, params[k]);
+      }
+    }
+    return str;
+  });
+};
 
 describe("t (default translate fn — en.json fallback)", () => {
   // Restore the default after each test that swaps the fn
-  beforeEach(() => {
-    setTranslateFn((key, params) => {
-      // reimport the default behaviour inline so tests are self-contained
-      const { get } = require("lodash-es");
-      const en = require("../../src/i18n/en.json");
-      if (!key) return "";
-      let str = get(en, key, key);
-      if (params) {
-        Object.keys(params).forEach((k) => {
-          str = str.replace(`{{${k}}}`, params[k]);
-        });
-      }
-      return str;
-    });
-  });
+  beforeEach(restoreDefaultTranslateFn);
 
   describe("basic key lookup", () => {
     test("returns value for a known top-level key", () => {
@@ -73,14 +78,14 @@ describe("t (default translate fn — en.json fallback)", () => {
     });
 
     test("works with string param values", () => {
-      expect(t("validations.min_date", { min: "2024-01-01" })).toBe(
-        "Date must be after 2024-01-01",
-      );
+      expect(t("validations.min_date", { min: "2024-01-01" })).toBe("Date must be after 2024-01-01");
     });
   });
 });
 
 describe("setTranslateFn", () => {
+  afterEach(restoreDefaultTranslateFn);
+
   test("overrides the translate function", () => {
     setTranslateFn(() => "overridden");
     expect(t("any.key")).toBe("overridden");

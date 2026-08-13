@@ -1,7 +1,7 @@
 import { useInterview } from "@/interview/InterviewContext";
 import { useDebugSettings, useTheme } from "@/providers";
 import { cn } from "@/util";
-import { displayValue, type Control } from "@imminently/interview-sdk";
+import { type Control, displayValue } from "@imminently/interview-sdk";
 import type * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot as ReactSlot, type SlotProps } from "@radix-ui/react-slot";
 import * as React from "react";
@@ -41,17 +41,20 @@ const FormField = <
   data, // pull data (the control) out of the props
   children,
   ...props
-}: Omit<ControllerProps<TFieldValues, TName>, 'render'> & React.PropsWithChildren<{ data: Control }>) => {
+}: Omit<ControllerProps<TFieldValues, TName>, "render"> & React.PropsWithChildren<{ data: Control }>) => {
   return (
-    <Controller {...props} render={(p) => (
-      <FormFieldContext.Provider value={{ name: props.name, control: data, fieldRef: p.field.ref }}>
-        <FormItem>
-          {React.isValidElement(children) && children.type !== React.Fragment
-            ? React.cloneElement(children, { field: p.field } as Partial<typeof children.props>)
-            : children}
-        </FormItem>
-      </FormFieldContext.Provider>
-    )} />
+    <Controller
+      {...props}
+      render={(p) => (
+        <FormFieldContext.Provider value={{ name: props.name, control: data, fieldRef: p.field.ref }}>
+          <FormItem>
+            {React.isValidElement(children) && children.type !== React.Fragment
+              ? React.cloneElement(children, { field: p.field } as Partial<typeof children.props>)
+              : children}
+          </FormItem>
+        </FormFieldContext.Provider>
+      )}
+    />
   );
 };
 
@@ -67,7 +70,7 @@ const useFormField = <C extends Control>() => {
     throw new Error("useFormField should be used within <FormField>");
   }
 
-  const { id } = itemContext;
+  const { id, hasDescription, setHasDescription } = itemContext;
 
   return {
     id,
@@ -77,12 +80,18 @@ const useFormField = <C extends Control>() => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
+    hasDescription,
+    setHasDescription,
     ...fieldState,
   };
 };
 
 type FormItemContextValue = {
   id: string;
+  // Whether a <FormDescription> actually rendered into the DOM for this field, reported by
+  // FormDescription itself rather than guessed from the control data - see FormControl below.
+  hasDescription: boolean;
+  setHasDescription: (value: boolean) => void;
 };
 
 const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
@@ -119,7 +128,11 @@ export const FormItemDebug = () => {
   // name might be a path, separated by / or ., so we need to strip to just the id at the end for lookup in the graph
   const attribute = name.split("/").pop()?.split(".").pop() ?? name;
   const node = graph ? graph.node(attribute) : { description: "No graph", entity: "N/A" };
-  const entity = node?.entity ? `[${node.entity}]` : (control as any).entity ? `[${(control as any).entity}]` : undefined;
+  const entity = node?.entity
+    ? `[${node.entity}]`
+    : (control as any).entity
+      ? `[${(control as any).entity}]`
+      : undefined;
 
   // doing a weird fallback tooltip, as our translation layer fallbacks to the key
   const defaultTooltip = "Click to log control to console. Shift+Click to trigger debug callback.";
@@ -130,7 +143,12 @@ export const FormItemDebug = () => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div tabIndex={-1} onClick={handleDebugClick} data-slot="debug-info" className="flex flex-row gap-1 text-xs text-muted-foreground items-center cursor-pointer">
+        <div
+          tabIndex={-1}
+          onClick={handleDebugClick}
+          data-slot="debug-info"
+          className="flex flex-row gap-1 text-xs text-muted-foreground items-center cursor-pointer"
+        >
           {entity ? <span>{entity}</span> : null}
           <span>{node?.description ?? "-"}</span>
           <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
@@ -155,16 +173,17 @@ export const FormItemDebug = () => {
       </TooltipContent>
     </Tooltip>
   );
-}
+};
 
 function FormItem({ className, children, ...props }: React.ComponentProps<"div">) {
   const id = React.useId();
+  const [hasDescription, setHasDescription] = React.useState(false);
   const { control, name } = useFormField();
   // @ts-ignore the control may have a custom className, add it here so its always applied
   const customClassName = control.customClassName ?? "";
 
   return (
-    <FormItemContext.Provider value={{ id }}>
+    <FormItemContext.Provider value={{ id, hasDescription, setHasDescription }}>
       <div
         data-slot="form-item"
         className={cn("grid gap-2", className, customClassName)}
@@ -193,22 +212,27 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
     >
       {props.children}
       {"required" in control && control.required && (
-        <span data-required aria-hidden="true">*</span>
+        <span
+          data-required
+          aria-hidden="true"
+        >
+          *
+        </span>
       )}
     </Label>
   );
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId, control, fieldRef } = useFormField();
+  const { error, formItemId, formDescriptionId, formMessageId, fieldRef, hasDescription } = useFormField();
 
   // Only reference IDs that will actually be present in the DOM, as per WCAG 4.1.1.
   // aria-describedby pointing to a non-existent element is an accessibility violation.
-  const hasDescription = "longDescription" in control && !!control.longDescription?.length;
-  const ariaDescribedBy = [
-    hasDescription ? formDescriptionId : null,
-    error ? formMessageId : null,
-  ].filter(Boolean).join(" ") || undefined;
+  // `hasDescription` reflects whether a <FormDescription> actually mounted (reported via
+  // FormItemContext), not a guess from control data - so it stays correct even for a theme
+  // consumer's custom control component that doesn't render one.
+  const ariaDescribedBy =
+    [hasDescription ? formDescriptionId : null, error ? formMessageId : null].filter(Boolean).join(" ") || undefined;
 
   // disabled other debug click events as they may be overriding standard control click behaviour
   // also only enable if debugEnabled is true
@@ -226,10 +250,17 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
 
 function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
   const { t } = useTheme();
-  const { control, formDescriptionId } = useFormField();
+  const { control, formDescriptionId, setHasDescription } = useFormField();
 
-  const hasLongDescription =
-    "longDescription" in control && control.longDescription && control.longDescription.length > 0;
+  const longDescription = "longDescription" in control ? control.longDescription : undefined;
+  const hasLongDescription = Boolean(longDescription && longDescription.length > 0);
+
+  // Report whether we actually rendered so FormControl's aria-describedby only ever references
+  // an id that exists in the DOM. useLayoutEffect (not useEffect) so this resolves before paint.
+  React.useLayoutEffect(() => {
+    setHasDescription(hasLongDescription);
+    return () => setHasDescription(false);
+  }, [hasLongDescription, setHasDescription]);
 
   if (!hasLongDescription) {
     return null;
@@ -242,7 +273,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
       className={cn("text-muted-foreground text-sm", className)}
       {...props}
     >
-      {t(control.longDescription)}
+      {t(longDescription)}
     </p>
   );
 }

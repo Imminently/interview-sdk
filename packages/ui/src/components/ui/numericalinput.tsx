@@ -4,7 +4,7 @@ import { cva } from "class-variance-authority";
 import * as React from "react";
 
 const buttonVariants = cva(
-  "flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm disabled:opacity-50 disabled:pointer-events-none font-bold border border-border"
+  "flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm disabled:opacity-50 disabled:pointer-events-none font-bold border border-border",
 );
 
 const numberInputVariants = cva("", {
@@ -33,10 +33,14 @@ export interface NumberInputProps {
   maxDecimalPlaces?: number;
   placeholder?: string;
   disabled?: boolean;
+  required?: boolean;
   className?: string;
   variant?: "default";
   startAdornment?: React.ReactNode;
   endAdornment?: React.ReactNode;
+  id?: string;
+  "aria-invalid"?: boolean | "true" | "false";
+  "aria-describedby"?: string;
 }
 
 const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
@@ -53,13 +57,17 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       maxDecimalPlaces,
       placeholder,
       disabled,
+      required,
       className,
       variant = "default",
       startAdornment,
       endAdornment,
+      id,
+      "aria-invalid": ariaInvalid,
+      "aria-describedby": ariaDescribedBy,
       ...props
     },
-    ref
+    ref,
   ) => {
     const maxDp = React.useMemo(() => {
       const n = Number(maxDecimalPlaces);
@@ -98,7 +106,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         onChange?.(processedValue);
         onValueChange?.(processedValue);
       },
-      [onChange, onValueChange, min, max, allowDecimals, maxDp]
+      [onChange, onValueChange, min, max, allowDecimals, maxDp],
     );
 
     // Handle input formatting and decimal place validation as the user types
@@ -140,7 +148,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         onChange?.(processedValue);
         onValueChange?.(processedValue);
       },
-      [onChange, onValueChange, min, max, allowDecimals, maxDp]
+      [onChange, onValueChange, min, max, allowDecimals, maxDp],
     );
 
     // Prevent entering decimals when not allowed (typing/paste/keys)
@@ -165,7 +173,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           }
         }
       },
-      [allowDecimals, maxDp]
+      [allowDecimals, maxDp],
     );
 
     const handleKeyDown = React.useCallback(
@@ -189,7 +197,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           }
         }
       },
-      [allowDecimals, maxDp]
+      [allowDecimals, maxDp],
     );
 
     const handlePaste = React.useCallback(
@@ -203,7 +211,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         // For allowDecimals with maxDecimalPlaces, let the paste happen
         // and let the onChange handler process and round the value
       },
-      [allowDecimals]
+      [allowDecimals],
     );
 
     // Keep input display uncontrolled to avoid blocking user typing/paste.
@@ -217,12 +225,13 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         max={max}
         step={step}
         disabled={disabled}
+        required={required}
         className={cn(
           "flex items-center h-9 w-full rounded-md border border-input bg-transparent shadow-xs transition-[color,box-shadow]",
           "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
           "has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40 has-aria-invalid:border-destructive",
           disabled && "pointer-events-none cursor-not-allowed opacity-50",
-          className
+          className,
         )}
         {...props}
       >
@@ -234,6 +243,9 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           ) : null}
           <NumberField.Input
             ref={ref}
+            id={id}
+            aria-invalid={ariaInvalid}
+            aria-describedby={ariaDescribedBy}
             className={cn(numberInputVariants({ variant }))}
             placeholder={placeholder}
             disabled={disabled}
@@ -244,21 +256,15 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           />
         </NumberField.Group>
         <div className="flex items-center gap-0.5 pr-1 shrink-0">
-          <NumberField.Decrement className={cn(buttonVariants())}>
-            &minus;
-          </NumberField.Decrement>
-          <NumberField.Increment className={cn(buttonVariants())}>
-            +
-          </NumberField.Increment>
+          <NumberField.Decrement className={cn(buttonVariants())}>&minus;</NumberField.Decrement>
+          <NumberField.Increment className={cn(buttonVariants())}>+</NumberField.Increment>
           {endAdornment ? (
-            <span className="pl-1 text-muted-foreground pointer-events-none select-none">
-              {endAdornment}
-            </span>
+            <span className="pl-1 text-muted-foreground pointer-events-none select-none">{endAdornment}</span>
           ) : null}
         </div>
       </NumberField.Root>
     );
-  }
+  },
 );
 
 NumberInput.displayName = "NumberInput";

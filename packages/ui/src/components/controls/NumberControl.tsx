@@ -2,7 +2,7 @@ import { useTheme } from "@/providers";
 import { getNumericalStep, parseNumericOption } from "@/util";
 import type { NumberControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { NumberInput } from "../ui/numericalinput";
 
 const toNum = (v: any): number | null | undefined => {
@@ -36,6 +36,7 @@ export const NumberFormControl = ({ field }: UseControllerReturn) => {
           value={field.value}
           onChange={(value) => field.onChange(value ?? "")}
           disabled={field.disabled || control.readOnly}
+          required={!!control.required}
           placeholder={t("form.text_placeholder")}
           min={minVal}
           max={maxVal}
@@ -44,9 +45,8 @@ export const NumberFormControl = ({ field }: UseControllerReturn) => {
           step={step}
         />
       </FormControl>
+      <FormDescription />
       <FormMessage />
     </>
   );
 };
-
-

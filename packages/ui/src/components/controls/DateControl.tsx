@@ -2,7 +2,7 @@ import { useTheme } from "@/providers";
 import type { DateControl, DateControlThreeVariantDate } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
 import { DatePicker } from "../ui/date-picker";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { Explanation } from "./Explanation";
 
 const defaultFormatter = (date: Date) => {
@@ -12,7 +12,7 @@ const defaultFormatter = (date: Date) => {
   const day = String(date.getDate()).padStart(2, "0");
   // NOTE do NOT use date.toISOString() as that converts to UTC and may change the day
   return `${year}-${month}-${day}`;
-}
+};
 
 const getDateFromVariant = (value?: DateControlThreeVariantDate): Date | undefined => {
   if (!value) return undefined;
@@ -62,10 +62,12 @@ export const DateFormControl = ({ field }: UseControllerReturn) => {
           value={field.value}
           onChange={(d) => field.onChange(d ? defaultFormatter(d) : undefined)}
           disabled={field.disabled || control.readOnly}
+          aria-required={!!control.required}
           minDate={minDate}
           maxDate={maxDate}
         />
       </FormControl>
+      <FormDescription />
       <FormMessage />
     </>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseNumericOption, safeParseNumber, getNumericalStep } from "../../src/util/numerical";
+import { getNumericalStep, parseNumericOption, safeParseNumber } from "../../src/util/numerical";
 
 describe("parseNumericOption", () => {
   describe("number inputs", () => {
@@ -14,15 +14,15 @@ describe("parseNumericOption", () => {
     });
 
     test("returns undefined for Infinity", () => {
-      expect(parseNumericOption(Infinity)).toBeUndefined();
+      expect(parseNumericOption(Number.POSITIVE_INFINITY)).toBeUndefined();
     });
 
     test("returns undefined for -Infinity", () => {
-      expect(parseNumericOption(-Infinity)).toBeUndefined();
+      expect(parseNumericOption(Number.NEGATIVE_INFINITY)).toBeUndefined();
     });
 
     test("returns undefined for NaN", () => {
-      expect(parseNumericOption(NaN)).toBeUndefined();
+      expect(parseNumericOption(Number.NaN)).toBeUndefined();
     });
   });
 
@@ -67,11 +67,11 @@ describe("safeParseNumber", () => {
     });
 
     test("returns undefined for Infinity", () => {
-      expect(safeParseNumber(Infinity)).toBeUndefined();
+      expect(safeParseNumber(Number.POSITIVE_INFINITY)).toBeUndefined();
     });
 
     test("returns undefined for NaN", () => {
-      expect(safeParseNumber(NaN)).toBeUndefined();
+      expect(safeParseNumber(Number.NaN)).toBeUndefined();
     });
   });
 

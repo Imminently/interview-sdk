@@ -2,7 +2,7 @@ import { useTheme } from "@/providers";
 import { parseNumericOption } from "@/util";
 import type { CurrencyControl } from "@imminently/interview-sdk";
 import type { UseControllerReturn } from "react-hook-form";
-import { FormControl, FormLabel, FormMessage, useFormField } from "../ui/form";
+import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } from "../ui/form";
 import { NumberInput } from "../ui/numericalinput";
 import { Explanation } from "./Explanation";
 
@@ -19,7 +19,6 @@ export const parseCurrencyControl = (control: CurrencyControl): CurrencyControl 
   value: toNum(control.value),
   default: toNum(control.default),
 });
-
 
 export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
@@ -39,6 +38,7 @@ export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
           value={field.value}
           onChange={(value) => field.onChange(value ?? "")}
           disabled={field.disabled || control.readOnly}
+          required={!!control.required}
           placeholder={t("form.text_placeholder")}
           min={minVal}
           max={maxVal}
@@ -46,6 +46,7 @@ export const CurrencyFormControl = ({ field }: UseControllerReturn) => {
           startAdornment={control.symbol}
         />
       </FormControl>
+      <FormDescription />
       <FormMessage />
     </>
   );

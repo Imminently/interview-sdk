@@ -4,7 +4,7 @@ import { numberOfInstancesValidator } from "../../src/util/validation/number-of-
 const base = { id: "ctrl-1", type: "number_of_instances" as const, attribute: "attr-1", entity: "item" };
 
 describe("numberOfInstancesValidator", () => {
-  describe("always required (no explicit required field)", () => {
+  describe("not required by default (matches every other control type)", () => {
     const schema = numberOfInstancesValidator(base);
 
     test("accepts a positive integer", () => {
@@ -19,25 +19,19 @@ describe("numberOfInstancesValidator", () => {
       expect(schema.safeParse(0).success).toBe(true);
     });
 
-    test("rejects null", () => {
-      const result = schema.safeParse(null);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Please fill out this field");
-      }
+    test("accepts null", () => {
+      expect(schema.safeParse(null).success).toBe(true);
     });
 
-    test("rejects undefined", () => {
-      expect(schema.safeParse(undefined).success).toBe(false);
+    test("accepts undefined", () => {
+      expect(schema.safeParse(undefined).success).toBe(true);
     });
 
     test("rejects string", () => {
       const result = schema.safeParse("3");
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe(
-          "Please specify a valid positive integer. E.g. 5",
-        );
+        expect(result.error.issues[0].message).toBe("Please specify a valid positive integer. E.g. 5");
       }
     });
 
@@ -49,6 +43,26 @@ describe("numberOfInstancesValidator", () => {
       // number_of_instances is for counts, but the validator itself doesn't restrict decimals
       // unless min/max are set. A float still passes the number type check.
       expect(schema.safeParse(2.5).success).toBe(true);
+    });
+  });
+
+  describe("required: true", () => {
+    const schema = numberOfInstancesValidator({ ...base, required: true });
+
+    test("accepts a positive integer", () => {
+      expect(schema.safeParse(3).success).toBe(true);
+    });
+
+    test("rejects null", () => {
+      const result = schema.safeParse(null);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe("Please fill out this field");
+      }
+    });
+
+    test("rejects undefined", () => {
+      expect(schema.safeParse(undefined).success).toBe(false);
     });
   });
 
@@ -93,7 +107,7 @@ describe("numberOfInstancesValidator", () => {
   });
 
   describe("with both min and max", () => {
-    const schema = numberOfInstancesValidator({ ...base, min: 1, max: 5 });
+    const schema = numberOfInstancesValidator({ ...base, required: true, min: 1, max: 5 });
 
     test("accepts value in range", () => {
       expect(schema.safeParse(3).success).toBe(true);
@@ -107,7 +121,7 @@ describe("numberOfInstancesValidator", () => {
       expect(schema.safeParse(6).success).toBe(false);
     });
 
-    test("rejects null", () => {
+    test("rejects null when required", () => {
       expect(schema.safeParse(null).success).toBe(false);
     });
   });
