@@ -19,6 +19,8 @@ export {
   formatDate,
   instanceControl,
   iterateControls,
+  normalizeMinutesIncrement,
+  normalizeSessionControls,
   uuid,
   buildUrl,
 } from "./util";

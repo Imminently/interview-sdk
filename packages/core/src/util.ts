@@ -203,6 +203,26 @@ export const iterateControls = (
   }
 };
 
+export const normalizeMinutesIncrement = (value: unknown): number | undefined => {
+  if (typeof value === "string" && value.trim() === "") return undefined;
+  if (typeof value !== "string" && typeof value !== "number") return undefined;
+
+  const increment = Number(value);
+  return Number.isFinite(increment) && increment > 0 ? increment : undefined;
+};
+
+export const normalizeSessionControls = (session: Session): Session => {
+  if (!session?.screen || !Array.isArray(session.screen.controls)) return session;
+
+  return produce(session, (draft) => {
+    iterateControls(draft.screen.controls as Control[], (control) => {
+      if (control.type === "time" || control.type === "datetime") {
+        control.minutes_increment = normalizeMinutesIncrement(control.minutes_increment);
+      }
+    });
+  });
+};
+
 export const instanceControl = (control: RenderableEntityControl, id: string): EntityControlInstance => {
   const controls =
     control.instances?.find((instance) => instance.id === id)?.controls ?? structuredClone(control.template);
