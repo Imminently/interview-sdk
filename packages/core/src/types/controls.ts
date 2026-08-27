@@ -188,6 +188,8 @@ export type IDate = DateControl;
  */
 export const DATE_FORMAT = "yyyy-MM-dd";
 
+export type MinutesIncrement = number | `${number}`;
+
 /**
  * Allow a user to enter a time. This should send an ISO time string back to the server ('HH:mm:ss').
  * Do not send a date component back.
@@ -219,7 +221,7 @@ export interface TimeControl extends BaseControl {
    */
   amPmFormat?: true;
   /** Eg: 15 = only allow time in 15 minute increments (3:00, 3:15, 3:30, 3:45). The increment is assumed to start from the hour and will not be greater than 60 */
-  minutes_increment?: number;
+  minutes_increment?: MinutesIncrement;
   allowSeconds?: true;
   showExplanation?: boolean;
   readOnly?: boolean;
@@ -267,7 +269,7 @@ export interface DateTimeControl extends BaseControl {
    */
   amPmFormat?: true;
   /** Eg: 15 = only allow time in 15 minute increments (3:00, 3:15, 3:30, 3:45). The increment is assumed to start from the hour and will not be greater than 60 */
-  minutes_increment?: number;
+  minutes_increment?: MinutesIncrement;
   /** mui picker doesn't have this control */
   // allow_seconds?: true;
   showExplanation?: boolean;

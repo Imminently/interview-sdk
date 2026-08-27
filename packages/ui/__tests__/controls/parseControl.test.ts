@@ -27,6 +27,11 @@ describe("parseControl", () => {
     expect(result.value).toBe(3);
   });
 
+  test("normalizes string time increments before rendering custom slots", () => {
+    const result = parseControl({ type: "time", id: "time", attribute: "start", minutes_increment: "15" });
+    expect(result.minutes_increment).toBe(15);
+  });
+
   describe("options with asRadio", () => {
     test("delegates to parseRadioControl when asRadio is true", () => {
       const result = parseControl({ type: "options", id: "o", asRadio: true, value: "null" });
