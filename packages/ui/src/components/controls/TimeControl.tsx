@@ -5,6 +5,19 @@ import { FormControl, FormDescription, FormLabel, FormMessage, useFormField } fr
 import { Time } from "../ui/time";
 import { Explanation } from "./Explanation";
 
+export const normalizeMinutesIncrement = (value: unknown): number | undefined => {
+  if (typeof value === "string" && value.trim() === "") return undefined;
+  if (typeof value !== "string" && typeof value !== "number") return undefined;
+
+  const increment = Number(value);
+  return Number.isFinite(increment) && increment > 0 ? increment : undefined;
+};
+
+export const parseTimeControl = (control: TimeControl): TimeControl => ({
+  ...control,
+  minutes_increment: normalizeMinutesIncrement(control.minutes_increment),
+});
+
 /**
  * Legacy format code
  * Why did this even exist??
@@ -104,8 +117,7 @@ function formatRawDigits(digits: string): string | null {
 export const TimeFormControl = ({ field }: UseControllerReturn) => {
   const { t } = useTheme();
   const { control } = useFormField<TimeControl>();
-  // we have specified if its a number > 0
-  const specifiedIncrement = control.minutes_increment !== undefined && control.minutes_increment > 0;
+  const minutesIncrement = normalizeMinutesIncrement(control.minutes_increment);
   return (
     <>
       <FormLabel>
@@ -119,7 +131,7 @@ export const TimeFormControl = ({ field }: UseControllerReturn) => {
           onChange={(e) => field.onChange(e.target.value)}
           disabled={field.disabled || control.readOnly}
           required={!!control.required}
-          step={specifiedIncrement ? (control.minutes_increment as number) * 60 : undefined}
+          step={minutesIncrement ? minutesIncrement * 60 : undefined}
         />
       </FormControl>
       <FormDescription />

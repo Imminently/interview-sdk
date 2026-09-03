@@ -14,7 +14,7 @@ import type {
   SubmitOptions
 } from "./types";
 import type { InterviewTimeline } from "./playwright-test-generator";
-import { buildUrl, createApiInstance } from "./util";
+import { buildUrl, createApiInstance, normalizeSessionControls } from "./util";
 
 const defaultPath = ["decisionapi", "session"];
 
@@ -64,7 +64,7 @@ export class ApiManager {
       },
       sessionId ? { params: { session: sessionId } } : undefined,
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   load = async (options: SessionConfig) => {
@@ -79,7 +79,7 @@ export class ApiManager {
         params: { session: sessionId, interaction: interactionId },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   /**
@@ -111,7 +111,7 @@ export class ApiManager {
         },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   /**
@@ -161,7 +161,7 @@ export class ApiManager {
         },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   back = async (options: BackOptions) => {
@@ -177,7 +177,7 @@ export class ApiManager {
         },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   simulate = async (options: SimulateOptions) => {
@@ -200,7 +200,7 @@ export class ApiManager {
         },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   exportTimeline = async (options: ExportTimelineOptions) => {

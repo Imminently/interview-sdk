@@ -4,6 +4,7 @@ import { parseDateControl } from "./controls/DateControl";
 import { parseNumberControl } from "./controls/NumberControl";
 import { parseNumberOfInstancesControl } from "./controls/NumberOfInstancesControl";
 import { parseRadioControl } from "./controls/RadioControl";
+import { parseTimeControl } from "./controls/TimeControl";
 
 // basic utility to parse a control object and return a format useable by the form/ui
 export const parseControl = (control: any) => {
@@ -18,6 +19,8 @@ export const parseControl = (control: any) => {
       return parseNumberControl(control);
     case "number_of_instances":
       return parseNumberOfInstancesControl(control);
+    case "time":
+      return parseTimeControl(control);
     case "options":
       if (control.asRadio) {
         return parseRadioControl(control);
