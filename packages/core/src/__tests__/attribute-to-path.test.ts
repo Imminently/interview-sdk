@@ -61,32 +61,31 @@ describe("attributeToPath — canonical-text attributes", () => {
   });
 });
 
-// Characterisation: which of the three internal branches an input takes, and the
-// @parent handling. Encoding is orthogonal (covered above) - these inputs use
-// only `\w`, `/`, `.` so the encode step is a no-op and the routing is visible.
+// Characterisation: which internal branch an input takes, and the @parent handling.
 describe("attributeToPath — routing and @parent handling (characterisation)", () => {
   const uuidVals = { household: [{ "@id": "abc" }, { "@id": "def" }, { "@id": "ghi" }] };
-  const numVals = { household: [{ "@id": "10" }, { "@id": "20" }, { "@id": "30" }] };
 
-  it("branch 1: nested + a '.' in the attribute is returned verbatim (no re-resolution)", () => {
-    // This is the re-feed guard: EntityFormControl already resolved + joined this
-    // path, so a second pass must not touch it. `values` is ignored entirely.
+  it("nested + a '.' in the attribute is returned verbatim (no re-resolution)", () => {
+    // The re-feed guard: EntityFormControl already resolved + joined this path, so
+    // a second pass must not touch it. `values` is ignored entirely.
     expect(attributeToPath("household.99.age", data(), uuidVals, true)).toBe("household.99.age");
   });
 
-  it("branch 2: !nested + no '.' returns the (@parent-stripped) path as-is, no id resolution", () => {
-    // A dot-free slash path never reaches pathToNested here, so an @id in it is
-    // NOT converted to an index - it passes straight through.
+  it("!nested: encodes per '/'-segment and never routes through pathToNested", () => {
+    // The flat form's only structural separator is '/'. An @id in it is not
+    // resolved to an index; every segment is just encoded (here a no-op).
     expect(attributeToPath("household/def/age", data(), uuidVals, false)).toBe("household/def/age");
   });
 
-  it("branch 3: !nested + a '.' delegates to pathToNested (slash output, @id-1 quirk)", () => {
-    // "household.2.age" is legacy dot-notation -> pathToNested with nested=false.
-    // 2nd instance -> @id "20" -> parseInt("20") - 1 = 19.
-    expect(attributeToPath("household.2.age", data(), numVals, false)).toBe("household/19/age");
+  it("!nested: a '.' is a literal character in a canonical name, so it gets encoded", () => {
+    // Was previously routed through pathToNested (legacy dot-notation) and mangled
+    // to "household/19/age". The backend only emits '/'-paths, so "." is now
+    // treated as data: "household.2.age" -> each '.' -> %2E.
+    expect(attributeToPath("household.2.age", data(), {}, false)).toBe("household%2E2%2Eage");
+    expect(attributeToPath("the company inc. revenue", data(), {}, false)).toBe("the company inc%2E revenue");
   });
 
-  it("branch 3: nested + no '.' delegates to pathToNested (dot output, @id -> index)", () => {
+  it("nested + no '.' delegates to pathToNested (dot output, @id -> index)", () => {
     // slash input, nested=true -> resolve "def" to index 1, join with '.'.
     expect(attributeToPath("household/def/age", data(), uuidVals, true)).toBe("household.1.age");
   });
@@ -95,5 +94,11 @@ describe("attributeToPath — routing and @parent handling (characterisation)", 
     expect(attributeToPath("employees/e1/the age", data("employees/e1"), {}, false)).toBe("the age");
     // "employees/e11/..." does not start with "employees/e1/", so nothing is stripped
     expect(attributeToPath("employees/e11/the age", data("employees/e1"), {}, false)).toBe("employees/e11/the age");
+  });
+
+  it("round-trips a canonical name containing a '.' back through decodeFieldPath", () => {
+    const field = attributeToPath("the company inc. revenue", data(), {}, false) as string;
+    expect(field).toBe("the company inc%2E revenue");
+    expect(decodeFieldPath(field)).toBe("the company inc. revenue");
   });
 });

@@ -10,17 +10,21 @@ import { renderForm } from "../test-utils/renderForm";
 // being stripped from the network payload).
 
 describe("canonical-text attribute names survive submit", () => {
-  test("apostrophes, quotes and brackets round-trip to manager.next unchanged", async () => {
+  test("apostrophes, quotes, brackets and dots round-trip to manager.next unchanged", async () => {
     const controls = [
       textControl({ id: "c-apos", attribute: "the employee's name", label: "Employee name" }),
       textControl({ id: "c-quote", attribute: 'the "primary" role', label: "Primary role" }),
       textControl({ id: "c-bracket", attribute: "hours [monday]", label: "Monday hours" }),
+      // `.` is a literal here, not a path separator: the backend only emits
+      // "/"-delimited paths, so attributeToPath encodes it per segment.
+      textControl({ id: "c-dot", attribute: "the company inc. revenue", label: "Revenue" }),
     ];
     const { manager, submit } = renderForm(controls);
 
     fireEvent.change(screen.getByLabelText("Employee name"), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText("Primary role"), { target: { value: "Engineer" } });
     fireEvent.change(screen.getByLabelText("Monday hours"), { target: { value: "8" } });
+    fireEvent.change(screen.getByLabelText("Revenue"), { target: { value: "1000000" } });
 
     submit();
 
@@ -31,12 +35,7 @@ describe("canonical-text attribute names survive submit", () => {
       "the employee's name": "Ada",
       'the "primary" role': "Engineer",
       "hours [monday]": "8",
+      "the company inc. revenue": "1000000",
     });
   });
-
-  // A literal `.` in a *flat* attribute name is still routed through pathToNested
-  // (legacy dot-notation entity paths) and mangled before the codec sees it. That
-  // ambiguity predates ENG-1101 and needs graph knowledge to resolve; out of scope
-  // here. Dots inside a repeating-entity leaf are handled (FieldControl encodes the
-  // segment at construction) and covered by the core codec tests.
 });

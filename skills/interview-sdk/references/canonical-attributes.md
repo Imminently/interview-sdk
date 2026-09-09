@@ -41,7 +41,7 @@ For any name that is not purely `\w`, that means:
 
 So `the employee's name` is stored (and later submitted to the API) as `the employees name`. `hours [monday]` becomes a nested `hours` then `monday` object. The corruption is silent: the control renders and edits fine, but the network payload on **Next** carries the wrong key and the rule engine cannot resolve the attribute.
 
-`/` is safe (RHF does not split on it), which is why the SDK's own `entity/id/attribute` paths already survive. Only the five characters above are a problem, and only inside a single path segment.
+`/` is safe (RHF does not split on it), which is why the SDK's own `entity/id/attribute` paths already survive. `/` is also the **only** separator the backend uses in an attribute path, so a `.` in an attribute is always a literal character in a canonical name, never a path separator. Only the five characters above are a problem, and only inside a single path segment.
 
 ## How the SDK encodes and decodes
 
@@ -70,9 +70,12 @@ Two rules make it lossless:
 
 ## Where each side happens
 
-**Encoding is done in one place only:** `attributeToPath` (the "attribute to RHF field name" function, used solely by `useAttributeToFieldName`). It returns an already-encoded, RHF-safe name. Repeating-entity controls additionally encode the leaf segment at path-construction time (`EntityFormControl`'s `FieldControl`), because once segments are joined into a `.`-path every `.` is assumed structural.
+**Encoding is done in one place only:** `attributeToPath` (the "attribute to RHF field name" function, used solely by `useAttributeToFieldName`). It returns an already-encoded, RHF-safe name.
 
-`pathToNested` deliberately stays **raw**. `dynamic/constructInput.ts` uses it to build the rules-engine input object, which must be keyed by real attribute names. `attributeToPath` feeds it decoded values and re-encodes the result.
+- **Flat form** (the default): it splits the path on `/` only, encodes each segment, and rejoins. A `.` in a segment is encoded like any other hostile character.
+- **Nested form** (inside a repeating entity, `nested = true`): `EntityFormControl`'s `FieldControl` encodes the leaf segment before joining it into the `entity.index.leaf` path; `attributeToPath` then passes that path through, and for a not-yet-nested slash path delegates to `pathToNested` for `@id` -> index resolution.
+
+`pathToNested` deliberately stays **raw**. `dynamic/constructInput.ts` uses it to build the rules-engine input object, which must be keyed by real attribute names. `attributeToPath` feeds it decoded values and re-encodes the result. It splits on every `.`, so it is only ever handed genuine `/`- or index-delimited paths, never a raw canonical name.
 
 **Decoding is done at every boundary where form data crosses back into the `SessionManager`:**
 
@@ -84,9 +87,9 @@ Two rules make it lossless:
 
 The invariant: **encoded field names never leave the form.** Anything sent to the API, or handed to the rule engine, uses the original canonical attribute text.
 
-## Known limitation
+## Assumption
 
-A literal `.` in a **flat** (non-entity) attribute name is still routed through `pathToNested` as legacy dot-notation (`entity.instance.attribute`) and mangled before the codec sees it. Distinguishing "a dot in the name" from "a dot separating path segments" needs rule-graph knowledge that `attributeToPath` does not have. Dots inside a repeating-entity leaf name are handled; a flat attribute literally named `the company inc. revenue` is not.
+`attributeToPath` treats a `.` in a flat-form attribute as a literal character, not a separator. This relies on the backend never emitting legacy dot-notation paths (`entity.instance.attribute`) for interview controls. Every attribute path the platform produces is `/`-delimited (node ids are `parent_path/entity/index/refId`, `@parent` is `entity/instanceId`, and the canonical key is `namespace/description`), so this holds today. If dot-notation paths were reintroduced, `attributeToPath`'s flat branch would need a way to tell them apart from a name that simply contains a `.`.
 
 ## If you build custom controls
 

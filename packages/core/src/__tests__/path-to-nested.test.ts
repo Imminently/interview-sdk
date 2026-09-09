@@ -91,19 +91,21 @@ describe("pathToNested — dot input (wasNested), 1-based index in the path", ()
   });
 });
 
-describe("pathToNested — the literal-dot limitation", () => {
-  it("mangles a flat attribute name that merely contains a '.'", () => {
-    // "the company inc. revenue" has no entity structure, but the "." makes
-    // wasNested true, so it splits into ["the company inc", " revenue"] and the
-    // second part is treated as an id position -> parseInt(" revenue") - 1 = NaN.
-    // Disambiguating this needs rule-graph knowledge pathToNested does not have.
+describe("pathToNested — it splits on any '.', so callers must not pass literal-dot names", () => {
+  // These document why `attributeToPath` no longer routes flat-form input here:
+  // pathToNested treats every "." as a separator. As of the ENG-1101 fix the only
+  // callers pass genuine "/"- or index-delimited paths (attributeToPath's nested
+  // branch, and constructInput for the rules engine), so these mangled outputs are
+  // no longer produced in practice - but the function itself is unchanged.
+  it("would mangle a flat attribute name that merely contains a '.'", () => {
+    // "." makes wasNested true -> splits into ["the company inc", " revenue"];
+    // " revenue" lands in an id position -> parseInt(" revenue") - 1 = NaN.
     expect(pathToNested("the company inc. revenue", {}, false)).toBe("the company inc/NaN");
   });
 
-  it("also mangles a plain slash path whose id position is a word, not a number", () => {
-    // "household/age": "age" sits in an id position with no matching entity array,
-    // so it becomes parseInt("age") - 1 = NaN. (attributeToPath avoids this by not
-    // routing dot-free slash paths through pathToNested.)
+  it("would mangle a slash path whose id position is a word, not a number", () => {
+    // "household/age": "age" in an id position, no matching entity array,
+    // -> parseInt("age") - 1 = NaN.
     expect(pathToNested("household/age", {}, false)).toBe("household/NaN");
   });
 });

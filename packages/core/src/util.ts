@@ -411,12 +411,16 @@ export const attributeToPath = <S extends string | undefined>(
 
   const parent = data["@parent"];
   const basePath = parent && attribute.startsWith(`${parent}/`) ? attribute.replace(`${parent}/`, "") : attribute;
-  if (!nested && !basePath.includes(".")) {
-    return encodeFieldPath(basePath) as S;
+  if (!nested) {
+    // Flat form: the backend only ever emits "/"-delimited paths, so "/" is the
+    // only structural separator here. A "." is a literal character in a canonical
+    // attribute name, so encode it (and any other RHF-hostile char) per segment
+    // rather than routing through pathToNested, which would split on it.
+    // pathToNested is only for the nested (RHF-nesting) form below, and stays raw
+    // because the rules-engine input builder depends on it.
+    return basePath.split("/").map(encodeFieldSegment).join("/") as S;
   }
 
-  // pathToNested stays raw (the rules-engine input builder depends on that), so
-  // feed it decoded values and encode its result here.
   return encodeFieldPath(pathToNested(basePath, decodeFormData(values), nested)) as S;
 };
 
