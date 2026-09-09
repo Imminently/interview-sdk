@@ -1,3 +1,4 @@
+import { decodeFormData } from "@imminently/interview-sdk";
 import debounce from "lodash-es/debounce";
 import { useEffect, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
@@ -12,7 +13,11 @@ export const useFormSync = (delay = 300) => {
   const { watch } = useFormContext();
   const { manager } = useInterview();
 
-  const sync = useMemo(() => debounce((value: any) => manager.onScreenDataChange(value), delay), [manager, delay]);
+  // decode RHF-safe field names back to canonical attribute text; the dynamic solve is keyed by real attribute names
+  const sync = useMemo(
+    () => debounce((value: any) => manager.onScreenDataChange(decodeFormData(value)), delay),
+    [manager, delay],
+  );
 
   useEffect(() => {
     const subscription = watch((value, { type }) => {

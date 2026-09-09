@@ -323,6 +323,76 @@ export const createEntityPathedData = (data: AttributeValues): AttributeValues =
   return result;
 };
 
+/**
+ * react-hook-form parses a field name into a path: it splits on `.` and `[`, and
+ * deletes `"` `'` `]` (see its `stringToPath`). Any name that isn't `/^\w*$/` goes
+ * through that parser, so a canonical-text attribute such as `the employee's name`
+ * is silently stored (and later submitted) as `the employees name`.
+ *
+ * `normaliseText` (the canonical-text producer) can emit those five characters,
+ * plus `%`. `encodeFieldSegment` percent-escapes exactly those six and leaves
+ * everything else (spaces, `-`, `\`, parens, unicode, `/`) alone, so the encoded
+ * name stays readable in devtools and on the wire while surviving RHF intact.
+ *
+ * `%` must be escaped first/too: otherwise literal `%22` in an attribute name
+ * would decode back to `"`.
+ */
+const FIELD_ENCODE_RE = /[%"'.[\]]/g;
+const FIELD_DECODE_RE = /%([0-9A-Fa-f]{2})/g;
+const RHF_RESERVED_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
+
+/** Encode one path segment (an entity or attribute name) for react-hook-form storage. */
+export const encodeFieldSegment = (segment: string): string => {
+  let out = segment.replace(FIELD_ENCODE_RE, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`);
+  // RHF's set() silently no-ops when a whole segment equals one of these.
+  if (RHF_RESERVED_SEGMENTS.has(out)) {
+    out = `%${out.charCodeAt(0).toString(16).toUpperCase()}${out.slice(1)}`;
+  }
+  return out;
+};
+
+/** Inverse of {@link encodeFieldSegment}. */
+export const decodeFieldSegment = (segment: string): string =>
+  segment.replace(FIELD_DECODE_RE, (_m, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)));
+
+/**
+ * Encode a whole field path, per segment, preserving the `/` (entity path) and
+ * `.` (nesting) separators the SDK puts between segments. Numeric index segments
+ * pass through unchanged.
+ */
+export const encodeFieldPath = (path: string): string =>
+  path
+    .split("/")
+    .map((chunk) => chunk.split(".").map(encodeFieldSegment).join("."))
+    .join("/");
+
+/** Inverse of {@link encodeFieldPath}. */
+export const decodeFieldPath = (path: string): string =>
+  path
+    .split("/")
+    .map((chunk) => chunk.split(".").map(decodeFieldSegment).join("."))
+    .join("/");
+
+/**
+ * Recursively decode every key of a react-hook-form values object back to its
+ * original canonical attribute name. Values are never touched. Use this at every
+ * boundary where form data crosses back into the session manager (submit / save /
+ * on-screen-change) so the network payload carries the real attribute names.
+ */
+export const decodeFormData = <T>(data: T): T => {
+  if (Array.isArray(data)) {
+    return data.map((item) => decodeFormData(item)) as unknown as T;
+  }
+  if (data && typeof data === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+      out[decodeFieldPath(key)] = decodeFormData(value);
+    }
+    return out as T;
+  }
+  return data;
+};
+
 export const attributeToPath = <S extends string | undefined>(
   attribute: S,
   data: Session["data"],
@@ -333,6 +403,8 @@ export const attributeToPath = <S extends string | undefined>(
     return attribute;
   }
 
+  // Already a resolved, encoded nested path (e.g. re-fed by EntityFormControl's
+  // FieldControl). Passthrough keeps this idempotent.
   if (nested && attribute.includes(".")) {
     return attribute as S;
   }
@@ -340,10 +412,12 @@ export const attributeToPath = <S extends string | undefined>(
   const parent = data["@parent"];
   const basePath = parent && attribute.startsWith(`${parent}/`) ? attribute.replace(`${parent}/`, "") : attribute;
   if (!nested && !basePath.includes(".")) {
-    return basePath as S;
+    return encodeFieldPath(basePath) as S;
   }
 
-  return pathToNested(basePath, values, nested) as S;
+  // pathToNested stays raw (the rules-engine input builder depends on that), so
+  // feed it decoded values and encode its result here.
+  return encodeFieldPath(pathToNested(basePath, decodeFormData(values), nested)) as S;
 };
 
 export const pathToNested = (basePath: string, values: AttributeValues, nested: boolean): string => {

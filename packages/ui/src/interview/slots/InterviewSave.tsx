@@ -1,6 +1,7 @@
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { useTheme } from "@/providers";
 import { cn } from "@/util";
+import { decodeFormData } from "@imminently/interview-sdk";
 import { Slot } from "@radix-ui/react-slot";
 import type { ReactNode } from "react";
 import { useFormContext } from "react-hook-form";
@@ -41,7 +42,7 @@ export const InterviewSave = ({ asChild, children, className, ...props }: Interv
 
     if (!isValid) return;
 
-    const values = getValues();
+    const values = decodeFormData(getValues());
     manager.save(values);
   };
 

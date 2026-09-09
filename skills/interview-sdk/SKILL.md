@@ -63,5 +63,6 @@ Two usage patterns:
 - [Configuration](./references/configuration.md) — `ManagerOptions`, `ApiManager`, `FileManager`, `InterviewConfig` full type reference
 - [Examples](./references/examples.md) — complete working code examples
 - [Validation](./references/validation.md) — form validation (Zod/React Hook Form) vs rule validation (Decisively rule engine), how they interact, and how to surface them
+- [Canonical attributes](./references/canonical-attributes.md): attributes referenced by human-readable text instead of GUIDs; how Decisively normalises them, why React Hook Form corrupts them, and the encode/decode codec that fixes it
 - [Patterns](./references/patterns.md) — common patterns, proxy/security setup, styling, debugging, best practices
 - [Advanced](./references/advanced.md) — `useSyncExternalStore` with external `SessionManager`, SSR

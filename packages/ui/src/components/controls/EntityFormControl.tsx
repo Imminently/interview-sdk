@@ -1,6 +1,6 @@
 import { AttributeNestingProvider, useTheme } from "@/providers";
 import { cn, parseNumericOption } from "@/util";
-import { type Control, type RenderableEntityControl, uuid } from "@imminently/interview-sdk";
+import { type Control, encodeFieldSegment, type RenderableEntityControl, uuid } from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
@@ -39,10 +39,16 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
 
       if ("attribute" in subControl || subControl.type === "entity") {
         // @ts-ignore subControl.entity is not always defined
-        const attrib = (subControl.attribute || subControl.entity)?.split("/").pop();
-        if (!attrib) return null;
+        const rawAttrib = (subControl.attribute || subControl.entity)?.split("/").pop();
+        if (!rawAttrib) return null;
+        // encode the leaf segment here, while it is still separate: attributeToPath
+        // treats every "." in a nested path as structural, so a canonical name
+        // containing "." (or ' " [ ]) must be made RHF-safe before it is joined in.
+        const attrib = encodeFieldSegment(rawAttrib);
 
-        const path = parentPath ? `${parentPath}.${index}.${attrib}` : `${control.entity}.${index}.${attrib}`;
+        const path = parentPath
+          ? `${parentPath}.${index}.${attrib}`
+          : `${encodeFieldSegment(control.entity)}.${index}.${attrib}`;
 
         const childControl = {
           ...subControl,
@@ -98,7 +104,7 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
   const effectiveDefault = Math.max(parsedMin ?? 0, parsedDefault ?? 0);
 
   const parentPath = useAttributeToFieldName(control.attribute);
-  const fieldName = parentPath ?? control.entity;
+  const fieldName = parentPath ?? encodeFieldSegment(control.entity);
   // @ts-ignore check control as we will probably add readOnly in future
   const readOnly = control.readOnly;
 
