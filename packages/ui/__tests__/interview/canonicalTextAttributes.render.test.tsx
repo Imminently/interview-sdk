@@ -16,7 +16,7 @@ describe("canonical-text attribute names survive submit", () => {
       textControl({ id: "c-quote", attribute: 'the "primary" role', label: "Primary role" }),
       textControl({ id: "c-bracket", attribute: "hours [monday]", label: "Monday hours" }),
       // `.` is a literal here, not a path separator: the backend only emits
-      // "/"-delimited paths, so attributeToPath encodes it per segment.
+      // "/"-delimited paths, so attributeToFieldName encodes it per segment.
       textControl({ id: "c-dot", attribute: "the company inc. revenue", label: "Revenue" }),
     ];
     const { manager, submit } = renderForm(controls);

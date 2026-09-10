@@ -1,26 +1,22 @@
 import { describe, expect, it } from "bun:test";
-import {
-  decodeFieldPath,
-  decodeFieldSegment,
-  decodeFormData,
-  encodeFieldPath,
-  encodeFieldSegment,
-} from "../util";
+import { decodeFieldPath, decodeFieldSegment, decodeFormData, encodeFieldPath, encodeFieldSegment } from "../util";
 
 // react-hook-form's stringToPath does `name.replace(/["|']|\]/g, "").split(/\.|\[/)`,
-// so these five characters are the only ones that corrupt a field name: `.` and `[`
-// become path separators, `"` `'` `]` are deleted outright. `normaliseText` (the
-// canonical-text producer) can emit all five, plus `%`, so the codec must escape
-// exactly those six and leave everything else untouched for readability.
-const RHF_HOSTILE = ["'", '"', ".", "[", "]"];
+// so these six characters are the only ones that corrupt a field name: `.` and `[`
+// become path separators, `"` `'` `]` `|` are deleted outright (the `["|']` class
+// in the regex covers pipe). A canonical attribute name can contain all six (the
+// decisively-core node-key normaliser does not fold `|`), plus `%`, so the codec
+// must escape exactly those seven and leave everything else untouched.
+const RHF_HOSTILE = ["'", '"', ".", "[", "]", "|"];
 
 describe("encodeFieldSegment / decodeFieldSegment", () => {
-  it("escapes the five RHF-hostile characters as upper-case percent codes", () => {
+  it("escapes the six RHF-hostile characters as upper-case percent codes", () => {
     expect(encodeFieldSegment("'")).toBe("%27");
     expect(encodeFieldSegment('"')).toBe("%22");
     expect(encodeFieldSegment(".")).toBe("%2E");
     expect(encodeFieldSegment("[")).toBe("%5B");
     expect(encodeFieldSegment("]")).toBe("%5D");
+    expect(encodeFieldSegment("|")).toBe("%7C");
   });
 
   it("self-escapes the percent sign so literal %XX text cannot be mistaken for an escape", () => {
@@ -31,7 +27,7 @@ describe("encodeFieldSegment / decodeFieldSegment", () => {
   });
 
   it("leaves readable characters alone", () => {
-    // spaces, hyphen, backslash (normaliseText maps `|` -> `\`), parens, unicode
+    // spaces, hyphen, backslash, parens, unicode all pass through untouched
     const readable = "the employee-manager's \\ (primary) rôle";
     // only the apostrophe is hostile here
     expect(encodeFieldSegment(readable)).toBe("the employee-manager%27s \\ (primary) rôle");
@@ -44,6 +40,7 @@ describe("encodeFieldSegment / decodeFieldSegment", () => {
       "array[0] access",
       "trailing bracket]",
       "dotted.attribute.name",
+      "revenue | net of tax",
       "%2E already looks encoded",
       "Beyonce's naive protege's fiance",
     ];
@@ -73,8 +70,9 @@ describe("encodeFieldSegment / decodeFieldSegment", () => {
       "trailing%",
       "  leading and trailing spaces  ",
       "dash-dash and \\ pipe-slash",
+      "revenue | net | gross", // literal pipes: RHF would delete these, codec must not
       "rôle café — naïve", // post-normalise this keeps the em dash / accents; codec must not care
-      "'.[]\"%", // every hostile char plus escape, back to back
+      "'.[]\"|%", // every hostile char plus escape, back to back
     ];
     for (const s of samples) {
       expect(decodeFieldSegment(encodeFieldSegment(s))).toBe(s);
@@ -109,7 +107,7 @@ describe("encodeFieldPath / decodeFieldPath", () => {
   it("round-trips mixed separators", () => {
     const paths = [
       "the employee's name",
-      "household/9f2c/the person's \"nickname\"",
+      'household/9f2c/the person\'s "nickname"',
       "the household.0.members.1.the person's age",
       "plain/path/no/specials",
     ];
@@ -153,8 +151,11 @@ describe("decodeFormData", () => {
   });
 
   it("passes @id / @parent and nullish entries through untouched", () => {
-    expect(
-      decodeFormData({ "@parent": "employees/employee-1", "@id": "x", a: null, b: undefined }),
-    ).toEqual({ "@parent": "employees/employee-1", "@id": "x", a: null, b: undefined });
+    expect(decodeFormData({ "@parent": "employees/employee-1", "@id": "x", a: null, b: undefined })).toEqual({
+      "@parent": "employees/employee-1",
+      "@id": "x",
+      a: null,
+      b: undefined,
+    });
   });
 });

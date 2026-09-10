@@ -1,6 +1,6 @@
 import { useInterview } from "@/interview/InterviewContext";
 import { useAttributeNestingContext } from "@/providers";
-import { attributeToPath } from "@imminently/interview-sdk";
+import { attributeToFieldName } from "@imminently/interview-sdk";
 import { useFormContext, useWatch } from "react-hook-form";
 
 export const useAttributeToFieldName = (attribute: string | undefined): string | undefined => {
@@ -15,5 +15,5 @@ export const useAttributeToFieldName = (attribute: string | undefined): string |
   }
 
   useWatch();
-  return attributeToPath(attribute, manager.activeSession.data, values, nested);
+  return attributeToFieldName(attribute, manager.activeSession.data, values, nested);
 };

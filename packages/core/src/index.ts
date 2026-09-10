@@ -18,7 +18,8 @@ export * from "./sidebars/sidebar";
 export * from "./types";
 export {
   applyInstancesToEntityControl,
-  attributeToPath,
+  attributeToFieldName,
+  baseAttributeId,
   createEntityPathedData,
   decodeFieldPath,
   decodeFieldSegment,

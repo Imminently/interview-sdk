@@ -41,9 +41,10 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
         // @ts-ignore subControl.entity is not always defined
         const rawAttrib = (subControl.attribute || subControl.entity)?.split("/").pop();
         if (!rawAttrib) return null;
-        // encode the leaf segment here, while it is still separate: attributeToPath
-        // treats every "." in a nested path as structural, so a canonical name
-        // containing "." (or ' " [ ]) must be made RHF-safe before it is joined in.
+        // encode the leaf segment here, while it is still separate: once it is
+        // joined into an `entity.index.leaf` path, react-hook-form treats every "."
+        // as structural, so a canonical name containing "." (or ' " [ ]) must be
+        // made RHF-safe first.
         const attrib = encodeFieldSegment(rawAttrib);
 
         const path = parentPath

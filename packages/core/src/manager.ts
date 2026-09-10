@@ -33,6 +33,7 @@ import type {
   NavigateTarget,
 } from "./types";
 import {
+  baseAttributeId,
   createEntityPathedData,
   deepClone,
   flattenObject,
@@ -855,11 +856,9 @@ export class SessionManager {
 
   getExplanation = (attribute: string) => {
     if (!this.activeSession) return undefined;
-    // `explanations` is keyed by the base attribute node id, which is the last
-    // segment of the "/"-delimited attribute path. Splitting on "." was wrong: it
-    // never split a real path, and it mangled canonical names containing a "."
-    // (e.g. "Ph.D. status").
-    const id = attribute.split("/").pop();
+    // `explanations` is keyed by the base attribute node id (the last "/"-segment
+    // of the path), not the whole path and not a "."-split of a canonical name.
+    const id = baseAttributeId(attribute);
     return id ? this.activeSession.explanations?.[id] : undefined;
   };
 

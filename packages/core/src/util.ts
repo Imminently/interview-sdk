@@ -325,19 +325,21 @@ export const createEntityPathedData = (data: AttributeValues): AttributeValues =
 
 /**
  * react-hook-form parses a field name into a path: it splits on `.` and `[`, and
- * deletes `"` `'` `]` (see its `stringToPath`). Any name that isn't `/^\w*$/` goes
- * through that parser, so a canonical-text attribute such as `the employee's name`
- * is silently stored (and later submitted) as `the employees name`.
+ * deletes `"` `'` `]` `|` (its `stringToPath` is `name.replace(/["|']|\]/g, "")`
+ * then `.split(/\.|\[/)`). Any name that isn't `/^\w*$/` goes through that parser,
+ * so a canonical-text attribute such as `the employee's name` is silently stored
+ * (and later submitted) as `the employees name`.
  *
- * `normaliseText` (the canonical-text producer) can emit those five characters,
- * plus `%`. `encodeFieldSegment` percent-escapes exactly those six and leaves
- * everything else (spaces, `-`, `\`, parens, unicode, `/`) alone, so the encoded
- * name stays readable in devtools and on the wire while surviving RHF intact.
+ * A canonical attribute name can contain any of those six characters (the
+ * `decisively-core` node-key normaliser leaves `|` alone), plus `%`.
+ * `encodeFieldSegment` percent-escapes exactly those seven and leaves everything
+ * else (spaces, `-`, `\`, parens, unicode, `/`) alone, so the encoded name stays
+ * readable in devtools and on the wire while surviving RHF intact.
  *
  * `%` must be escaped first/too: otherwise literal `%22` in an attribute name
  * would decode back to `"`.
  */
-const FIELD_ENCODE_RE = /[%"'.[\]]/g;
+const FIELD_ENCODE_RE = /[%"'.[\]|]/g;
 const FIELD_DECODE_RE = /%([0-9A-Fa-f]{2})/g;
 const RHF_RESERVED_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -394,56 +396,40 @@ export const decodeFormData = <T>(data: T): T => {
 };
 
 /**
- * Convert a rule-graph attribute reference into the react-hook-form field name a
- * control registers under. Strips the `@parent` prefix, and for the nested form
- * resolves entity `@id`s to array indices via {@link pathToNested}. The result is
- * percent-encoded ({@link encodeFieldPath}) so RHF does not corrupt canonical-text
- * attribute names; decode with {@link decodeFormData} on the way back out.
+ * Rewrite an attribute reference so it reads relative to the entity instance the
+ * current screen is scoped to. `data["@parent"]` is an `entity/instanceId` path;
+ * an attribute that starts with exactly `${parent}/` is trimmed to the remainder,
+ * anything else is returned unchanged.
  */
-export const attributeToPath = <S extends string | undefined>(
-  attribute: S,
-  data: Session["data"],
-  values: AttributeValues,
-  nested: boolean,
-): S => {
-  if (!attribute) {
-    return attribute;
-  }
-
-  // Already a resolved, encoded nested path (e.g. re-fed by EntityFormControl's
-  // FieldControl). Passthrough keeps this idempotent.
-  if (nested && attribute.includes(".")) {
-    return attribute as S;
-  }
-
+export const expressRelativeToParent = (attribute: string, data: Session["data"]): string => {
   const parent = data["@parent"];
-  const basePath = parent && attribute.startsWith(`${parent}/`) ? attribute.replace(`${parent}/`, "") : attribute;
-  if (!nested) {
-    // Flat form: the backend only ever emits "/"-delimited paths, so "/" is the
-    // only structural separator. The flat form keeps the raw path (no @id -> index
-    // resolution), so just encode each segment against RHF-hostile chars, "."
-    // included.
-    return basePath.split("/").map(encodeFieldSegment).join("/") as S;
-  }
-
-  return encodeFieldPath(pathToNested(basePath, decodeFormData(values), nested)) as S;
+  return parent && attribute.startsWith(`${parent}/`) ? attribute.slice(parent.length + 1) : attribute;
 };
 
 /**
- * Convert a "/"-delimited attribute path (`entity/id/attr`) into the SDK's two
- * representations, resolving each entity `@id` to its 0-based array index against
- * the current form `values`:
- *   - `nested=false` -> `entity/index/attr`  (the flat / backend form)
- *   - `nested=true`  -> `entity.index.attr`  (the react-hook-form nesting form)
- *
- * "/" is the only structural separator. A "." is always a literal character in a
- * canonical attribute name (the backend never emits dot-notation paths), so it
- * stays inside its segment. Operates on raw (unencoded) names.
+ * The base attribute node id: the last `/`-delimited segment of an attribute
+ * reference (`household/h1/the age` -> `the age`; a bare id -> itself). This is the
+ * key `session.explanations` is stored under, matching the backend's own
+ * `extractAttributeId`.
  */
-export const pathToNested = (basePath: string, values: AttributeValues, nested: boolean): string => {
-  const parts = basePath.split("/");
+export const baseAttributeId = (attribute: string): string => attribute.split("/").pop() ?? attribute;
 
-  const flatValues = createEntityPathedData(values);
+/**
+ * Resolve every entity `@id` in a `/`-delimited attribute path to its 0-based
+ * array index against `data`, returning the path as segments (ready for lodash
+ * `set`/`get`, or to be joined into a field name):
+ *
+ *   household/h1/pets/p2/name  ->  ["household", "0", "pets", "1", "name"]
+ *
+ * An `@id` that is not found falls back to `(numeric id - 1)`, or `NaN` for a
+ * non-numeric one. `/` is the only separator: a `.` is always a literal character
+ * in a canonical attribute name (the backend never emits dot-notation paths), so
+ * it stays inside its segment. Operates on raw (unencoded) names.
+ */
+export const resolveEntityIndices = (path: string, data: AttributeValues): string[] => {
+  const parts = path.split("/");
+
+  const flatValues = createEntityPathedData(data);
   const flatResult: string[] = [];
   const result: string[] = [];
   for (let i = 0; i < parts.length; i++) {
@@ -453,8 +439,8 @@ export const pathToNested = (basePath: string, values: AttributeValues, nested: 
       result.push(part);
       flatResult.push(part);
     } else {
-      // entity id -> resolve against the current values to a 0-based array index;
-      // fall back to (1-based numeric id - 1), or NaN for an unresolved @id.
+      // entity id -> 0-based array index against the current data; fall back to
+      // (1-based numeric id - 1), or NaN for an unresolved @id.
       const entities = flatValues[flatResult.join("/")];
       const valid = Array.isArray(entities)
         ? entities.filter((e: any) => e && typeof e === "object" && "@id" in e)
@@ -466,7 +452,51 @@ export const pathToNested = (basePath: string, values: AttributeValues, nested: 
     }
   }
 
-  return result.join(nested ? "." : "/");
+  return result;
+};
+
+/**
+ * Convert a rule-graph attribute reference into the react-hook-form field name a
+ * control registers under, percent-encoded ({@link encodeFieldSegment}) so RHF
+ * does not corrupt canonical-text attribute names. Decode with
+ * {@link decodeFormData} at every boundary where form data crosses back out.
+ *
+ *   - flat form (`nested=false`, the default): the raw `/`-path with each segment
+ *     encoded. `@id`s are left in place; the backend resolves them.
+ *   - nested form (`nested=true`, inside a repeating entity): `@id`s resolved to
+ *     array indices ({@link resolveEntityIndices}) and joined with `.` so
+ *     `useFieldArray` can bind to it.
+ *
+ * Both forms are taken relative to `data["@parent"]` first
+ * ({@link expressRelativeToParent}).
+ */
+export const attributeToFieldName = <S extends string | undefined>(
+  attribute: S,
+  data: Session["data"],
+  values: AttributeValues,
+  nested: boolean,
+): S => {
+  if (!attribute) {
+    return attribute;
+  }
+
+  // Already a resolved, encoded nested path (re-fed by EntityFormControl's
+  // FieldControl). Passthrough keeps this idempotent.
+  if (nested && attribute.includes(".")) {
+    return attribute as S;
+  }
+
+  const basePath = expressRelativeToParent(attribute, data);
+
+  if (!nested) {
+    return basePath.split("/").map(encodeFieldSegment).join("/") as S;
+  }
+
+  // `values` is the RHF values object, so its keys are already-encoded field
+  // names; decode them first or resolveEntityIndices cannot match an `@id` against
+  // the real (canonical) attribute names when it walks the entity data. It returns
+  // raw segments, so re-encode each one before joining into the field name.
+  return resolveEntityIndices(basePath, decodeFormData(values)).map(encodeFieldSegment).join(".") as S;
 };
 
 export const parseBoolean = (value: any): boolean => {

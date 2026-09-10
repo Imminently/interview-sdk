@@ -2,7 +2,7 @@ import get from "lodash/get.js";
 import set from "lodash/set.js";
 import { produce } from "immer";
 import type { AttributeValues } from "../types";
-import { pathToNested } from "../util";
+import { resolveEntityIndices } from "../util";
 
 /**
  * Constructs the input object from the preprocessed state for rules engine evaluation.
@@ -22,22 +22,21 @@ export const constructInputFromPreProcessed = (
 ): any => {
   // IMPORTANT: do NOT mutate existingData or preProcessedState
   const input = produce(existingData ?? preProcessedState?.entityStructure ?? {}, (draft: any) => {
-    // pathToNested is called with nested=false and the result split on "/": "/" can
-    // never appear in a canonical attribute name, so this is a lossless decomposition
-    // even when a leaf segment contains a literal "." (a dotted canonical name).
+    // resolveEntityIndices turns an `entity/@id/attr` key into positional segments
+    // (`["entity", "0", "attr"]`) for lodash. A "." in a leaf name stays intact:
+    // it never splits on "." and a canonical name can never contain a "/".
     if (preProcessedState?.nodes) {
       for (const [key, value] of Object.entries(preProcessedState.nodes)) {
         const prev = (value as any)?.previousValue;
         if (prev !== undefined) {
-          const nestedPath = pathToNested(key, draft, false).split("/");
-          set(draft, nestedPath, prev);
+          set(draft, resolveEntityIndices(key, draft), prev);
         }
       }
     }
 
     const parent = data["@parent"];
     if (parent) {
-      const nestedPath = pathToNested(parent, draft, false).split("/");
+      const nestedPath = resolveEntityIndices(parent, draft);
       const existing = get(draft, nestedPath);
 
       set(draft, nestedPath, {
@@ -47,8 +46,7 @@ export const constructInputFromPreProcessed = (
     } else {
       for (const [key, value] of Object.entries(userValues)) {
         if (key.includes("/")) {
-          const nestedPath = pathToNested(key, draft, false).split("/");
-          set(draft, nestedPath, value);
+          set(draft, resolveEntityIndices(key, draft), value);
         } else {
           (draft as any)[key] = value;
         }
