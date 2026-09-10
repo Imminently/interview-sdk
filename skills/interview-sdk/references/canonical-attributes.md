@@ -75,7 +75,7 @@ Two rules make it lossless:
 - **Flat form** (the default): it splits the path on `/` only, encodes each segment, and rejoins. A `.` in a segment is encoded like any other hostile character.
 - **Nested form** (inside a repeating entity, `nested = true`): `EntityFormControl`'s `FieldControl` encodes the leaf segment before joining it into the `entity.index.leaf` path; `attributeToPath` then passes that path through, and for a not-yet-nested slash path delegates to `pathToNested` for `@id` -> index resolution.
 
-`pathToNested` deliberately stays **raw**. `dynamic/constructInput.ts` uses it to build the rules-engine input object, which must be keyed by real attribute names. `attributeToPath` feeds it decoded values and re-encodes the result. It splits on every `.`, so it is only ever handed genuine `/`- or index-delimited paths, never a raw canonical name.
+`pathToNested` deliberately stays **raw** (no encoding). `dynamic/constructInput.ts` uses it to build the rules-engine input object, which must be keyed by real attribute names. It splits on `/` **only**: a `.` is always a literal character in a canonical attribute name, so it stays inside its segment. `constructInput` calls it with `nested = false` and splits the result on `/` again for lodash `set`, which is lossless because `/` can never appear in a canonical name.
 
 **Decoding is done at every boundary where form data crosses back into the `SessionManager`:**
 
@@ -89,7 +89,9 @@ The invariant: **encoded field names never leave the form.** Anything sent to th
 
 ## Assumption
 
-`attributeToPath` treats a `.` in a flat-form attribute as a literal character, not a separator. This relies on the backend never emitting legacy dot-notation paths (`entity.instance.attribute`) for interview controls. Every attribute path the platform produces is `/`-delimited (node ids are `parent_path/entity/index/refId`, `@parent` is `entity/instanceId`, and the canonical key is `namespace/description`), so this holds today. If dot-notation paths were reintroduced, `attributeToPath`'s flat branch would need a way to tell them apart from a name that simply contains a `.`.
+The whole scheme treats a `.` as a literal character in an attribute name, never a path separator. `attributeToPath`'s flat branch encodes it, and `pathToNested` (used for `@id` -> index resolution in the nested form and in `constructInput` for the rules engine) splits on `/` only. This relies on the backend never emitting legacy dot-notation paths (`entity.instance.attribute`) for interview controls. Every attribute path the platform produces is `/`-delimited (node ids are `parent_path/entity/index/refId`, `@parent` is `entity/instanceId`, and the canonical key is `namespace/description`), so this holds today. If dot-notation paths were reintroduced, both places would need a way to tell them apart from a name that simply contains a `.`.
+
+Historically `pathToNested` also parsed a dot-delimited input (`entity.index.attr`) back into `/` form. That branch had one producer, `attributeToPath`'s flat form before this fix, and no longer does; it was removed so a dotted canonical name is passed through as a single opaque segment rather than being misparsed.
 
 ## If you build custom controls
 

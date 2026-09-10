@@ -393,6 +393,13 @@ export const decodeFormData = <T>(data: T): T => {
   return data;
 };
 
+/**
+ * Convert a rule-graph attribute reference into the react-hook-form field name a
+ * control registers under. Strips the `@parent` prefix, and for the nested form
+ * resolves entity `@id`s to array indices via {@link pathToNested}. The result is
+ * percent-encoded ({@link encodeFieldPath}) so RHF does not corrupt canonical-text
+ * attribute names; decode with {@link decodeFormData} on the way back out.
+ */
 export const attributeToPath = <S extends string | undefined>(
   attribute: S,
   data: Session["data"],
@@ -413,74 +420,49 @@ export const attributeToPath = <S extends string | undefined>(
   const basePath = parent && attribute.startsWith(`${parent}/`) ? attribute.replace(`${parent}/`, "") : attribute;
   if (!nested) {
     // Flat form: the backend only ever emits "/"-delimited paths, so "/" is the
-    // only structural separator here. A "." is a literal character in a canonical
-    // attribute name, so encode it (and any other RHF-hostile char) per segment
-    // rather than routing through pathToNested, which would split on it.
-    // pathToNested is only for the nested (RHF-nesting) form below, and stays raw
-    // because the rules-engine input builder depends on it.
+    // only structural separator. The flat form keeps the raw path (no @id -> index
+    // resolution), so just encode each segment against RHF-hostile chars, "."
+    // included.
     return basePath.split("/").map(encodeFieldSegment).join("/") as S;
   }
 
   return encodeFieldPath(pathToNested(basePath, decodeFormData(values), nested)) as S;
 };
 
+/**
+ * Convert a "/"-delimited attribute path (`entity/id/attr`) into the SDK's two
+ * representations, resolving each entity `@id` to its 0-based array index against
+ * the current form `values`:
+ *   - `nested=false` -> `entity/index/attr`  (the flat / backend form)
+ *   - `nested=true`  -> `entity.index.attr`  (the react-hook-form nesting form)
+ *
+ * "/" is the only structural separator. A "." is always a literal character in a
+ * canonical attribute name (the backend never emits dot-notation paths), so it
+ * stays inside its segment. Operates on raw (unencoded) names.
+ */
 export const pathToNested = (basePath: string, values: AttributeValues, nested: boolean): string => {
-  const wasNested = basePath.includes(".");
-  const parts = basePath.split(/[./]/);
+  const parts = basePath.split("/");
 
   const flatValues = createEntityPathedData(values);
   const flatResult: string[] = [];
   const result: string[] = [];
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
-    // entity names
+    // entity / attribute name
     if (i % 2 === 0) {
       result.push(part);
       flatResult.push(part);
     } else {
-      let id: string | number = part;
-
-      if (!Number.isNaN(id)) {
-        id = Number.parseInt(id) - 1;
-      }
-
-      // this is an entity ID
-      let entities: any = flatValues[flatResult.join("/")];
-
-      if (Array.isArray(entities)) {
-        // ensure we only have valid entities
-        entities = entities.filter((e) => e && typeof e === "object" && "@id" in e);
-        if (wasNested) {
-          const index = Number.parseInt(part, 10) - 1;
-          flatResult.push(entities[index]["@id"]);
-
-          if (!nested) {
-            id = entities[index]["@id"];
-            if (!Number.isNaN(id)) {
-              // @ts-ignore
-              id = Number.parseInt(id) - 1;
-            }
-            result.push(id.toString());
-            continue;
-          } else {
-            result.push(index.toString());
-            continue;
-          }
-        }
-
-        const index = entities.findIndex((entity: any) => entity["@id"] === part);
-
-        if (index >= 0) {
-          result.push(index.toString());
-          flatResult.push(part);
-        } else {
-          result.push(id.toString());
-          flatResult.push(part);
-        }
-      } else {
-        result.push(id.toString());
-        flatResult.push(part);
-      }
+      // entity id -> resolve against the current values to a 0-based array index;
+      // fall back to (1-based numeric id - 1), or NaN for an unresolved @id.
+      const entities = flatValues[flatResult.join("/")];
+      const valid = Array.isArray(entities)
+        ? entities.filter((e: any) => e && typeof e === "object" && "@id" in e)
+        : [];
+      const matched = valid.findIndex((entity: any) => entity["@id"] === part);
+      const index = matched >= 0 ? matched : Number.parseInt(part, 10) - 1;
+      result.push(index.toString());
+      flatResult.push(part);
     }
   }
 

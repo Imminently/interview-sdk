@@ -1,15 +1,17 @@
 import { describe, expect, it } from "bun:test";
 import { pathToNested } from "../util";
 
-// Characterisation tests: these lock in how `pathToNested` behaves TODAY, quirks
-// included. It converts an attribute path between the two representations the SDK
-// uses (see references/canonical-attributes.md):
-//   - slash-delimited `entity/id/attr`  (the flat / backend form,  nested=false)
-//   - dot-delimited   `entity.idx.attr` (the react-hook-form nesting form, nested=true)
-// and, given the current form `values`, resolves entity @id <-> array index.
+// Characterisation tests: these lock in how `pathToNested` behaves, quirks
+// included. It takes a "/"-delimited `entity/id/attr` path and rewrites each entity
+// @id to its 0-based array index against the current form `values`, joining the
+// result with "/" (nested=false, the flat backend key) or "." (nested=true, the
+// form react-hook-form splits into a real nested object). See
+// references/canonical-attributes.md.
 //
-// The loop treats even-position segments (0,2,4...) as entity/attribute NAMES and
-// odd-position segments (1,3,5...) as the id/index sitting between them.
+// It splits on "/" ONLY: a "." is a literal character in a canonical attribute
+// name, never a separator. The loop treats even-position segments (0,2,4...) as
+// entity/attribute NAMES and odd-position segments (1,3,5...) as the id between
+// them.
 
 const uuidVals = {
   household: [{ "@id": "abc" }, { "@id": "def" }, { "@id": "ghi" }],
@@ -71,41 +73,27 @@ describe("pathToNested — slash input (@id in the path), resolving against valu
   });
 });
 
-describe("pathToNested — dot input (wasNested), 1-based index in the path", () => {
-  it("converts a 1-based dotted index to a 0-based index when nested=true", () => {
-    // "household.2.age" -> the 2nd instance -> index 1.
-    expect(pathToNested("household.2.age", uuidVals, true)).toBe("household.1.age");
-    expect(pathToNested("household.2.age", numVals, true)).toBe("household.1.age");
+describe("pathToNested: a '.' is a literal character, only '/' is a separator", () => {
+  // Post-ENG-1101 pathToNested splits on "/" only. A dotted string is not a path
+  // it recognises, so it comes back as one opaque segment rather than being parsed
+  // into instances. Every live caller passes a genuine "/"-delimited path.
+  it("returns a dotted string unchanged (one segment, not a path)", () => {
+    expect(pathToNested("household.2.age", uuidVals, true)).toBe("household.2.age");
+    expect(pathToNested("household.2.age", numVals, false)).toBe("household.2.age");
+    expect(pathToNested("household.2.pets.1.name", deepVals, true)).toBe("household.2.pets.1.name");
   });
 
-  it("when nested=false it emits (@id - 1), not the array index", () => {
-    // wasNested + !nested path: it looks up entities[index]["@id"] and pushes
-    // parseInt(@id) - 1. Numeric @ids -> "20" becomes "19"; uuid @ids -> "NaN".
-    // This branch effectively assumes numeric @ids.
-    expect(pathToNested("household.2.age", numVals, false)).toBe("household/19/age");
-    expect(pathToNested("household.2.age", uuidVals, false)).toBe("household/NaN/age");
+  it("keeps a literal '.' inside the leaf of a slash path", () => {
+    // "/" splits into ["household", "h1", "the company inc. revenue"]; "h1" resolves
+    // to index 0, and the leaf name keeps its "." intact.
+    expect(pathToNested("household/h1/the company inc. revenue", deepVals, true)).toBe(
+      "household.0.the company inc. revenue",
+    );
   });
 
-  it("resolves 1-based indices at every level of a deep dotted path", () => {
-    expect(pathToNested("household.2.pets.1.name", deepVals, true)).toBe("household.1.pets.0.name");
-  });
-});
-
-describe("pathToNested — it splits on any '.', so callers must not pass literal-dot names", () => {
-  // These document why `attributeToPath` no longer routes flat-form input here:
-  // pathToNested treats every "." as a separator. As of the ENG-1101 fix the only
-  // callers pass genuine "/"- or index-delimited paths (attributeToPath's nested
-  // branch, and constructInput for the rules engine), so these mangled outputs are
-  // no longer produced in practice - but the function itself is unchanged.
-  it("would mangle a flat attribute name that merely contains a '.'", () => {
-    // "." makes wasNested true -> splits into ["the company inc", " revenue"];
-    // " revenue" lands in an id position -> parseInt(" revenue") - 1 = NaN.
-    expect(pathToNested("the company inc. revenue", {}, false)).toBe("the company inc/NaN");
-  });
-
-  it("would mangle a slash path whose id position is a word, not a number", () => {
-    // "household/age": "age" in an id position, no matching entity array,
-    // -> parseInt("age") - 1 = NaN.
+  it("still yields NaN for a slash path whose id position is a word, not a number", () => {
+    // "household/age": "age" sits in an id position with no matching entity array,
+    // so parseInt("age", 10) - 1 = NaN. Unchanged by the ENG-1101 fix.
     expect(pathToNested("household/age", {}, false)).toBe("household/NaN");
   });
 });

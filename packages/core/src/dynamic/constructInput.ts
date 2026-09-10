@@ -22,11 +22,14 @@ export const constructInputFromPreProcessed = (
 ): any => {
   // IMPORTANT: do NOT mutate existingData or preProcessedState
   const input = produce(existingData ?? preProcessedState?.entityStructure ?? {}, (draft: any) => {
+    // pathToNested is called with nested=false and the result split on "/": "/" can
+    // never appear in a canonical attribute name, so this is a lossless decomposition
+    // even when a leaf segment contains a literal "." (a dotted canonical name).
     if (preProcessedState?.nodes) {
       for (const [key, value] of Object.entries(preProcessedState.nodes)) {
         const prev = (value as any)?.previousValue;
         if (prev !== undefined) {
-          const nestedPath = pathToNested(key, draft, true).split(".");
+          const nestedPath = pathToNested(key, draft, false).split("/");
           set(draft, nestedPath, prev);
         }
       }
@@ -34,8 +37,8 @@ export const constructInputFromPreProcessed = (
 
     const parent = data["@parent"];
     if (parent) {
-      const nestedPath = pathToNested(parent, draft, true);
-      const existing = get(draft, nestedPath.split("."));
+      const nestedPath = pathToNested(parent, draft, false).split("/");
+      const existing = get(draft, nestedPath);
 
       set(draft, nestedPath, {
         ...existing,
@@ -44,8 +47,8 @@ export const constructInputFromPreProcessed = (
     } else {
       for (const [key, value] of Object.entries(userValues)) {
         if (key.includes("/")) {
-          const nestedPath = pathToNested(key, draft, true);
-          set(draft, nestedPath.split("."), value);
+          const nestedPath = pathToNested(key, draft, false).split("/");
+          set(draft, nestedPath, value);
         } else {
           (draft as any)[key] = value;
         }
