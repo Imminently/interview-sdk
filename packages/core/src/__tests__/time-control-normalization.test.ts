@@ -49,4 +49,28 @@ describe("time-control response normalization", () => {
 
     expect((session.screen.controls[0] as any).minutes_increment).toBe(30);
   });
+
+  test("returns a plain mutable session, not a frozen one", () => {
+    const normalized = normalizeSessionControls(createSession("15"));
+
+    // SessionManager writes straight onto the session it gets back from the API
+    // layer: the client-graph cache (`session.decompressedClientGraph = ...`),
+    // client-side dynamic results (`activeSession.screen = ...`, `.validations`,
+    // `.state`), and bookmark restore (`session.clientGraph = ...`). An immer
+    // `produce` result is deep-frozen, so every one of those assignments throws
+    // "Cannot add property ..., object is not extensible". Guard against
+    // reintroducing that: the result and its nested objects must be writable.
+    expect(Object.isFrozen(normalized)).toBe(false);
+    expect(Object.isFrozen(normalized.screen)).toBe(false);
+    expect(Object.isFrozen(normalized.screen.controls[0])).toBe(false);
+
+    expect(() => {
+      (normalized as any).decompressedClientGraph = { nodes: [] };
+      normalized.screen.title = "client-dynamic screen";
+      (normalized.screen.controls[0] as any).minutes_increment = 30;
+    }).not.toThrow();
+
+    expect((normalized as any).decompressedClientGraph).toEqual({ nodes: [] });
+    expect(normalized.screen.title).toBe("client-dynamic screen");
+  });
 });

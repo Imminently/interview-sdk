@@ -214,13 +214,17 @@ export const normalizeMinutesIncrement = (value: unknown): number | undefined =>
 export const normalizeSessionControls = (session: Session): Session => {
   if (!session?.screen || !Array.isArray(session.screen.controls)) return session;
 
-  return produce(session, (draft) => {
-    iterateControls(draft.screen.controls as Control[], (control) => {
-      if (control.type === "time" || control.type === "datetime") {
-        control.minutes_increment = normalizeMinutesIncrement(control.minutes_increment);
-      }
-    });
+  // Return a plain, mutable clone rather than an immer `produce` result: the
+  // SessionManager mutates the session in place (client graph cache, client-side
+  // dynamic results, bookmark restore), and immer deep-freezes what it returns,
+  // which would make every one of those writes throw.
+  const normalized = structuredClone(session);
+  iterateControls(normalized.screen.controls as Control[], (control) => {
+    if (control.type === "time" || control.type === "datetime") {
+      control.minutes_increment = normalizeMinutesIncrement(control.minutes_increment);
+    }
   });
+  return normalized;
 };
 
 export const instanceControl = (control: RenderableEntityControl, id: string): EntityControlInstance => {
