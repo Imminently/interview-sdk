@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import simpleInterview from '../interviews/simple.json';
+import simpleInterview from './interviews/simple.json';
 import Editor from 'react-simple-code-editor';
 import { highlight, languages } from 'prismjs';
 import 'prismjs/components/prism-json';

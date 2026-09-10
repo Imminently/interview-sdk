@@ -17,16 +17,16 @@ export default defineConfig({
   esbuild: {
     logOverride: { "this-is-undefined-in-esm": "silent" }
   },
-  // Exclude any folders named _deprecated from Vite's server and build
+  // Exclude any folders named _legacy from Vite's server and build (see src/_legacy/AGENTS.md)
   server: {
     port: 3000,
     watch: {
-      ignored: ['**/_deprecated/**']
+      ignored: ['**/_legacy/**']
     }
   },
   build: {
     rollupOptions: {
-      external: ['**/_deprecated/**']
+      external: ['**/_legacy/**']
     }
   }
 });
