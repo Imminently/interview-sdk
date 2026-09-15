@@ -3,7 +3,6 @@ import type { AttributeValues } from "./types";
 
 // import { produce } from 'immer';
 // import { SessionInstance } from "./types";
-// import { simulate } from "./api";
 
 const templateRegex = /{{(.*?)}}/g;
 const splitRegex = /{{|}}/;

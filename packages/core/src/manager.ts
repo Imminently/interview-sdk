@@ -7,7 +7,6 @@ import {
   RemoteInterviewBackend,
   type RemoteInterviewBackendOptions,
 } from "./backend/remote-backend";
-// import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, requiresSimulation } from "./dynamic";
 import { FileManager, type FileManagerOptions } from "./file-manager";
 import {
