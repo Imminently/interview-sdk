@@ -18,7 +18,7 @@ import type {
   Step,
   SubmitOptions,
 } from "../types";
-import { buildUrl, deepClone, uuid } from "../util";
+import { buildUrl, deepClone, normalizeSessionControls, uuid } from "../util";
 import { BaseInterviewBackend, type BaseInterviewBackendOptions } from "./backend";
 import { RemoteInterviewBackend } from "./remote-backend";
 
@@ -905,7 +905,7 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
       );
     }
 
-    return {
+    return normalizeSessionControls({
       sessionId: this.session.id,
       interactionId: this.interaction.id,
       interviewId: interviewResult.interviewId ?? this.interaction.interviewId ?? config.interview ?? "autogen",
@@ -933,7 +933,7 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
       __deprecatedSessionData: interviewResult.__deprecatedSessionData,
       current_step: this.interaction.current_step,
       current_step_meta: this.interaction.current_step_meta,
-    } as unknown as Session;
+    } as unknown as Session);
   }
 
   private updateSessionMetaFromSession(session: Session) {
