@@ -343,6 +343,15 @@ const FIELD_ENCODE_RE = /[%"'.[\]|]/g;
 const FIELD_DECODE_RE = /%([0-9A-Fa-f]{2})/g;
 const RHF_RESERVED_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
 
+const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * True if `value` looks like a backend-generated GUID attribute/node id, as opposed to a
+ * canonical-text attribute name (which is used directly as its own description, with no
+ * separate rule-graph node to look up).
+ */
+export const isGuidShaped = (value: string): boolean => GUID_RE.test(value);
+
 /** Encode one path segment (an entity or attribute name) for react-hook-form storage. */
 export const encodeFieldSegment = (segment: string): string => {
   let out = segment.replace(FIELD_ENCODE_RE, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`);

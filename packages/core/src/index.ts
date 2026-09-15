@@ -28,6 +28,7 @@ export {
   encodeFieldSegment,
   formatDate,
   instanceControl,
+  isGuidShaped,
   iterateControls,
   normalizeMinutesIncrement,
   normalizeSessionControls,

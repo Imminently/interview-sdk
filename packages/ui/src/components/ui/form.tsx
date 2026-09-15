@@ -1,7 +1,13 @@
 import { useInterview } from "@/interview/InterviewContext";
 import { useDebugSettings, useTheme } from "@/providers";
 import { cn } from "@/util";
-import { type Control, displayValue } from "@imminently/interview-sdk";
+import {
+  baseAttributeId,
+  type Control,
+  decodeFieldPath,
+  displayValue,
+  isGuidShaped,
+} from "@imminently/interview-sdk";
 import type * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot as ReactSlot, type SlotProps } from "@radix-ui/react-slot";
 import * as React from "react";
@@ -125,9 +131,22 @@ export const FormItemDebug = () => {
     });
   };
 
-  // name might be a path, separated by / or ., so we need to strip to just the id at the end for lookup in the graph
-  const attribute = name.split("/").pop()?.split(".").pop() ?? name;
+  // Pull the attribute straight off the control rather than reverse-parsing the RHF field name:
+  // `name` is percent-encoded and, depending on flat vs nested form, "/" or "." delimited, while
+  // a canonical attribute name can itself contain a literal "." (only "/" separates entity-scoped
+  // path segments - see baseAttributeId). control.attribute is the raw, un-encoded reference the
+  // field name was derived from, so there's nothing to decode or carefully split here.
+  // biome-ignore lint/suspicious/noExplicitAny: not every control kind declares `attribute`
+  const rawAttribute: string | undefined = (control as any).attribute ?? (control as any).entity;
+  const attribute = rawAttribute ? baseAttributeId(rawAttribute) : name;
+  const decodedName = decodeFieldPath(name);
+
+  // The graph can have a node for a canonical-text attribute too (keyed by the text itself), so
+  // always try the lookup. A canonical-text attribute is still its own description when there's
+  // no node for it; a GUID with no node found is unknown.
+  const isGuid = isGuidShaped(attribute);
   const node = graph ? graph.node(attribute) : { description: "No graph", entity: "N/A" };
+  const description = node?.description ?? (isGuid ? "-" : attribute);
   const entity = node?.entity
     ? `[${node.entity}]`
     : (control as any).entity
@@ -150,7 +169,7 @@ export const FormItemDebug = () => {
           className="flex flex-row gap-1 text-xs text-muted-foreground items-center cursor-pointer"
         >
           {entity ? <span>{entity}</span> : null}
-          <span>{node?.description ?? "-"}</span>
+          <span>{description}</span>
           <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
         </div>
       </TooltipTrigger>
@@ -158,6 +177,8 @@ export const FormItemDebug = () => {
         <dl className="mb-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
           <dt className="text-muted-foreground">Name</dt>
           <dd>{name}</dd>
+          <dt className="text-muted-foreground">Decoded Name</dt>
+          <dd>{decodedName}</dd>
           <dt className="text-muted-foreground">Form Item ID</dt>
           <dd>{formItemId}</dd>
           <dt className="text-muted-foreground">Control Type</dt>
@@ -167,7 +188,7 @@ export const FormItemDebug = () => {
           <dt className="text-muted-foreground">Node Entity</dt>
           <dd>{node?.entity ?? "N/A"}</dd>
           <dt className="text-muted-foreground">Node Description</dt>
-          <dd>{node?.description ?? "N/A"}</dd>
+          <dd>{description}</dd>
         </dl>
         <p>{tooltip}</p>
       </TooltipContent>
