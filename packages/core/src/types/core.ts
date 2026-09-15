@@ -90,8 +90,15 @@ export const getIdFromFileAttributeRef = (ref: FileAttributeValue["fileRefs"][0]
 
 export type AttributeValue = string | number | boolean | FileAttributeValue | Record<string, AttributeValue>[];
 
-/** Navigation can be step id, or true for next, false for no navigation */
-export type Navigate = StepId | boolean;
+export interface NavigateTargetOptions {
+  stepId?: StepId;
+  instancePath?: string;
+}
+
+export type NavigateTarget = StepId | NavigateTargetOptions;
+
+/** Navigation can be step id, target options, or true for next, false for no navigation */
+export type Navigate = NavigateTarget | boolean;
 
 export interface AttributeData {
   type: string; // auto, text, ...
@@ -243,6 +250,8 @@ export interface Session {
   validations?: Validation[];
   clientGraph?: string;
   clientGraphBookmark?: string;
+  localReleaseData?: Record<string, unknown>;
+  __deprecatedSessionData?: Record<string, unknown>;
   /** The client graph, decompressed, as a graph object */
   decompressedClientGraph?: any;
   relationships?: Relationship[];
@@ -315,15 +324,21 @@ export interface ChatResponse {
   processed: ChatProcessed;
 }
 
-// ApiManager options object types
+// Remote interview backend options object types
 export interface SubmitOptions {
   session: Session;
   data: AttributeValues;
   navigate?: Navigate;
   overrides?: Overrides;
   clientGraphBookmark?: string;
+  /** Local interview state to sync with the server when local page turns are persisted. */
+  localInterview?: {
+    steps?: Step[];
+  };
   /** If true, do not mutate state server-side */
   readOnly?: boolean;
+  /** If true, submit via the backend's remote transport instead of local processing. */
+  remote?: boolean;
 }
 
 export interface ChatOptions {
@@ -336,7 +351,7 @@ export interface ChatOptions {
 
 export interface NavigateOptions {
   session: Session;
-  step: StepId;
+  step: NavigateTarget;
   overrides?: Overrides;
   /** If true, do not mutate state server-side */
   readOnly?: boolean;

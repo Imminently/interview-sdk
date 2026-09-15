@@ -1,53 +1,71 @@
-import type { AxiosInstance, AxiosRequestConfig } from "axios";
+import type { InterviewTimeline } from "../playwright-test-generator";
 import type {
-  AsyncOptions,
-  AuthConfigGetter,
   BackOptions,
   ChatOptions,
   ChatResponse,
   ExportTimelineOptions,
-  GetRulesEngineOptions,
   NavigateOptions,
   Session,
   SessionConfig,
   SimulateOptions,
-  SubmitOptions
-} from "./types";
-import type { InterviewTimeline } from "./playwright-test-generator";
-import { buildUrl, createApiInstance, normalizeSessionControls } from "./util";
+  SubmitOptions,
+} from "../types";
+import { buildUrl } from "../util";
+import { BaseInterviewBackend, type BaseInterviewBackendOptions } from "./backend";
+import { MockInterviewBackend } from "./mock-backend";
 
-const defaultPath = ["decisionapi", "session"];
-
-export interface ApiManagerOptions {
-  host: string;
-  path?: string | string[];
-  auth?: AuthConfigGetter;
-  overrides?: AxiosRequestConfig;
-  /** API getters for each function */
-  apiGetters?: {
-    create?: (options: SessionConfig) => string;
-    load?: (options: SessionConfig) => string;
-    submit?: (options: SubmitOptions) => string;
-    chat?: (options: ChatOptions) => string;
-    navigate?: (options: NavigateOptions) => string;
-    back?: (options: BackOptions) => string;
-    simulate?: (options: SimulateOptions) => string;
-    exportTimeline?: (options: ExportTimelineOptions) => string;
-    getRulesEngine?: (options?: GetRulesEngineOptions) => string;
-    getConnectedData?: (options: AsyncOptions) => string;
+export type RemoteInterviewBackendOptions = BaseInterviewBackendOptions;
+export type RemoteInterviewSubmitRequest = {
+  url: string;
+  body: Record<string, unknown>;
+  config: {
+    params: {
+      session: string;
+      interaction: string;
+    };
   };
-}
+};
 
-export class ApiManager {
-  protected api: AxiosInstance;
-  protected options: ApiManagerOptions;
+const isTestEnvironment = () => {
+  const env = (globalThis as any)?.process?.env;
+  return env?.NODE_ENV === "test" || env?.VITEST === "true";
+};
 
-  constructor(options: ApiManagerOptions) {
-    // create the api instance
-    const { host, auth, overrides = {}, path = defaultPath } = options;
-    const baseUrl = buildUrl(host, ...(typeof path === "string" ? [path] : path));
-    this.api = createApiInstance(baseUrl, auth, overrides);
-    this.options = options;
+export const buildRemoteInterviewSubmitRequest = (
+  options: SubmitOptions,
+  backendOptions: Pick<RemoteInterviewBackendOptions, "apiGetters"> = {},
+): RemoteInterviewSubmitRequest => {
+  const { session, data, navigate, overrides, clientGraphBookmark, localInterview } = options;
+  const url = backendOptions.apiGetters?.submit
+    ? backendOptions.apiGetters.submit(options)
+    : buildUrl(session.model, session.release);
+
+  return {
+    url,
+    body: {
+      data,
+      navigate: navigate || undefined,
+      index: session.index,
+      clientGraphBookmark,
+      localInterview,
+      readOnly: options.readOnly,
+      ...overrides,
+    },
+    config: {
+      params: {
+        session: session.sessionId,
+        interaction: session.interactionId,
+      },
+    },
+  };
+};
+
+export class RemoteInterviewBackend extends BaseInterviewBackend {
+  constructor(options: RemoteInterviewBackendOptions) {
+    super(options);
+    if (isTestEnvironment()) {
+      return new MockInterviewBackend() as unknown as RemoteInterviewBackend;
+    }
   }
 
   create = async (options: SessionConfig) => {
@@ -64,7 +82,7 @@ export class ApiManager {
       },
       sessionId ? { params: { session: sessionId } } : undefined,
     );
-    return normalizeSessionControls(res.data);
+    return res.data;
   };
 
   load = async (options: SessionConfig) => {
@@ -79,7 +97,7 @@ export class ApiManager {
         params: { session: sessionId, interaction: interactionId },
       },
     );
-    return normalizeSessionControls(res.data);
+    return res.data;
   };
 
   /**
@@ -90,28 +108,9 @@ export class ApiManager {
    * @param overrides Other params to pass through to payload
    */
   submit = async (options: SubmitOptions) => {
-    const { session, data, navigate, overrides, clientGraphBookmark } = options;
-    const url = this.options.apiGetters?.submit
-      ? this.options.apiGetters.submit(options)
-      : buildUrl(session.model, session.release);
-    const res = await this.api.patch<Session>(
-      url,
-      {
-        data,
-        navigate: navigate || undefined,
-        index: session.index,
-        clientGraphBookmark,
-        readOnly: options.readOnly,
-        ...overrides,
-      },
-      {
-        params: {
-          session: session.sessionId,
-          interaction: session.interactionId,
-        },
-      },
-    );
-    return normalizeSessionControls(res.data);
+    const request = buildRemoteInterviewSubmitRequest(options, this.options);
+    const res = await this.api.patch<Session>(request.url, request.body, request.config);
+    return res.data;
   };
 
   /**
@@ -161,7 +160,7 @@ export class ApiManager {
         },
       },
     );
-    return normalizeSessionControls(res.data);
+    return res.data;
   };
 
   back = async (options: BackOptions) => {
@@ -177,7 +176,7 @@ export class ApiManager {
         },
       },
     );
-    return normalizeSessionControls(res.data);
+    return res.data;
   };
 
   simulate = async (options: SimulateOptions) => {
@@ -200,7 +199,7 @@ export class ApiManager {
         },
       },
     );
-    return normalizeSessionControls(res.data);
+    return res.data;
   };
 
   exportTimeline = async (options: ExportTimelineOptions) => {
@@ -222,53 +221,4 @@ export class ApiManager {
     );
     return res.data;
   };
-
-  // for easy overriding, make this a separate method
-  protected getRulesEngineUrl = (checksum?: string) => {
-    return buildUrl(this.options.host, `decisionapi/rules-engine-script?checksum=${checksum}`);
-  };
-
-  /**
-   * Fetch the rules engine.
-   * If you want to override the URL, you can do so by overriding the `getRulesEngineUrl` method.
-   * @param checksum Optional checksum to fetch a specific version of the rules engine script
-   * @returns The rules engine script as a string
-   */
-  getRulesEngine = async (options?: GetRulesEngineOptions) => {
-    const checksum = options?.checksum;
-    const url = this.options.apiGetters?.getRulesEngine
-      ? this.options.apiGetters.getRulesEngine(options)
-      : this.getRulesEngineUrl(checksum);
-
-    const res = await this.api.get(url, {
-      adapter: "fetch",
-      fetchOptions: { cache: "force-cache" },
-    });
-    return res.data as string;
-  };
-
-  getConnectedData = async <T = any>(options: AsyncOptions) => {
-    const url = this.options.apiGetters?.getConnectedData
-      ? this.options.apiGetters.getConnectedData(options)
-      : buildUrl(this.options.host, "decisionapi/connection");
-
-    const res = await this.api.post<T>(url, options);
-    return res.data as T;
-  }
 }
-
-// export {
-//   RemoteSessionBackend as ApiManager,
-//   type RemoteSessionBackendOptions as ApiManagerOptions,
-// } from "./backend/remote-backend";
-
-// import {
-//   RemoteInterviewBackend,
-//   type RemoteInterviewBackendOptions,
-// } from "./backend/remote-backend";
-
-// /** @deprecated Use `RemoteInterviewBackend` instead. */
-// export const ApiManager = RemoteInterviewBackend;
-
-// /** @deprecated Use `RemoteInterviewBackendOptions` instead. */
-// export type ApiManagerOptions = RemoteInterviewBackendOptions;
