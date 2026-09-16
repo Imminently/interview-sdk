@@ -14,8 +14,8 @@ import {
   useFormContext,
   useFormState,
 } from "react-hook-form";
+import { DebugTrigger } from "../debug/DebugTrigger";
 import { Label } from "./label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const Form = FormProvider;
 
@@ -97,32 +97,18 @@ type FormItemContextValue = {
 const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 
 export const FormItemDebug = () => {
-  const { t } = useTheme();
   const { debugEnabled } = useDebugSettings();
   const context = useInterview();
   const { control, formItemId, name } = useFormField();
   const { watch } = useFormContext();
   const val = watch(name);
 
+  // Bail before touching the manager's attribute lookup at all - not just before rendering -
+  // since that lookup shouldn't run (and, against a test double standing in for the real
+  // manager, may not even exist) when debug mode is off.
   if (!debugEnabled) {
     return null;
   }
-
-  const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      context.callbacks.onDebugControlClick?.(control, context);
-      return;
-    }
-
-    // default action is just console log the control
-    console.log("[DEBUG] Form control data", {
-      name,
-      formItemId,
-      control,
-    });
-  };
 
   // Pull the attribute straight off the control rather than reverse-parsing the RHF field name:
   // `name` is percent-encoded and, depending on flat vs nested form, "/" or "." delimited, while
@@ -141,27 +127,12 @@ export const FormItemDebug = () => {
   const { description, entity: nodeEntity } = context.manager.describeAttribute(attribute);
   const entity = nodeEntity ? `[${nodeEntity}]` : (control as any).entity ? `[${(control as any).entity}]` : undefined;
 
-  // doing a weird fallback tooltip, as our translation layer fallbacks to the key
-  const defaultTooltip = "Click to log control to console. Shift+Click to trigger debug callback.";
-  const tooltipKey = "form.debugTooltip";
-  const tooltip = t(tooltipKey) !== tooltipKey ? t(tooltipKey) : defaultTooltip;
-
-  // add a tooltip that explains click vs shift+click
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div
-          tabIndex={-1}
-          onClick={handleDebugClick}
-          data-slot="debug-info"
-          className="flex flex-row gap-1 text-xs text-muted-foreground items-center cursor-pointer"
-        >
-          {entity ? <span>{entity}</span> : null}
-          <span>{description}</span>
-          <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent>
+    <DebugTrigger
+      control={control}
+      logPayload={{ name, formItemId, control }}
+      className="flex flex-row gap-1 items-center"
+      tooltipContent={
         <dl className="mb-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
           <dt className="text-muted-foreground">Name</dt>
           <dd>{name}</dd>
@@ -178,9 +149,12 @@ export const FormItemDebug = () => {
           <dt className="text-muted-foreground">Node Description</dt>
           <dd>{description}</dd>
         </dl>
-        <p>{tooltip}</p>
-      </TooltipContent>
-    </Tooltip>
+      }
+    >
+      {entity ? <span>{entity}</span> : null}
+      <span>{description}</span>
+      <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
+    </DebugTrigger>
   );
 };
 
