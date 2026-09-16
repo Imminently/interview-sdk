@@ -37,11 +37,6 @@ describe("attributeToFieldName - canonical-text attributes", () => {
     expect(field).toBe("the household/id-1/the person%27s age");
   });
 
-  it("is idempotent on an already-encoded nested path (re-fed by EntityFormControl)", () => {
-    const encoded = "the household.0.the person%27s age";
-    expect(attributeToFieldName(encoded, data(), {}, true)).toBe(encoded);
-  });
-
   it("returns nullish/empty attributes untouched", () => {
     expect(attributeToFieldName(undefined, data(), {}, false)).toBeUndefined();
     expect(attributeToFieldName("", data(), {}, false)).toBe("");
@@ -65,10 +60,23 @@ describe("attributeToFieldName - canonical-text attributes", () => {
 describe("attributeToFieldName - routing and @parent handling (characterisation)", () => {
   const uuidVals = { household: [{ "@id": "abc" }, { "@id": "def" }, { "@id": "ghi" }] };
 
-  it("nested + a '.' in the attribute is returned verbatim (no re-resolution)", () => {
-    // The re-feed guard: EntityFormControl already resolved + joined this path, so
-    // a second pass must not touch it. `values` is ignored entirely.
-    expect(attributeToFieldName("household.99.age", data(), uuidVals, true)).toBe("household.99.age");
+  it("nested + a raw '.' in the attribute is still resolved (no re-feed passthrough)", () => {
+    // EntityFormControl now hands down the raw, un-encoded attribute path (never a
+    // pre-resolved/encoded one), so a literal "." must always go through @id
+    // resolution + encoding here, even when nested=true. There is no longer a
+    // "looks already resolved" shortcut that a raw canonical name could false-positive
+    // into (see the "encodes each dot" test below for the case that used to be at risk).
+    expect(attributeToFieldName("household.99.age", data(), uuidVals, true)).toBe("household%2E99%2Eage");
+  });
+
+  it("nested + a raw '/'-path with a canonical dotted attribute resolves @id and encodes the dot", () => {
+    // The scenario the re-feed passthrough used to shortcut past: a genuinely raw,
+    // un-resolved attribute reference (as EntityFormControl now always produces)
+    // whose leaf segment contains a literal ".". "def" -> index 1, and the dot is
+    // encoded rather than treated as a fake nesting separator.
+    expect(attributeToFieldName("household/def/the company inc. revenue", data(), uuidVals, true)).toBe(
+      "household.1.the company inc%2E revenue",
+    );
   });
 
   it("!nested: encodes per '/'-segment and does not resolve @ids", () => {

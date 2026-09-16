@@ -1,13 +1,7 @@
 import { useInterview } from "@/interview/InterviewContext";
 import { useDebugSettings, useTheme } from "@/providers";
 import { cn } from "@/util";
-import {
-  baseAttributeId,
-  type Control,
-  decodeFieldPath,
-  displayValue,
-  isGuidShaped,
-} from "@imminently/interview-sdk";
+import { type Control, baseAttributeId, decodeFieldPath, displayValue } from "@imminently/interview-sdk";
 import type * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot as ReactSlot, type SlotProps } from "@radix-ui/react-slot";
 import * as React from "react";
@@ -108,7 +102,6 @@ export const FormItemDebug = () => {
   const context = useInterview();
   const { control, formItemId, name } = useFormField();
   const { watch } = useFormContext();
-  const graph = React.useMemo(() => context.manager.parsedGraph, [context]);
   const val = watch(name);
 
   if (!debugEnabled) {
@@ -143,15 +136,10 @@ export const FormItemDebug = () => {
 
   // The graph can have a node for a canonical-text attribute too (keyed by the text itself), so
   // always try the lookup. A canonical-text attribute is still its own description when there's
-  // no node for it; a GUID with no node found is unknown.
-  const isGuid = isGuidShaped(attribute);
-  const node = graph ? graph.node(attribute) : { description: "No graph", entity: "N/A" };
-  const description = node?.description ?? (isGuid ? "-" : attribute);
-  const entity = node?.entity
-    ? `[${node.entity}]`
-    : (control as any).entity
-      ? `[${(control as any).entity}]`
-      : undefined;
+  // no node for it; a GUID with no node found is unknown. The manager owns that fallback logic
+  // entirely - this component just asks for an attribute's description/entity.
+  const { description, entity: nodeEntity } = context.manager.describeAttribute(attribute);
+  const entity = nodeEntity ? `[${nodeEntity}]` : (control as any).entity ? `[${(control as any).entity}]` : undefined;
 
   // doing a weird fallback tooltip, as our translation layer fallbacks to the key
   const defaultTooltip = "Click to log control to console. Shift+Click to trigger debug callback.";
@@ -186,7 +174,7 @@ export const FormItemDebug = () => {
           <dt className="text-muted-foreground">Control ID</dt>
           <dd>{control.id}</dd>
           <dt className="text-muted-foreground">Node Entity</dt>
-          <dd>{node?.entity ?? "N/A"}</dd>
+          <dd>{nodeEntity ?? "N/A"}</dd>
           <dt className="text-muted-foreground">Node Description</dt>
           <dd>{description}</dd>
         </dl>

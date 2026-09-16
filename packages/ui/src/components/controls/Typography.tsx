@@ -1,3 +1,4 @@
+import { useInterview } from "@/interview";
 import { useDebugSettings, useOptions, useTheme } from "@/providers";
 import { cn } from "@/util";
 import type { TypographyControl } from "@imminently/interview-sdk";
@@ -5,8 +6,6 @@ import { type VariantProps, cva } from "class-variance-authority";
 import type React from "react";
 import { Alert, AlertDescription } from "../ui/alert";
 import { FormControl, FormField, FormItem, FormLabel } from "../ui/form";
-import { useInterview } from "@/interview";
-import { useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type TextVariant = TypographyControl["style"];
@@ -74,10 +73,9 @@ export interface TypographyControlProps {
 const TypographyDebug = ({ name, control }: { name?: string; control: TypographyControl }) => {
   const { t } = useTheme();
   const context = useInterview();
-  const graph = useMemo(() => context.manager.parsedGraph, [context]);
 
   const attribute = name?.split("/").pop()?.split(".").pop() ?? name;
-  const node = graph && attribute ? graph.node(attribute) : null;
+  const node = attribute ? context.manager.findAttributeNode(attribute) : undefined;
   // console.log("TypographyDebug", { name, node });
 
   const dynamic = [] as string[];
@@ -85,12 +83,11 @@ const TypographyDebug = ({ name, control }: { name?: string; control: Typography
   if (control.dynamicAttributes) {
     // @ts-ignore
     for (const attr of control.dynamicAttributes) {
-      const n = graph?.node(attr);
-      dynamic.push(n ? n.description ?? attr : attr);
+      dynamic.push(context.manager.getAttributeText(attr));
     }
   }
 
-   const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();
@@ -110,18 +107,21 @@ const TypographyDebug = ({ name, control }: { name?: string; control: Typography
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div tabIndex={-1} onClick={handleDebugClick} data-slot="debug-info" className="flex flex-col text-xs text-muted-foreground">
-          {
-            node ? (
-              <div className="flex flex-row gap-1 items-center">
-                {node?.entity ? <span>[{node.entity}]</span> : null}
-                <span>{node?.description ?? "-"}</span>
-              </div>
-            ) : null
-          }
+        <div
+          tabIndex={-1}
+          onClick={handleDebugClick}
+          data-slot="debug-info"
+          className="flex flex-col text-xs text-muted-foreground"
+        >
+          {node ? (
+            <div className="flex flex-row gap-1 items-center">
+              {node?.entity ? <span>[{node.entity}]</span> : null}
+              <span>{node?.description ?? "-"}</span>
+            </div>
+          ) : null}
           {/* @ts-ignore */}
           {control.templateText ? <span>Template: {control.templateText}</span> : null}
-          {dynamic.length > 0 ? (<span>Dynamic Attributes: {dynamic.join(", ")}</span>) : null}
+          {dynamic.length > 0 ? <span>Dynamic Attributes: {dynamic.join(", ")}</span> : null}
         </div>
       </TooltipTrigger>
       <TooltipContent>
@@ -129,7 +129,7 @@ const TypographyDebug = ({ name, control }: { name?: string; control: Typography
       </TooltipContent>
     </Tooltip>
   );
-}
+};
 
 // NOTE name does not have Control included, as its just ready only text
 export const Typography = ({ control }: TypographyControlProps) => {
@@ -154,7 +154,12 @@ export const Typography = ({ control }: TypographyControlProps) => {
   if (control.label) {
     return (
       <>
-        {debugEnabled ? <TypographyDebug name={control.attribute} control={control} /> : null}
+        {debugEnabled ? (
+          <TypographyDebug
+            name={control.attribute}
+            control={control}
+          />
+        ) : null}
         <FormField
           name={control.attribute ?? control.id}
           data={control}
@@ -170,7 +175,12 @@ export const Typography = ({ control }: TypographyControlProps) => {
 
   return (
     <>
-      {debugEnabled ? <TypographyDebug name={control.attribute} control={control} /> : null}
+      {debugEnabled ? (
+        <TypographyDebug
+          name={control.attribute}
+          control={control}
+        />
+      ) : null}
       {component}
     </>
   );

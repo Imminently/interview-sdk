@@ -3,6 +3,17 @@ import pako from "pako";
 
 export type Graph = graphlib.Graph & { _nodes: Record<string, any> };
 
+// graphlib's own node() typing is `any` - this is the shape every node in our graphs actually has.
+export interface AttributeGraphNode {
+  description?: string;
+  entity?: string;
+}
+
+export interface AttributeDescription {
+  description: string;
+  entity?: string;
+}
+
 export const graphFromJSON = (json: string | object): Graph => {
   const graph = graphlib.json.read(typeof json === "string" ? JSON.parse(json) : json);
   return graph as Graph;
@@ -19,7 +30,7 @@ export const decompressGraph = (compressed: any) => {
  * @param graph A parsed graph instance
  */
 export const getAttributeText = (id: string, graph: Graph): string => {
-  const node = graph.node(id);
+  const node: AttributeGraphNode | undefined = graph.node(id);
   if (!node) return id;
   return node.description ?? id;
 };

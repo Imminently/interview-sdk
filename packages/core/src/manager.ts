@@ -36,12 +36,19 @@ import {
   createEntityPathedData,
   deepClone,
   flattenObject,
+  isGuidShaped,
   iterateControls,
   postProcessControl,
   transformResponse,
 } from "./util";
 import { replaceTemplatedText } from "./helpers";
-import { decompressGraph, graphFromJSON } from "./graphUtil";
+import {
+  type AttributeDescription,
+  type AttributeGraphNode,
+  decompressGraph,
+  getAttributeText as getGraphAttributeText,
+  graphFromJSON,
+} from "./graphUtil";
 import { type GeneratePlaywrightTestOptions, exportTransformTimeline, generatePlaywrightTestCode } from "./playwright-test-generator";
 import { constructInputFromPreProcessed } from "./dynamic/constructInput";
 
@@ -836,6 +843,32 @@ export class SessionManager {
       return null;
     }
     return graphFromJSON(raw);
+  }
+
+  /** The graph node for an attribute, if a graph is loaded and a node exists for it. */
+  findAttributeNode(attribute: string): AttributeGraphNode | undefined {
+    return this.parsedGraph?.node(attribute);
+  }
+
+  /** An attribute's description text, falling back to the attribute id itself. */
+  getAttributeText(attribute: string): string {
+    const graph = this.parsedGraph;
+    return graph ? getGraphAttributeText(attribute, graph) : attribute;
+  }
+
+  /**
+   * Description + entity for an attribute, for debug UI. Falls back to "-" for a GUID-shaped
+   * id with no matching node (nothing meaningful to show), or the raw id otherwise.
+   */
+  describeAttribute(attribute: string): AttributeDescription {
+    if (!this.parsedGraph) {
+      return { description: "No graph" };
+    }
+    const node = this.findAttributeNode(attribute);
+    if (node) {
+      return { description: node.description ?? attribute, entity: node.entity };
+    }
+    return { description: isGuidShaped(attribute) ? "-" : attribute };
   }
 
   get canProgress() {

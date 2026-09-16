@@ -17,10 +17,16 @@ export interface EntityFormControlProps {
 interface FieldControlProps {
   control: RenderableEntityControl;
   index: number;
-  parentPath?: string;
+  /** This instance's real `@id` (not the array index), used to build the backend-shaped path below. */
+  instanceId: string;
+  /**
+   * Raw, un-encoded "/"-delimited attribute path for this entity instance (e.g. "household/h1"),
+   * the same shape the backend itself would give - never a pre-resolved/encoded RHF field name.
+   */
+  parentAttributePath: string;
 }
 
-const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
+const FieldControl = ({ control, index, instanceId, parentAttributePath }: FieldControlProps) => {
   // First check if we have instances with controls for this specific field
   const instanceControls = control.instances?.[index]?.controls;
 
@@ -41,15 +47,13 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
         // @ts-ignore subControl.entity is not always defined
         const rawAttrib = (subControl.attribute || subControl.entity)?.split("/").pop();
         if (!rawAttrib) return null;
-        // encode the leaf segment here, while it is still separate: once it is
-        // joined into an `entity.index.leaf` path, react-hook-form treats every "."
-        // as structural, so a canonical name containing "." (or ' " [ ]) must be
-        // made RHF-safe first.
-        const attrib = encodeFieldSegment(rawAttrib);
 
-        const path = parentPath
-          ? `${parentPath}.${index}.${attrib}`
-          : `${encodeFieldSegment(control.entity)}.${index}.${attrib}`;
+        // Build the raw attribute path the backend itself would use (entity/@id/attribute), not
+        // an RHF field name: attributeToFieldName does the encoding and @id -> index resolution
+        // centrally, once, when the leaf control resolves its own field name. Encoding here (or
+        // resolving to an index instead of the real @id) would only have to be undone downstream,
+        // and risked double-encoding a canonical name containing "." (or ' " [ ]).
+        const path = `${parentAttributePath}/${instanceId}/${rawAttrib}`;
 
         const childControl = {
           ...subControl,
@@ -80,7 +84,7 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
       console.warn("Unsupported instance control", subControl);
       return null;
     },
-    [control, index, parentPath],
+    [instanceId, parentAttributePath],
   );
 
   if (instanceControls && instanceControls.length > 0) {
@@ -104,8 +108,12 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
   // Effective initial count: at least min, but also respect an explicit default
   const effectiveDefault = Math.max(parsedMin ?? 0, parsedDefault ?? 0);
 
-  const parentPath = useAttributeToFieldName(control.attribute);
-  const fieldName = parentPath ?? encodeFieldSegment(control.entity);
+  const fieldName = useAttributeToFieldName(control.attribute) ?? encodeFieldSegment(control.entity);
+  // Raw, un-encoded attribute path prefix threaded to child controls. control.attribute is
+  // either this entity's own raw canonical/GUID reference (top-level), or the raw "/"-path an
+  // ancestor FieldControl already built for it (entity nested inside another entity) - either
+  // way it's never pre-encoded, so children can layer their own "/id/attribute" onto it directly.
+  const parentAttributePath = control.attribute ?? control.entity;
   // @ts-ignore check control as we will probably add readOnly in future
   const readOnly = control.readOnly;
 
@@ -238,7 +246,8 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
                     <FieldControl
                       control={control}
                       index={index}
-                      parentPath={parentPath}
+                      instanceId={(field as any)["@id"]}
+                      parentAttributePath={parentAttributePath}
                     />
                   </div>
 

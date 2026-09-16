@@ -489,12 +489,6 @@ export const attributeToFieldName = <S extends string | undefined>(
     return attribute;
   }
 
-  // Already a resolved, encoded nested path (re-fed by EntityFormControl's
-  // FieldControl). Passthrough keeps this idempotent.
-  if (nested && attribute.includes(".")) {
-    return attribute as S;
-  }
-
   const basePath = expressRelativeToParent(attribute, data);
 
   if (!nested) {
