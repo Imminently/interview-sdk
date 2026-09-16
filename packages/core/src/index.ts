@@ -27,6 +27,7 @@ export {
   encodeFieldPath,
   encodeFieldSegment,
   formatDate,
+  generateEntityInstanceId,
   instanceControl,
   isGuidShaped,
   iterateControls,

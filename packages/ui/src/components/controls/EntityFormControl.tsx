@@ -1,6 +1,11 @@
 import { AttributeNestingProvider, useTheme } from "@/providers";
 import { cn, parseNumericOption } from "@/util";
-import { type Control, encodeFieldSegment, type RenderableEntityControl, uuid } from "@imminently/interview-sdk";
+import {
+  type Control,
+  type RenderableEntityControl,
+  encodeFieldSegment,
+  generateEntityInstanceId,
+} from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
@@ -139,9 +144,17 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
       // so every call overwrites the previous one and only the last item survives.
       // Passing an array lets react-hook-form add all items atomically from one base state.
       if (control.instances && control.instances.length > 0) {
-        append(control.instances.map((instance) => ({ "@id": instance.id || uuid() })));
+        append(
+          control.instances.map((instance, i) => ({
+            "@id": instance.id || generateEntityInstanceId(control.entity, i),
+          })),
+        );
       } else if (effectiveDefault > 0) {
-        append(Array.from({ length: effectiveDefault }, () => ({ "@id": uuid() })));
+        append(
+          Array.from({ length: effectiveDefault }, (_, i) => ({
+            "@id": generateEntityInstanceId(control.entity, i),
+          })),
+        );
       }
     }
   }, [control.instances, fields.length, initialized, effectiveDefault, append]);
@@ -161,11 +174,11 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
     if (!canAddMore) return;
 
     const newItem = {
-      "@id": uuid(),
+      "@id": generateEntityInstanceId(control.entity, fields.length),
     };
 
     append(newItem);
-  }, [canAddMore, append]);
+  }, [canAddMore, append, control.entity, fields.length]);
 
   const handleDelete = React.useCallback(
     (index: number) => {
@@ -189,14 +202,18 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
       data-name={fieldName}
     >
       {/* Header with label and add button */}
-      <div data-slot="entity-header" className="flex items-center justify-between">
-        {
-          control.label
-            ? (<Text variant="h6" asChild>
-              <label aria-label={t(control.label)}>{t(control.label)}</label>
-            </Text>)
-            : null
-        }
+      <div
+        data-slot="entity-header"
+        className="flex items-center justify-between"
+      >
+        {control.label ? (
+          <Text
+            variant="h6"
+            asChild
+          >
+            <label aria-label={t(control.label)}>{t(control.label)}</label>
+          </Text>
+        ) : null}
 
         {canAddMore && (
           <Button
@@ -220,7 +237,10 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
           <Text variant="body">{t("form.no_items")}</Text>
         </div>
       ) : (
-        <div data-slot="entity-list" className="flex flex-col gap-4">
+        <div
+          data-slot="entity-list"
+          className="flex flex-col gap-4"
+        >
           {/* Field items */}
           <AttributeNestingProvider value={true}>
             {fields.map((field, index) => {
@@ -242,7 +262,11 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
                   />
 
                   {/* Field content */}
-                  <div data-slot="entity-controls" id={field.id} className="flex-1 space-y-4">
+                  <div
+                    data-slot="entity-controls"
+                    id={field.id}
+                    className="flex-1 space-y-4"
+                  >
                     <FieldControl
                       control={control}
                       index={index}

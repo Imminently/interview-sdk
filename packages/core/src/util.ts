@@ -1,8 +1,8 @@
 import { UTCDate } from "@date-fns/utc";
 import axios, { type AxiosRequestConfig, type AxiosRequestTransformer } from "axios";
 import { format } from "date-fns";
-import { v4 as baseUuid } from "uuid";
 import { produce } from "immer";
+import { v4 as baseUuid } from "uuid";
 import { replaceTemplatedText } from "./helpers";
 import type {
   AttributeValues,
@@ -18,6 +18,19 @@ import type {
 } from "./types";
 
 export const uuid = baseUuid;
+
+const SHORT_ID_LENGTH = 8;
+
+/**
+ * A readable-but-unique `@id` for a new entity instance: `<entityName>-<1-based index>-<short id>`.
+ * The short suffix (stripped of the uuid's hyphens) keeps ids globally unique even across sibling
+ * entity arrays that would otherwise reuse the same name/index, e.g. "child-1" under two different
+ * "parents" instances.
+ */
+export const generateEntityInstanceId = (entityName: string, index: number): string => {
+  const shortId = uuid().replace(/-/g, "").slice(0, SHORT_ID_LENGTH);
+  return `${entityName}-${index + 1}-${shortId}`;
+};
 
 export const buildUrl = (...args: (string | undefined)[]) => {
   return [...args.filter((a) => !!a)].join("/");
@@ -81,7 +94,7 @@ export const normalizeInputData = (data: Record<string, any>): Record<string, an
           } else if (value === "false") {
             current[key] = false;
           } else if (typeof value === "object" && value !== null) {
-            if(Array.isArray(value)) {
+            if (Array.isArray(value)) {
               frontier.push(...value);
             } else {
               frontier.push(value);
@@ -103,8 +116,8 @@ export const transformResponse = (session: Session, data: AttributeValues): Resp
     for (const control of session.screen.controls) {
       if (control.type === "number_of_instances") {
         const value = draft[control.entity];
-        draft[control.entity] = range(Number(value)).map(() => ({
-          "@id": uuid(),
+        draft[control.entity] = range(Number(value)).map((_, i) => ({
+          "@id": generateEntityInstanceId(control.entity, i),
         }));
       }
     }
@@ -247,7 +260,7 @@ export const instanceControl = (control: RenderableEntityControl, id: string): E
       const keys: string[] = [];
       if (typeof instanceControl.min === "number") {
         for (let i = 0; i < instanceControl.min; i++) {
-          keys.push(uuid());
+          keys.push(generateEntityInstanceId(instanceControl.entity, i));
         }
       }
       instanceControl.instances = keys.map((key) => instanceControl(instanceControl, key));
@@ -263,7 +276,7 @@ export const instanceControl = (control: RenderableEntityControl, id: string): E
 export const applyInstancesToEntityControl = (control: RenderableEntityControl, instances: string[]) => {
   if (typeof control.min === "number") {
     while (instances.length < control.min) {
-      instances.push(uuid());
+      instances.push(generateEntityInstanceId(control.entity, instances.length));
     }
   }
   // @ts-ignore
@@ -508,7 +521,7 @@ export const parseBoolean = (value: any): boolean => {
     return value.toLowerCase() === "true";
   }
   return false;
-}
+};
 
 export const postProcessControl = (
   control: any,
