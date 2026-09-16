@@ -4,6 +4,7 @@ import { cn } from "@/util";
 import { type Control, baseAttributeId, decodeFieldPath, displayValue } from "@imminently/interview-sdk";
 import type * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot as ReactSlot, type SlotProps } from "@radix-ui/react-slot";
+import { TriangleAlert } from "lucide-react";
 import * as React from "react";
 import {
   Controller,
@@ -124,8 +125,14 @@ export const FormItemDebug = () => {
   // always try the lookup. A canonical-text attribute is still its own description when there's
   // no node for it; a GUID with no node found is unknown. The manager owns that fallback logic
   // entirely - this component just asks for an attribute's description/entity.
-  const { description, entity: nodeEntity } = context.manager.describeAttribute(attribute);
+  const { description, entity: nodeEntity, foundInGraph } = context.manager.describeAttribute(attribute);
   const entity = nodeEntity ? `[${nodeEntity}]` : (control as any).entity ? `[${(control as any).entity}]` : undefined;
+
+  // The client graph is pruned server-side to the active goal's dependency closure, so a control
+  // with a real attribute reference but no matching node usually means that attribute isn't
+  // wired into the goal (rather than a bug here) - flag it, since the fallback text above reads
+  // identically to a genuinely-resolved description otherwise.
+  const missingFromGraph = foundInGraph === false;
 
   return (
     <DebugTrigger
@@ -148,9 +155,21 @@ export const FormItemDebug = () => {
           <dd>{nodeEntity ?? "N/A"}</dd>
           <dt className="text-muted-foreground">Node Description</dt>
           <dd>{description}</dd>
+          {missingFromGraph && (
+            <>
+              <dt className="text-muted-foreground">Graph Node</dt>
+              <dd className="text-amber-600">Not found - likely not wired into the interview's active goal</dd>
+            </>
+          )}
         </dl>
       }
     >
+      {missingFromGraph && (
+        <TriangleAlert
+          size={11}
+          className="text-amber-600 shrink-0"
+        />
+      )}
       {entity ? <span>{entity}</span> : null}
       <span>{description}</span>
       <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>

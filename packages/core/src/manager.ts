@@ -858,7 +858,8 @@ export class SessionManager {
 
   /**
    * Description + entity for an attribute, for debug UI. Falls back to "-" for a GUID-shaped
-   * id with no matching node (nothing meaningful to show), or the raw id otherwise.
+   * id with no matching node (nothing meaningful to show), or the raw id otherwise. See
+   * AttributeDescription.foundInGraph for what a missing node usually means.
    */
   describeAttribute(attribute: string): AttributeDescription {
     if (!this.parsedGraph) {
@@ -866,9 +867,9 @@ export class SessionManager {
     }
     const node = this.findAttributeNode(attribute);
     if (node) {
-      return { description: node.description ?? attribute, entity: node.entity };
+      return { description: node.description ?? attribute, entity: node.entity, foundInGraph: true };
     }
-    return { description: isGuidShaped(attribute) ? "-" : attribute };
+    return { description: isGuidShaped(attribute) ? "-" : attribute, foundInGraph: false };
   }
 
   get canProgress() {
@@ -1516,6 +1517,36 @@ export class SessionManager {
     try {
       element.href = url;
       element.download = fileName ?? `interview-${session?.interviewId || "test"} (${new Date().toISOString()}).spec.ts`;
+      document.body.appendChild(element);
+      element.click();
+    } finally {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  downloadGraph = (fileName?: string): void => {
+    if (!this.activeSession) {
+      console.warn(LogGroup, "No active session to export graph from");
+      throw new Error("No active session to export graph from");
+    }
+    const graph = this.clientGraph;
+    if (!graph) {
+      throw new Error("No graph available for this session");
+    }
+    if (typeof document === "undefined") {
+      throw new Error("Graph download requires a browser environment");
+    }
+
+    const blob = new Blob([JSON.stringify(graph, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const element = document.createElement("a");
+
+    try {
+      element.href = url;
+      element.download = fileName ?? `Graph - ${this.activeSession.interviewId || "Interview"} (${new Date().toISOString()}).json`;
       document.body.appendChild(element);
       element.click();
     } finally {

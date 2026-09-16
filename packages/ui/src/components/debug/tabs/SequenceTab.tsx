@@ -19,8 +19,7 @@ interface ReplayTimeline {
   timeline?: ReplayQuestion[];
 }
 
-const resolveQuestions = (t: ReplayTimeline): ReplayQuestion[] =>
-  t.questions ?? t.timeline ?? [];
+const resolveQuestions = (t: ReplayTimeline): ReplayQuestion[] => t.questions ?? t.timeline ?? [];
 
 // Module-level so state survives re-mounts (same pattern as panelMemory).
 const sequenceMemory = {
@@ -43,9 +42,7 @@ const SectionHeader = ({
 
 export const SequenceTab = (): React.ReactElement => {
   const { manager, session } = useInterview();
-  const [loadedTimeline, setLoadedTimeline] = useState<ReplayTimeline | null>(
-    () => sequenceMemory.timeline,
-  );
+  const [loadedTimeline, setLoadedTimeline] = useState<ReplayTimeline | null>(() => sequenceMemory.timeline);
   const [questionIndex, setQuestionIndex] = useState(() => sequenceMemory.questionIndex);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,9 +118,7 @@ export const SequenceTab = (): React.ReactElement => {
     !submitting &&
     loadedTimeline !== null &&
     !!expectedScreen &&
-    (expectedScreen.id
-      ? expectedScreen.id !== session?.screen?.id
-      : expectedScreen.title !== actualScreenTitle);
+    (expectedScreen.id ? expectedScreen.id !== session?.screen?.id : expectedScreen.title !== actualScreenTitle);
 
   const handleNext = async (): Promise<void> => {
     if (!currentQuestion) return;
@@ -179,6 +174,16 @@ export const SequenceTab = (): React.ReactElement => {
     }
   };
 
+  const handleExportGraph = (): void => {
+    setError(null);
+    try {
+      manager.downloadGraph();
+    } catch (err) {
+      console.error("Export graph failed:", err);
+      setError("Failed to export graph.");
+    }
+  };
+
   return (
     <div className="p-4 flex flex-col gap-4 text-sm">
       {/* Export */}
@@ -204,6 +209,15 @@ export const SequenceTab = (): React.ReactElement => {
               >
                 <Download size={11} />
                 Playwright
+              </button>
+              <button
+                type="button"
+                onClick={handleExportGraph}
+                disabled={!session}
+                className="flex items-center gap-1.5 px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Download size={11} />
+                Graph
               </button>
             </div>
           }
@@ -235,14 +249,20 @@ export const SequenceTab = (): React.ReactElement => {
             role="button"
             tabIndex={0}
             onClick={handleDropzoneClick}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleDropzoneClick(); }}
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") handleDropzoneClick();
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDropzoneDrop}
             className={`flex flex-col items-center justify-center gap-1.5 rounded border-2 border-dashed px-4 py-5 text-xs text-center cursor-pointer transition-colors select-none
-              ${dragging
-                ? "border-gray-500 bg-gray-100 text-gray-700"
-                : "border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500 hover:bg-gray-50"
+              ${
+                dragging
+                  ? "border-gray-500 bg-gray-100 text-gray-700"
+                  : "border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500 hover:bg-gray-50"
               }`}
           >
             <Upload size={16} />
@@ -251,8 +271,15 @@ export const SequenceTab = (): React.ReactElement => {
         ) : (
           <>
             <div className="flex items-center justify-between text-xs text-gray-600">
-              <span>Step {questions.length > 0 ? questionIndex + 1 : 0} / {questions.length}</span>
-              {submitting && <Loader2 size={12} className="animate-spin" />}
+              <span>
+                Step {questions.length > 0 ? questionIndex + 1 : 0} / {questions.length}
+              </span>
+              {submitting && (
+                <Loader2
+                  size={12}
+                  className="animate-spin"
+                />
+              )}
             </div>
 
             {/* Always-visible screen status */}
@@ -272,13 +299,9 @@ export const SequenceTab = (): React.ReactElement => {
             )}
 
             {!isLastQuestion && nextQuestion && (
-              <p className="text-xs text-gray-500">
-                Next: {nextQuestion.asking.screen.title ?? "—"}
-              </p>
+              <p className="text-xs text-gray-500">Next: {nextQuestion.asking.screen.title ?? "—"}</p>
             )}
-            {isLastQuestion && (
-              <p className="text-xs text-gray-500 italic">Last step</p>
-            )}
+            {isLastQuestion && <p className="text-xs text-gray-500 italic">Last step</p>}
 
             <div className="flex gap-2">
               <button
@@ -301,9 +324,7 @@ export const SequenceTab = (): React.ReactElement => {
           </>
         )}
 
-        {error && (
-          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2">{error}</p>
-        )}
+        {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2">{error}</p>}
       </section>
     </div>
   );

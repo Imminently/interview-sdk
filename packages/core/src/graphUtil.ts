@@ -12,6 +12,13 @@ export interface AttributeGraphNode {
 export interface AttributeDescription {
   description: string;
   entity?: string;
+  /**
+   * False when a graph was loaded but had no node for this attribute. The client graph is
+   * pruned server-side to the active goal's dependency closure, so this usually means the
+   * attribute isn't wired into that goal (or the reference itself is wrong) rather than a
+   * client-side lookup bug. Undefined when there was no graph at all to check against.
+   */
+  foundInGraph?: boolean;
 }
 
 export const graphFromJSON = (json: string | object): Graph => {
