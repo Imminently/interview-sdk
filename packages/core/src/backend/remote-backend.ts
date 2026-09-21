@@ -10,7 +10,7 @@ import type {
   SimulateOptions,
   SubmitOptions,
 } from "../types";
-import { buildUrl } from "../util";
+import { buildUrl, normalizeSessionControls } from "../util";
 import { BaseInterviewBackend, type BaseInterviewBackendOptions } from "./backend";
 import { MockInterviewBackend } from "./mock-backend";
 
@@ -82,7 +82,7 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
       },
       sessionId ? { params: { session: sessionId } } : undefined,
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   load = async (options: SessionConfig) => {
@@ -97,7 +97,7 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
         params: { session: sessionId, interaction: interactionId },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   /**
@@ -110,7 +110,7 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
   submit = async (options: SubmitOptions) => {
     const request = buildRemoteInterviewSubmitRequest(options, this.options);
     const res = await this.api.patch<Session>(request.url, request.body, request.config);
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   /**
@@ -160,7 +160,7 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
         },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   back = async (options: BackOptions) => {
@@ -176,7 +176,7 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
         },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   simulate = async (options: SimulateOptions) => {
@@ -199,7 +199,7 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
         },
       },
     );
-    return res.data;
+    return normalizeSessionControls(res.data);
   };
 
   exportTimeline = async (options: ExportTimelineOptions) => {

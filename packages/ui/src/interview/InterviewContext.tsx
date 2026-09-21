@@ -1,5 +1,5 @@
 import { AttributeNestingProvider, OptionsProvider } from "@/providers";
-import type { Control, ManagerState, Session, SessionManager } from "@imminently/interview-sdk";
+import { type Control, decodeFormData, type ManagerState, type Session, type SessionManager } from "@imminently/interview-sdk";
 import { type PropsWithChildren, createContext, useContext, useId, useMemo, useSyncExternalStore } from "react";
 import { FormProvider, type UseFormProps, useForm } from "react-hook-form";
 import { type IconMap, type InterviewControls, type Theme, ThemeProvider } from "../providers/ThemeProvider";
@@ -148,7 +148,8 @@ export const InterviewProvider = ({ manager, children, className, ...config }: I
               formId={formId}
               form={form}
               className={className}
-              onSubmit={(data) => manager.next(data)}
+              // decode RHF-safe field names back to their canonical attribute text before the payload leaves the form
+              onSubmit={(data) => manager.next(decodeFormData(data))}
             >
               {children}
             </InterviewForm>

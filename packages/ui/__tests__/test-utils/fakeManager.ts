@@ -1,5 +1,12 @@
 import { mock } from "bun:test";
-import type { Control, Screen, Session, SessionManager, Validation } from "@imminently/interview-sdk";
+import {
+  type Control,
+  type Screen,
+  type Session,
+  type SessionManager,
+  type Validation,
+  baseAttributeId,
+} from "@imminently/interview-sdk";
 
 export type FakeManagerOptions = {
   session?: Partial<Session>;
@@ -74,6 +81,7 @@ export const createFakeManager = (opts: FakeManagerOptions = {}): SessionManager
     onFileTooBig: mock(() => {}),
     getConnectedData: mock(async () => []),
     templateText: (text: string) => text,
+    getExplanation: (attribute: string) => session.explanations?.[baseAttributeId(attribute)],
     createSubInterview: mock(async () => {}),
     ...opts.overrides,
   };

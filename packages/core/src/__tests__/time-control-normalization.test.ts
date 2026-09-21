@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ApiManager } from "../api-manager";
+import { RemoteInterviewBackend } from "../backend/remote-backend";
 import { normalizeSessionControls } from "../util";
 import type { Session } from "../types";
 
@@ -40,12 +40,22 @@ describe("time-control response normalization", () => {
   });
 
   test("normalizes API session responses before returning them", async () => {
-    const apiManager = new ApiManager({ host: "https://example.com" });
-    (apiManager as any).api = {
+    // RemoteInterviewBackend swaps itself for a MockInterviewBackend under
+    // NODE_ENV=test (bun test sets this), which would bypass the mocked `.api`
+    // below entirely. Clear it for construction so we exercise the real class.
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "not-test";
+    let backend: RemoteInterviewBackend;
+    try {
+      backend = new RemoteInterviewBackend({ host: "https://example.com" });
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+    (backend as any).api = {
       post: async () => ({ data: createSession("30") }),
     };
 
-    const session = await apiManager.create({ project: "model-1", release: "release-1" } as any);
+    const session = await backend.create({ project: "model-1", release: "release-1" } as any);
 
     expect((session.screen.controls[0] as any).minutes_increment).toBe(30);
   });

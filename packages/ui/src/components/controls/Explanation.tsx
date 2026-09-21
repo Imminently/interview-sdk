@@ -1,6 +1,5 @@
 import { useInterview } from "@/interview/InterviewContext";
 import { useTheme } from "@/providers";
-import { useAttributeToFieldName } from "@/util";
 import type {
   CertaintyContainerControl,
   Control,
@@ -41,16 +40,14 @@ export type ExplanationProps = {
 export const Explanation = (props: ExplanationProps) => {
   const { control, className } = props;
   const { t } = useTheme();
-  const { session } = useInterview();
+  const { manager } = useInterview();
   const showExplanation = (control as ExplanationControl).showExplanation;
 
-  // make sure we use just the attribute id, ie strip all the pathing
-  const attribute = useAttributeToFieldName(control.attribute);
+  // getExplanation resolves the base attribute node id and looks it up in the
+  // active session's explanations (keyed by that id, not the RHF field name).
+  const explanation = control.attribute ? manager.getExplanation(control.attribute) : undefined;
 
-  if (!showExplanation || !attribute) return null;
-
-  const explanation = session.explanations?.[attribute] || null;
-  if (!explanation) return null;
+  if (!showExplanation || !explanation) return null;
 
   return (
     <Popover>

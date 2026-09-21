@@ -3,6 +3,24 @@ import pako from "pako";
 
 export type Graph = graphlib.Graph & { _nodes: Record<string, any> };
 
+// graphlib's own node() typing is `any` - this is the shape every node in our graphs actually has.
+export interface AttributeGraphNode {
+  description?: string;
+  entity?: string;
+}
+
+export interface AttributeDescription {
+  description: string;
+  entity?: string;
+  /**
+   * False when a graph was loaded but had no node for this attribute. The client graph is
+   * pruned server-side to the active goal's dependency closure, so this usually means the
+   * attribute isn't wired into that goal (or the reference itself is wrong) rather than a
+   * client-side lookup bug. Undefined when there was no graph at all to check against.
+   */
+  foundInGraph?: boolean;
+}
+
 export const graphFromJSON = (json: string | object): Graph => {
   const graph = graphlib.json.read(typeof json === "string" ? JSON.parse(json) : json);
   return graph as Graph;
@@ -19,7 +37,7 @@ export const decompressGraph = (compressed: any) => {
  * @param graph A parsed graph instance
  */
 export const getAttributeText = (id: string, graph: Graph): string => {
-  const node = graph.node(id);
+  const node: AttributeGraphNode | undefined = graph.node(id);
   if (!node) return id;
   return node.description ?? id;
 };

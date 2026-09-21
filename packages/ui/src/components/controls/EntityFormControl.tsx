@@ -1,6 +1,11 @@
 import { AttributeNestingProvider, useTheme } from "@/providers";
 import { cn, parseNumericOption } from "@/util";
-import { type Control, type RenderableEntityControl, uuid } from "@imminently/interview-sdk";
+import {
+  type Control,
+  type RenderableEntityControl,
+  encodeFieldSegment,
+  generateEntityInstanceId,
+} from "@imminently/interview-sdk";
 import { Plus, Trash2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
@@ -17,10 +22,16 @@ export interface EntityFormControlProps {
 interface FieldControlProps {
   control: RenderableEntityControl;
   index: number;
-  parentPath?: string;
+  /** This instance's real `@id` (not the array index), used to build the backend-shaped path below. */
+  instanceId: string;
+  /**
+   * Raw, un-encoded "/"-delimited attribute path for this entity instance (e.g. "household/h1"),
+   * the same shape the backend itself would give - never a pre-resolved/encoded RHF field name.
+   */
+  parentAttributePath: string;
 }
 
-const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
+const FieldControl = ({ control, index, instanceId, parentAttributePath }: FieldControlProps) => {
   // First check if we have instances with controls for this specific field
   const instanceControls = control.instances?.[index]?.controls;
 
@@ -39,10 +50,15 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
 
       if ("attribute" in subControl || subControl.type === "entity") {
         // @ts-ignore subControl.entity is not always defined
-        const attrib = (subControl.attribute || subControl.entity)?.split("/").pop();
-        if (!attrib) return null;
+        const rawAttrib = (subControl.attribute || subControl.entity)?.split("/").pop();
+        if (!rawAttrib) return null;
 
-        const path = parentPath ? `${parentPath}.${index}.${attrib}` : `${control.entity}.${index}.${attrib}`;
+        // Build the raw attribute path the backend itself would use (entity/@id/attribute), not
+        // an RHF field name: attributeToFieldName does the encoding and @id -> index resolution
+        // centrally, once, when the leaf control resolves its own field name. Encoding here (or
+        // resolving to an index instead of the real @id) would only have to be undone downstream,
+        // and risked double-encoding a canonical name containing "." (or ' " [ ]).
+        const path = `${parentAttributePath}/${instanceId}/${rawAttrib}`;
 
         const childControl = {
           ...subControl,
@@ -73,7 +89,7 @@ const FieldControl = ({ control, index, parentPath }: FieldControlProps) => {
       console.warn("Unsupported instance control", subControl);
       return null;
     },
-    [control, index, parentPath],
+    [instanceId, parentAttributePath],
   );
 
   if (instanceControls && instanceControls.length > 0) {
@@ -97,8 +113,12 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
   // Effective initial count: at least min, but also respect an explicit default
   const effectiveDefault = Math.max(parsedMin ?? 0, parsedDefault ?? 0);
 
-  const parentPath = useAttributeToFieldName(control.attribute);
-  const fieldName = parentPath ?? control.entity;
+  const fieldName = useAttributeToFieldName(control.attribute) ?? encodeFieldSegment(control.entity);
+  // Raw, un-encoded attribute path prefix threaded to child controls. control.attribute is
+  // either this entity's own raw canonical/GUID reference (top-level), or the raw "/"-path an
+  // ancestor FieldControl already built for it (entity nested inside another entity) - either
+  // way it's never pre-encoded, so children can layer their own "/id/attribute" onto it directly.
+  const parentAttributePath = control.attribute ?? control.entity;
   // @ts-ignore check control as we will probably add readOnly in future
   const readOnly = control.readOnly;
 
@@ -124,9 +144,17 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
       // so every call overwrites the previous one and only the last item survives.
       // Passing an array lets react-hook-form add all items atomically from one base state.
       if (control.instances && control.instances.length > 0) {
-        append(control.instances.map((instance) => ({ "@id": instance.id || uuid() })));
+        append(
+          control.instances.map((instance, i) => ({
+            "@id": instance.id || generateEntityInstanceId(control.entity, i),
+          })),
+        );
       } else if (effectiveDefault > 0) {
-        append(Array.from({ length: effectiveDefault }, () => ({ "@id": uuid() })));
+        append(
+          Array.from({ length: effectiveDefault }, (_, i) => ({
+            "@id": generateEntityInstanceId(control.entity, i),
+          })),
+        );
       }
     }
   }, [control.instances, fields.length, initialized, effectiveDefault, append]);
@@ -146,11 +174,11 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
     if (!canAddMore) return;
 
     const newItem = {
-      "@id": uuid(),
+      "@id": generateEntityInstanceId(control.entity, fields.length),
     };
 
     append(newItem);
-  }, [canAddMore, append]);
+  }, [canAddMore, append, control.entity, fields.length]);
 
   const handleDelete = React.useCallback(
     (index: number) => {
@@ -174,14 +202,18 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
       data-name={fieldName}
     >
       {/* Header with label and add button */}
-      <div data-slot="entity-header" className="flex items-center justify-between">
-        {
-          control.label
-            ? (<Text variant="h6" asChild>
-              <label aria-label={t(control.label)}>{t(control.label)}</label>
-            </Text>)
-            : null
-        }
+      <div
+        data-slot="entity-header"
+        className="flex items-center justify-between"
+      >
+        {control.label ? (
+          <Text
+            variant="h6"
+            asChild
+          >
+            <label aria-label={t(control.label)}>{t(control.label)}</label>
+          </Text>
+        ) : null}
 
         {canAddMore && (
           <Button
@@ -205,7 +237,10 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
           <Text variant="body">{t("form.no_items")}</Text>
         </div>
       ) : (
-        <div data-slot="entity-list" className="flex flex-col gap-4">
+        <div
+          data-slot="entity-list"
+          className="flex flex-col gap-4"
+        >
           {/* Field items */}
           <AttributeNestingProvider value={true}>
             {fields.map((field, index) => {
@@ -227,11 +262,16 @@ export const EntityFormControl = ({ control, className }: EntityFormControlProps
                   />
 
                   {/* Field content */}
-                  <div data-slot="entity-controls" id={field.id} className="flex-1 space-y-4">
+                  <div
+                    data-slot="entity-controls"
+                    id={field.id}
+                    className="flex-1 space-y-4"
+                  >
                     <FieldControl
                       control={control}
                       index={index}
-                      parentPath={parentPath}
+                      instanceId={(field as any)["@id"]}
+                      parentAttributePath={parentAttributePath}
                     />
                   </div>
 

@@ -1,9 +1,10 @@
 import { useInterview } from "@/interview/InterviewContext";
 import { useDebugSettings, useTheme } from "@/providers";
 import { cn } from "@/util";
-import { type Control, displayValue } from "@imminently/interview-sdk";
+import { type Control, baseAttributeId, decodeFieldPath, displayValue } from "@imminently/interview-sdk";
 import type * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot as ReactSlot, type SlotProps } from "@radix-ui/react-slot";
+import { TriangleAlert } from "lucide-react";
 import * as React from "react";
 import {
   Controller,
@@ -14,8 +15,8 @@ import {
   useFormContext,
   useFormState,
 } from "react-hook-form";
+import { DebugTrigger } from "../debug/DebugTrigger";
 import { Label } from "./label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const Form = FormProvider;
 
@@ -97,67 +98,53 @@ type FormItemContextValue = {
 const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 
 export const FormItemDebug = () => {
-  const { t } = useTheme();
   const { debugEnabled } = useDebugSettings();
   const context = useInterview();
   const { control, formItemId, name } = useFormField();
   const { watch } = useFormContext();
-  const graph = React.useMemo(() => context.manager.parsedGraph, [context]);
   const val = watch(name);
 
+  // Bail before touching the manager's attribute lookup at all - not just before rendering -
+  // since that lookup shouldn't run (and, against a test double standing in for the real
+  // manager, may not even exist) when debug mode is off.
   if (!debugEnabled) {
     return null;
   }
 
-  const handleDebugClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      context.callbacks.onDebugControlClick?.(control, context);
-      return;
-    }
+  // Pull the attribute straight off the control rather than reverse-parsing the RHF field name:
+  // `name` is percent-encoded and, depending on flat vs nested form, "/" or "." delimited, while
+  // a canonical attribute name can itself contain a literal "." (only "/" separates entity-scoped
+  // path segments - see baseAttributeId). control.attribute is the raw, un-encoded reference the
+  // field name was derived from, so there's nothing to decode or carefully split here.
+  // biome-ignore lint/suspicious/noExplicitAny: not every control kind declares `attribute`
+  const rawAttribute: string | undefined = (control as any).attribute ?? (control as any).entity;
+  const attribute = rawAttribute ? baseAttributeId(rawAttribute) : name;
+  const decodedName = decodeFieldPath(name);
 
-    // default action is just console log the control
-    console.log("[DEBUG] Form control data", {
-      name,
-      formItemId,
-      control,
-    });
-  };
+  // The graph can have a node for a canonical-text attribute too (keyed by the text itself), so
+  // always try the lookup. A canonical-text attribute is still its own description when there's
+  // no node for it; a GUID with no node found is unknown. The manager owns that fallback logic
+  // entirely - this component just asks for an attribute's description/entity.
+  const { description, entity: nodeEntity, foundInGraph } = context.manager.describeAttribute(attribute);
+  const entity = nodeEntity ? `[${nodeEntity}]` : (control as any).entity ? `[${(control as any).entity}]` : undefined;
 
-  // name might be a path, separated by / or ., so we need to strip to just the id at the end for lookup in the graph
-  const attribute = name.split("/").pop()?.split(".").pop() ?? name;
-  const node = graph ? graph.node(attribute) : { description: "No graph", entity: "N/A" };
-  const entity = node?.entity
-    ? `[${node.entity}]`
-    : (control as any).entity
-      ? `[${(control as any).entity}]`
-      : undefined;
+  // The client graph is pruned server-side to the active goal's dependency closure, so a control
+  // with a real attribute reference but no matching node usually means that attribute isn't
+  // wired into the goal (rather than a bug here) - flag it, since the fallback text above reads
+  // identically to a genuinely-resolved description otherwise.
+  const missingFromGraph = foundInGraph === false;
 
-  // doing a weird fallback tooltip, as our translation layer fallbacks to the key
-  const defaultTooltip = "Click to log control to console. Shift+Click to trigger debug callback.";
-  const tooltipKey = "form.debugTooltip";
-  const tooltip = t(tooltipKey) !== tooltipKey ? t(tooltipKey) : defaultTooltip;
-
-  // add a tooltip that explains click vs shift+click
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div
-          tabIndex={-1}
-          onClick={handleDebugClick}
-          data-slot="debug-info"
-          className="flex flex-row gap-1 text-xs text-muted-foreground items-center cursor-pointer"
-        >
-          {entity ? <span>{entity}</span> : null}
-          <span>{node?.description ?? "-"}</span>
-          <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent>
+    <DebugTrigger
+      control={control}
+      logPayload={{ name, formItemId, control }}
+      className="flex flex-row gap-1 items-center"
+      tooltipContent={
         <dl className="mb-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
           <dt className="text-muted-foreground">Name</dt>
           <dd>{name}</dd>
+          <dt className="text-muted-foreground">Decoded Name</dt>
+          <dd>{decodedName}</dd>
           <dt className="text-muted-foreground">Form Item ID</dt>
           <dd>{formItemId}</dd>
           <dt className="text-muted-foreground">Control Type</dt>
@@ -165,13 +152,28 @@ export const FormItemDebug = () => {
           <dt className="text-muted-foreground">Control ID</dt>
           <dd>{control.id}</dd>
           <dt className="text-muted-foreground">Node Entity</dt>
-          <dd>{node?.entity ?? "N/A"}</dd>
+          <dd>{nodeEntity ?? "N/A"}</dd>
           <dt className="text-muted-foreground">Node Description</dt>
-          <dd>{node?.description ?? "N/A"}</dd>
+          <dd>{description}</dd>
+          {missingFromGraph && (
+            <>
+              <dt className="text-muted-foreground">Graph Node</dt>
+              <dd className="text-amber-600">Not found - likely not wired into the interview's active goal</dd>
+            </>
+          )}
         </dl>
-        <p>{tooltip}</p>
-      </TooltipContent>
-    </Tooltip>
+      }
+    >
+      {missingFromGraph && (
+        <TriangleAlert
+          size={11}
+          className="text-amber-600 shrink-0"
+        />
+      )}
+      {entity ? <span>{entity}</span> : null}
+      <span>{description}</span>
+      <div className="font-mono bg-accent rounded-lg p-1 ml-auto">{displayValue(val)}</div>
+    </DebugTrigger>
   );
 };
 

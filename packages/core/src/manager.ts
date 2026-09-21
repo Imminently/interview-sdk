@@ -7,7 +7,6 @@ import {
   RemoteInterviewBackend,
   type RemoteInterviewBackendOptions,
 } from "./backend/remote-backend";
-// import { back, chat, create, exportTimeline, load, navigate, postSimulate, submit } from "./api";
 import { type SidebarSimulate, requiresSimulation } from "./dynamic";
 import { FileManager, type FileManagerOptions } from "./file-manager";
 import {
@@ -33,15 +32,24 @@ import type {
   NavigateTarget,
 } from "./types";
 import {
+  baseAttributeId,
   createEntityPathedData,
   deepClone,
   flattenObject,
+  isGuidShaped,
   iterateControls,
   postProcessControl,
   transformResponse,
 } from "./util";
 import { replaceTemplatedText } from "./helpers";
-import { decompressGraph, graphFromJSON } from "./graphUtil";
+import {
+  type AttributeDescription,
+  type AttributeGraphNode,
+  type Graph,
+  decompressGraph,
+  getAttributeText as getGraphAttributeText,
+  graphFromJSON,
+} from "./graphUtil";
 import { type GeneratePlaywrightTestOptions, exportTransformTimeline, generatePlaywrightTestCode } from "./playwright-test-generator";
 import { constructInputFromPreProcessed } from "./dynamic/constructInput";
 
@@ -244,6 +252,9 @@ interface ClientGraphBookmarkData {
 
 type StoredSessionConfig = SessionConfig;
 
+/** ISO timestamp with colons replaced, since `:` is not allowed in Windows filenames. */
+const filenameTimestamp = () => new Date().toISOString().replace(/:/g, "-");
+
 const getClientGraphForSession = (session: Session) => {
   if (!session?.clientGraph && !session?.decompressedClientGraph) {
     return undefined;
@@ -282,6 +293,7 @@ export class SessionManager {
   private backend: InterviewBackend;
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
+  private parsedGraphCache?: { raw: unknown; graph: Graph };
   private sessionConfigs: Record<string, StoredSessionConfig>;
   readonly events: ManagerLifecycle;
 
@@ -835,7 +847,39 @@ export class SessionManager {
     if (!raw) {
       return null;
     }
-    return graphFromJSON(raw);
+    // clientGraph returns the same decompressed reference for as long as the session's
+    // graph is unchanged, so keying the cache on it avoids reparsing on every access.
+    if (!this.parsedGraphCache || this.parsedGraphCache.raw !== raw) {
+      this.parsedGraphCache = { raw, graph: graphFromJSON(raw) };
+    }
+    return this.parsedGraphCache.graph;
+  }
+
+  /** The graph node for an attribute, if a graph is loaded and a node exists for it. */
+  findAttributeNode(attribute: string): AttributeGraphNode | undefined {
+    return this.parsedGraph?.node(attribute);
+  }
+
+  /** An attribute's description text, falling back to the attribute id itself. */
+  getAttributeText(attribute: string): string {
+    const graph = this.parsedGraph;
+    return graph ? getGraphAttributeText(attribute, graph) : attribute;
+  }
+
+  /**
+   * Description + entity for an attribute, for debug UI. Falls back to "-" for a GUID-shaped
+   * id with no matching node (nothing meaningful to show), or the raw id otherwise. See
+   * AttributeDescription.foundInGraph for what a missing node usually means.
+   */
+  describeAttribute(attribute: string): AttributeDescription {
+    if (!this.parsedGraph) {
+      return { description: "No graph" };
+    }
+    const node = this.findAttributeNode(attribute);
+    if (node) {
+      return { description: node.description ?? attribute, entity: node.entity, foundInGraph: true };
+    }
+    return { description: isGuidShaped(attribute) ? "-" : attribute, foundInGraph: false };
   }
 
   get canProgress() {
@@ -855,8 +899,10 @@ export class SessionManager {
 
   getExplanation = (attribute: string) => {
     if (!this.activeSession) return undefined;
-    const id = attribute.split(".").pop();
-    return id && this.activeSession.explanations?.[id];
+    // `explanations` is keyed by the base attribute node id (the last "/"-segment
+    // of the path), not the whole path and not a "."-split of a canonical name.
+    const id = baseAttributeId(attribute);
+    return id ? this.activeSession.explanations?.[id] : undefined;
   };
 
   // get screen() {
@@ -1440,7 +1486,7 @@ export class SessionManager {
 
     try {
       element.href = url;
-      element.download = fileName ?? `Sequence - ${this.activeSession?.interviewId || "Interview"} (${new Date().toISOString()}).json`;
+      element.download = fileName ?? `Sequence - ${this.activeSession?.interviewId || "Interview"} (${filenameTimestamp()}).json`;
       document.body.appendChild(element);
       element.click();
     } catch (error) {
@@ -1480,7 +1526,37 @@ export class SessionManager {
     const element = document.createElement("a");
     try {
       element.href = url;
-      element.download = fileName ?? `interview-${session?.interviewId || "test"} (${new Date().toISOString()}).spec.ts`;
+      element.download = fileName ?? `interview-${session?.interviewId || "test"} (${filenameTimestamp()}).spec.ts`;
+      document.body.appendChild(element);
+      element.click();
+    } finally {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  downloadGraph = (fileName?: string): void => {
+    if (!this.activeSession) {
+      console.warn(LogGroup, "No active session to export graph from");
+      throw new Error("No active session to export graph from");
+    }
+    const graph = this.clientGraph;
+    if (!graph) {
+      throw new Error("No graph available for this session");
+    }
+    if (typeof document === "undefined") {
+      throw new Error("Graph download requires a browser environment");
+    }
+
+    const blob = new Blob([JSON.stringify(graph, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const element = document.createElement("a");
+
+    try {
+      element.href = url;
+      element.download = fileName ?? `Graph - ${this.activeSession.interviewId || "Interview"} (${filenameTimestamp()}).json`;
       document.body.appendChild(element);
       element.click();
     } finally {
