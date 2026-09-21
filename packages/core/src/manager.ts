@@ -45,6 +45,7 @@ import { replaceTemplatedText } from "./helpers";
 import {
   type AttributeDescription,
   type AttributeGraphNode,
+  type Graph,
   decompressGraph,
   getAttributeText as getGraphAttributeText,
   graphFromJSON,
@@ -251,6 +252,9 @@ interface ClientGraphBookmarkData {
 
 type StoredSessionConfig = SessionConfig;
 
+/** ISO timestamp with colons replaced, since `:` is not allowed in Windows filenames. */
+const filenameTimestamp = () => new Date().toISOString().replace(/:/g, "-");
+
 const getClientGraphForSession = (session: Session) => {
   if (!session?.clientGraph && !session?.decompressedClientGraph) {
     return undefined;
@@ -289,6 +293,7 @@ export class SessionManager {
   private backend: InterviewBackend;
   private fileManager: FileManager;
   private snapCache?: SessionSnapshot;
+  private parsedGraphCache?: { raw: unknown; graph: Graph };
   private sessionConfigs: Record<string, StoredSessionConfig>;
   readonly events: ManagerLifecycle;
 
@@ -842,7 +847,12 @@ export class SessionManager {
     if (!raw) {
       return null;
     }
-    return graphFromJSON(raw);
+    // clientGraph returns the same decompressed reference for as long as the session's
+    // graph is unchanged, so keying the cache on it avoids reparsing on every access.
+    if (!this.parsedGraphCache || this.parsedGraphCache.raw !== raw) {
+      this.parsedGraphCache = { raw, graph: graphFromJSON(raw) };
+    }
+    return this.parsedGraphCache.graph;
   }
 
   /** The graph node for an attribute, if a graph is loaded and a node exists for it. */
@@ -1476,7 +1486,7 @@ export class SessionManager {
 
     try {
       element.href = url;
-      element.download = fileName ?? `Sequence - ${this.activeSession?.interviewId || "Interview"} (${new Date().toISOString()}).json`;
+      element.download = fileName ?? `Sequence - ${this.activeSession?.interviewId || "Interview"} (${filenameTimestamp()}).json`;
       document.body.appendChild(element);
       element.click();
     } catch (error) {
@@ -1516,7 +1526,7 @@ export class SessionManager {
     const element = document.createElement("a");
     try {
       element.href = url;
-      element.download = fileName ?? `interview-${session?.interviewId || "test"} (${new Date().toISOString()}).spec.ts`;
+      element.download = fileName ?? `interview-${session?.interviewId || "test"} (${filenameTimestamp()}).spec.ts`;
       document.body.appendChild(element);
       element.click();
     } finally {
@@ -1546,7 +1556,7 @@ export class SessionManager {
 
     try {
       element.href = url;
-      element.download = fileName ?? `Graph - ${this.activeSession.interviewId || "Interview"} (${new Date().toISOString()}).json`;
+      element.download = fileName ?? `Graph - ${this.activeSession.interviewId || "Interview"} (${filenameTimestamp()}).json`;
       document.body.appendChild(element);
       element.click();
     } finally {
