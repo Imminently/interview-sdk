@@ -1,5 +1,16 @@
 # @imminently/interview-ui
 
+## 5.2.0
+
+### Minor Changes
+
+- Updating to changeset for publishing
+
+### Patch Changes
+
+- Updated dependencies
+  - @imminently/interview-sdk@5.2.0
+
 ## 5.1.0
 
 ### Minor Changes

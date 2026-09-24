@@ -1,5 +1,11 @@
 # @imminently/interview-sdk
 
+## 5.2.0
+
+### Minor Changes
+
+- Updating to changeset for publishing
+
 ## 5.1.0
 
 ### Minor Changes
