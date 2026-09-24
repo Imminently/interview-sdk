@@ -110,15 +110,14 @@ bun run lint
 # Clean all build artifacts
 bun run clean
 
-# Publish patch versions
-bun run publish:patch
+# Pick a bump (patch/minor/major), version, build, and publish core and ui (via Changesets)
+bun run publish:sdk
 
-# Publish aligned minor versions for core and ui
-bun run publish:minor
-
-# Publish aligned major versions for core and ui
-bun run publish:major
+# Same flow with `npm publish --dry-run`, then reverts the version bump/changelog
+bun run publish:sdk:dry-run
 ```
+
+Publishing needs `GIT_TOKEN` set for GitHub Packages auth (see `.npmrc`). Core and ui are in a Changesets `fixed` group, so they are always released at the same version. See [.changeset/README.md](.changeset/README.md).
 
 ## Architecture
 
