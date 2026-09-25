@@ -1,6 +1,6 @@
 {
   "name": "@imminently/interview-sdk",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "repository": {
     "type": "git",
     "url": "git://github.com/imminently/interview-sdk.git"
@@ -29,9 +29,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "bun test",
-    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "bump:patch": "bun run build && node ../../scripts/bump-patch.js",
-    "deploy": "bun run bump:patch && bun publish"
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
     "@dagrejs/graphlib": "^2.2.4",
