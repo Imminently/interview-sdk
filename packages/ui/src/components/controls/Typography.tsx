@@ -70,16 +70,11 @@ export interface TypographyControlProps {
   control: TypographyControl;
 }
 
+// Only mounted by Typography when debug mode is on, so the interview context (and the manager's
+// attribute lookup) is never touched otherwise. This keeps Typography renderable outside an
+// InterviewProvider, e.g. as a static preview in the interview designer.
 const TypographyDebug = ({ name, control }: { name?: string; control: TypographyControl }) => {
-  const { debugEnabled } = useDebugSettings();
   const context = useInterview();
-
-  // Bail before touching the manager's attribute lookup at all - not just before rendering -
-  // since that lookup shouldn't run (and, against a test double standing in for the real
-  // manager, may not even exist) when debug mode is off.
-  if (!debugEnabled) {
-    return null;
-  }
 
   // control.attribute is a raw, un-encoded reference that may be "/"-scoped to an entity (e.g.
   // "household/h1/the company inc. revenue") - baseAttributeId strips that scoping without
@@ -121,6 +116,7 @@ export const Typography = ({ control }: TypographyControlProps) => {
   // merge is a bit weird here, as we actually would want to merge the cva variants
   // const { merge } = useTheme();
   const { t } = useTheme();
+  const { debugEnabled } = useDebugSettings();
   const variant: TextVariant = control.style || "body1";
   const Comp: React.ElementType = componentMap[variant] ?? "div";
 
@@ -138,10 +134,12 @@ export const Typography = ({ control }: TypographyControlProps) => {
   if (control.label) {
     return (
       <>
-        <TypographyDebug
-          name={control.attribute}
-          control={control}
-        />
+        {debugEnabled ? (
+          <TypographyDebug
+            name={control.attribute}
+            control={control}
+          />
+        ) : null}
         <FormField
           name={control.attribute ?? control.id}
           data={control}
@@ -157,10 +155,12 @@ export const Typography = ({ control }: TypographyControlProps) => {
 
   return (
     <>
-      <TypographyDebug
-        name={control.attribute}
-        control={control}
-      />
+      {debugEnabled ? (
+        <TypographyDebug
+          name={control.attribute}
+          control={control}
+        />
+      ) : null}
       {component}
     </>
   );

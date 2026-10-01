@@ -1,5 +1,12 @@
 # @imminently/interview-ui
 
+## 5.2.1
+
+### Patch Changes
+
+- Fix `Controls.Typography` throwing "useInterview must be used within InterviewProvider" when rendered outside an interview (e.g. as a static preview in the Decisively interview designer). The debug overlay is now only mounted when debug mode is on, so the interview context is no longer read otherwise. This restores the 4.x behaviour that regressed in 5.1.0.
+- @imminently/interview-sdk@5.2.1
+
 ## 5.2.0
 
 ### Minor Changes

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { Controls, ThemeProvider } from "../../src";
 import { typographyControl } from "../test-utils/fixtures";
 import { renderControl } from "../test-utils/renderControl";
 
@@ -34,5 +35,17 @@ describe("Typography render", () => {
   test("renders no label wrapper when the control has no label", () => {
     renderControl(typographyControl({ label: undefined }));
     expect(document.querySelector("label")).not.toBeInTheDocument();
+  });
+
+  // Hosts like the portal's interview designer render Typography as a static preview with only
+  // a ThemeProvider. With debug off, nothing should reach for the interview context, so this
+  // must render instead of throwing "useInterview must be used within InterviewProvider".
+  test("renders outside an InterviewProvider when debug is off", () => {
+    render(
+      <ThemeProvider>
+        <Controls.Typography control={typographyControl({ style: "h3", text: "Preview heading" })} />
+      </ThemeProvider>,
+    );
+    expect(screen.getByText("Preview heading").tagName).toBe("H3");
   });
 });
