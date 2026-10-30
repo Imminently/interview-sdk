@@ -1,5 +1,5 @@
 import merge from "lodash/merge.js";
-import { decompressGraph } from "../graphUtil";
+import { clientReleaseGraph, clientRuleGraph } from "../graphUtil";
 import type { InterviewTimeline } from "../playwright-test-generator";
 import type {
   BackOptions,
@@ -134,6 +134,8 @@ export type LocalEngineSession = {
   scheduled?: unknown;
   lastInteractionId?: string;
   clientGraph?: Session["clientGraph"];
+  /** The client graph as a decision graph, in place of `clientGraph` (decisionapi sends it when asked). */
+  clientDecisionGraph?: Session["clientDecisionGraph"];
   clientGraphBookmark?: Session["clientGraphBookmark"];
 };
 
@@ -444,6 +446,7 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
       state: this.toLocalEngineState(session.state),
       indices: config.index,
       clientGraph: session.clientGraph,
+      clientDecisionGraph: session.clientDecisionGraph,
       clientGraphBookmark: session.clientGraphBookmark,
     };
     this.interaction = {
@@ -781,7 +784,8 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
       },
       String(options.sessionConfig.release ?? this.releaseData.id ?? "local-release"),
       this.getExternalData(),
-      {},
+      // the session's state: what this solve continues from (the engine reads it from this argument)
+      this.session.state ?? null,
     );
   }
 
@@ -800,7 +804,10 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
     return {
       getRelease: () => ({
         ...this.releaseData,
-        rule_graph: this.getRuleGraphForLocalSolve(),
+        // the client graph's decision graph bytes when the session has one, otherwise its JSON
+        ...(this.session?.clientDecisionGraph
+          ? clientReleaseGraph(this.session)
+          : { rule_graph: this.getRuleGraphForLocalSolve() }),
       }),
       getInterview: (interviewId: string) => this.findInterview(interviewId) ?? null,
       findMapping: () => null,
@@ -810,15 +817,15 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
   }
 
   private getRuleGraphForLocalSolve() {
-    const clientGraph = this.session?.clientGraph;
-    if (!clientGraph) {
+    const session = this.session;
+    if (!session?.clientGraph && !session?.clientDecisionGraph) {
       return this.releaseData.rule_graph;
     }
 
     try {
-      return decompressGraph(clientGraph);
+      return clientRuleGraph(session);
     } catch {
-      return clientGraph;
+      return session.clientGraph;
     }
   }
 
@@ -874,6 +881,8 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
       state: solveResult.sessionUpdate?.state ?? this.session.state,
       lastInteractionId: this.interaction.id,
       clientGraph: interviewResult.clientGraph ?? this.session.clientGraph,
+      // the engine's new client graph (JSON) replaces the one decisionapi sent as a decision graph
+      clientDecisionGraph: interviewResult.clientGraph ? undefined : this.session.clientDecisionGraph,
       clientGraphBookmark: interviewResult.clientGraphBookmark ?? this.session.clientGraphBookmark,
     };
 
@@ -924,6 +933,8 @@ export class LocalInterviewBackend extends BaseInterviewBackend {
       locale: this.sessionMeta?.locale ?? this.releaseData.locale,
       validations: solveResult.validations ?? this.sessionMeta?.validations,
       clientGraph: interviewResult.clientGraph ?? this.session.clientGraph,
+      // the engine's new client graph (JSON) replaces the one decisionapi sent as a decision graph
+      clientDecisionGraph: interviewResult.clientGraph ? undefined : this.session.clientDecisionGraph,
       clientGraphBookmark: interviewResult.clientGraphBookmark ?? this.session.clientGraphBookmark,
       relationships: this.releaseData.relationships,
       preProcessedState: interviewResult.preProcessedState,

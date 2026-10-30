@@ -36,7 +36,7 @@ export const buildRemoteInterviewSubmitRequest = (
   options: SubmitOptions,
   backendOptions: Pick<RemoteInterviewBackendOptions, "apiGetters"> = {},
 ): RemoteInterviewSubmitRequest => {
-  const { session, data, navigate, overrides, clientGraphBookmark, localInterview } = options;
+  const { session, data, navigate, overrides, clientGraphBookmark, clientGraphFormat, localInterview } = options;
   const url = backendOptions.apiGetters?.submit
     ? backendOptions.apiGetters.submit(options)
     : buildUrl(session.model, session.release);
@@ -48,6 +48,7 @@ export const buildRemoteInterviewSubmitRequest = (
       navigate: navigate || undefined,
       index: session.index,
       clientGraphBookmark,
+      clientGraphFormat,
       localInterview,
       readOnly: options.readOnly,
       ...overrides,
