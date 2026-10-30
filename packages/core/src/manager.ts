@@ -3,6 +3,7 @@ import isEmpty from "lodash/isEmpty.js";
 import isEqual from "lodash/isEqual.js";
 import set from "lodash/set.js";
 import { INTERVIEW_BACKEND_BRAND, type InterviewBackend } from "./backend/backend";
+import { createCorrelationId } from "./backend/correlation";
 import {
   RemoteInterviewBackend,
   type RemoteInterviewBackendOptions,
@@ -123,8 +124,8 @@ interface SessionInternal {
 
   sidebarSimulate: SidebarSimulate | undefined;
 
-  // we only care about the latest request
-  latestRequest: number | undefined;
+  // correlation id of the latest dynamic request, we only care about its response
+  latestRequest: string | undefined;
 
   // progress tracking
   canProgress: boolean;
@@ -1076,7 +1077,7 @@ export class SessionManager {
       return;
     }
     const { state, locale, data, screen } = this.activeSession;
-    this.internals.latestRequest = Date.now();
+    this.internals.latestRequest = createCorrelationId();
 
     if (state && screen) {
       this.log("Checking for changes", this.internals.prevUserValues, this.internals.userValues);
@@ -1186,6 +1187,7 @@ export class SessionManager {
 
     const result = await this.backend.simulate({
       session: this.activeSession,
+      correlationId: requestId,
       payload: {
         goal: this.activeSession.goal,
         response: [

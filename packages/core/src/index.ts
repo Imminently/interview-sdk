@@ -1,6 +1,7 @@
 // core library files
 export * from "./api-manager";
 export * from "./backend/backend";
+export * from "./backend/correlation";
 export * from "./backend/remote-backend";
 export * from "./backend/local-backend";
 export * from "./backend/mock-backend";

@@ -12,6 +12,7 @@ import type {
 } from "../types";
 import { buildUrl, normalizeSessionControls } from "../util";
 import { BaseInterviewBackend, type BaseInterviewBackendOptions } from "./backend";
+import { assertCorrelated, createCorrelationId, withCorrelation } from "./correlation";
 import { MockInterviewBackend } from "./mock-backend";
 
 export type RemoteInterviewBackendOptions = BaseInterviewBackendOptions;
@@ -68,21 +69,38 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
     }
   }
 
+  /**
+   * Sends a session request tagged with a correlation id (header and query param), so the browser and any proxy
+   * treat it as unique, and checks the id the server echoes back matches.
+   */
+  private send = async <T>(
+    method: "post" | "patch",
+    url: string,
+    body: unknown,
+    params?: Record<string, string | undefined>,
+    correlationId: string = createCorrelationId(),
+  ): Promise<T> => {
+    const res = await this.api[method]<T>(url, body, withCorrelation(correlationId, { params }));
+    assertCorrelated(correlationId, res);
+    return res.data;
+  };
+
   create = async (options: SessionConfig) => {
     const { initialData, project, release, response, sessionId, ...rest } = options;
 
     const url = this.options.apiGetters?.create ? this.options.apiGetters.create(options) : buildUrl(project, release);
 
-    const res = await this.api.post<Session>(
+    const res = await this.send<Session>(
+      "post",
       url,
       {
         data: initialData ?? {},
         response,
         ...rest,
       },
-      sessionId ? { params: { session: sessionId } } : undefined,
+      sessionId ? { session: sessionId } : undefined,
     );
-    return normalizeSessionControls(res.data);
+    return normalizeSessionControls(res);
   };
 
   load = async (options: SessionConfig) => {
@@ -90,14 +108,13 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
 
     const url = this.options.apiGetters?.load ? this.options.apiGetters.load(options) : buildUrl(project);
 
-    const res = await this.api.patch<Session>(
+    const res = await this.send<Session>(
+      "patch",
       url,
       { data: initialData ?? {}, response, clientGraphBookmark, ...rest },
-      {
-        params: { session: sessionId, interaction: interactionId },
-      },
+      { session: sessionId, interaction: interactionId },
     );
-    return normalizeSessionControls(res.data);
+    return normalizeSessionControls(res);
   };
 
   /**
@@ -109,8 +126,8 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
    */
   submit = async (options: SubmitOptions) => {
     const request = buildRemoteInterviewSubmitRequest(options, this.options);
-    const res = await this.api.patch<Session>(request.url, request.body, request.config);
-    return normalizeSessionControls(res.data);
+    const res = await this.send<Session>("patch", request.url, request.body, request.config.params);
+    return normalizeSessionControls(res);
   };
 
   /**
@@ -122,7 +139,8 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
 
     const url = this.options.apiGetters?.chat ? this.options.apiGetters.chat(options) : buildUrl(session.model);
 
-    const res = await this.api[resolvedInteractionId ? "patch" : "post"]<ChatResponse>(
+    return this.send<ChatResponse>(
+      resolvedInteractionId ? "patch" : "post",
       url,
       {
         prompt: message,
@@ -133,13 +151,10 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
         ...overrides,
       },
       {
-        params: {
-          session: session.sessionId,
-          interaction: resolvedInteractionId || undefined,
-        },
+        session: session.sessionId,
+        interaction: resolvedInteractionId || undefined,
       },
     );
-    return res.data;
   };
 
   /**
@@ -150,42 +165,41 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
   navigate = async (options: NavigateOptions) => {
     const { session, step, overrides } = options;
     const url = this.options.apiGetters?.navigate ? this.options.apiGetters.navigate(options) : buildUrl(session.model);
-    const res = await this.api.patch<Session>(
+    const res = await this.send<Session>(
+      "patch",
       url,
       { navigate: step, readOnly: options.readOnly, ...overrides },
       {
-        params: {
-          session: session.sessionId,
-          interaction: session.interactionId,
-        },
+        session: session.sessionId,
+        interaction: session.interactionId,
       },
     );
-    return normalizeSessionControls(res.data);
+    return normalizeSessionControls(res);
   };
 
   back = async (options: BackOptions) => {
     const { session, overrides } = options;
     const url = this.options.apiGetters?.back ? this.options.apiGetters.back(options) : buildUrl(session.model);
-    const res = await this.api.patch<Session>(
+    const res = await this.send<Session>(
+      "patch",
       url,
       { navigate: "@back", readOnly: options.readOnly, ...overrides },
       {
-        params: {
-          session: session.sessionId,
-          interaction: session.interactionId,
-        },
+        session: session.sessionId,
+        interaction: session.interactionId,
       },
     );
-    return normalizeSessionControls(res.data);
+    return normalizeSessionControls(res);
   };
 
   simulate = async (options: SimulateOptions) => {
-    const { session, payload } = options;
+    const { session, payload, correlationId } = options;
     const url = this.options.apiGetters?.simulate
       ? this.options.apiGetters.simulate(options)
       : buildUrl(session.model, session.release);
     // Dynamic interactions are now on a post (due to new interaction behaviour in backend)
-    const res = await this.api.post<Session>(
+    const res = await this.send<Session>(
+      "post",
       url,
       {
         mode: "api",
@@ -193,13 +207,12 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
         ...payload,
       },
       {
-        params: {
-          session: session.sessionId,
-          interaction: session.interactionId,
-        },
+        session: session.sessionId,
+        interaction: session.interactionId,
       },
+      correlationId,
     );
-    return normalizeSessionControls(res.data);
+    return normalizeSessionControls(res);
   };
 
   exportTimeline = async (options: ExportTimelineOptions) => {
@@ -207,18 +220,16 @@ export class RemoteInterviewBackend extends BaseInterviewBackend {
     const url = this.options.apiGetters?.exportTimeline
       ? this.options.apiGetters.exportTimeline(options)
       : buildUrl(session.model);
-    const res = await this.api.post<InterviewTimeline>(
+    return this.send<InterviewTimeline>(
+      "post",
       url,
       {
         exportTimeline: true,
       },
       {
-        params: {
-          session: session.sessionId,
-          interaction: session.interactionId,
-        },
+        session: session.sessionId,
+        interaction: session.interactionId,
       },
     );
-    return res.data;
   };
 }
