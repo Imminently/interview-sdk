@@ -367,6 +367,8 @@ export interface SimulateOptions {
   session: Session;
   /** Payload passed through to simulation API. Can be Simulate or partial additional fields */
   payload: Partial<Simulate> | Record<string, any>;
+  /** Id to tag the request with, so the caller can tell which request a response belongs to. Generated if omitted. */
+  correlationId?: string;
 }
 
 export interface ExportTimelineOptions {
