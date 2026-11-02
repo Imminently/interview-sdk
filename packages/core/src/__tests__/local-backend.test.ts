@@ -370,6 +370,66 @@ describe("LocalInterviewBackend", () => {
     expect(session.interviewId).toBe("interview-1");
   });
 
+  it("gives the engine a clientDecisionGraph's bytes, until a local solve sends a new client graph", async () => {
+    const { releaseGraphToDecisionGraph, toResponseDecisionGraph, toStoredDecisionGraph } = await import("@imminently/decisively-core");
+    const ruleGraph = { nodes: [{ v: "goal-1", value: { id: "goal-1", description: "the goal" } }], edges: [] };
+    const clientDecisionGraph = toResponseDecisionGraph(toStoredDecisionGraph(releaseGraphToDecisionGraph(ruleGraph))) as any;
+    const releases: any[] = [];
+    const storageState: { current?: LocalInterviewBackendStoredState } = {};
+    const backend = new LocalInterviewBackend({
+      host: "https://api.example.com",
+      storage: {
+        load: () => storageState.current,
+        save: (nextState: LocalInterviewBackendStoredState) => {
+          storageState.current = nextState;
+        },
+      },
+      rulesEngine: {
+        solve: async (_payload, _cacheKey, externalData) => {
+          releases.push(externalData.getRelease());
+          // the local engine's next screen comes with its own client graph (deflated JSON)
+          return createSolveResult({ data: { localAnswer: "yes" }, clientGraph: [1, 2, 3] });
+        },
+      },
+    });
+    const remoteSession = createSession({ clientDecisionGraph } as any);
+    backend.storeSessionSnapshot(remoteSession, { project: "model-1", release: "release-1", interview: "interview-1", goal: "goal-1" });
+
+    await backend.submit({ session: remoteSession, data: attributeData({ answer: "yes" }), navigate: true });
+
+    expect(releases[0].ruleGraphDecisionGraph).toBeInstanceOf(Uint8Array);
+    expect(releases[0].rule_graph).toBeUndefined();
+    expect(storageState.current?.session?.clientGraph).toEqual([1, 2, 3]);
+    expect(storageState.current?.session?.clientDecisionGraph).toBeUndefined();
+  });
+
+  it("passes the session's state to the engine as the state the solve continues from", async () => {
+    const solveStates: unknown[] = [];
+    const storageState: { current?: LocalInterviewBackendStoredState } = {};
+    const backend = new LocalInterviewBackend({
+      host: "https://api.example.com",
+      storage: {
+        load: () => storageState.current,
+        save: (nextState: LocalInterviewBackendStoredState) => {
+          storageState.current = nextState;
+        },
+      },
+      rulesEngine: {
+        solve: async (_payload, _cacheKey, _externalData, state) => {
+          solveStates.push(state);
+          return createSolveResult({ data: { localAnswer: "yes" } });
+        },
+      },
+    });
+    const state = { nodes: { "goal-1": { value: true } } };
+    const remoteSession = createSession({ clientGraph: "server-client-graph", state } as any);
+    backend.storeSessionSnapshot(remoteSession, { project: "model-1", release: "release-1", interview: "interview-1", goal: "goal-1" });
+
+    await backend.submit({ session: remoteSession, data: attributeData({ answer: "yes" }), navigate: true });
+
+    expect(solveStates).toEqual([state]);
+  });
+
   it("stores a remote-created local interview snapshot explicitly before local page turns", async () => {
     const solveData: unknown[] = [];
     const storageState: { current?: LocalInterviewBackendStoredState } = {};

@@ -249,6 +249,8 @@ export interface Session {
   locale?: string;
   validations?: Validation[];
   clientGraph?: string;
+  /** The client graph as a decision graph (`clientGraphFormat: "decisionGraph"`), in place of `clientGraph`. */
+  clientDecisionGraph?: { decisionGraph: string; encoding?: "deflate" };
   clientGraphBookmark?: string;
   localReleaseData?: Record<string, unknown>;
   __deprecatedSessionData?: Record<string, unknown>;
@@ -331,6 +333,8 @@ export interface SubmitOptions {
   navigate?: Navigate;
   overrides?: Overrides;
   clientGraphBookmark?: string;
+  /** The client graph format to ask for (CLIENT_GRAPH_FORMAT). */
+  clientGraphFormat?: string;
   /** Local interview state to sync with the server when local page turns are persisted. */
   localInterview?: {
     steps?: Step[];

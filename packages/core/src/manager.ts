@@ -44,6 +44,10 @@ import {
 } from "./util";
 import { replaceTemplatedText } from "./helpers";
 import {
+  CLIENT_GRAPH_FORMAT,
+  clientReleaseGraph,
+  clientRuleGraph,
+  legacyDebugGraph,
   type AttributeDescription,
   type AttributeGraphNode,
   type Graph,
@@ -248,7 +252,8 @@ export const updateReportingWithReplacements = (reporting: any, replacements: an
 
 interface ClientGraphBookmarkData {
   id: string;
-  clientGraph: any;
+  clientGraph?: any;
+  clientDecisionGraph?: Session["clientDecisionGraph"];
 }
 
 type StoredSessionConfig = SessionConfig;
@@ -257,12 +262,13 @@ type StoredSessionConfig = SessionConfig;
 const filenameTimestamp = () => new Date().toISOString().replace(/:/g, "-");
 
 const getClientGraphForSession = (session: Session) => {
-  if (!session?.clientGraph && !session?.decompressedClientGraph) {
+  if (!session?.clientGraph && !session?.clientDecisionGraph && !session?.decompressedClientGraph) {
     return undefined;
   }
 
   if (!session.decompressedClientGraph) {
-    session.decompressedClientGraph = decompressGraph(session.clientGraph);
+    // from either form: clientDecisionGraph (asked for with clientGraphFormat) or clientGraph
+    session.decompressedClientGraph = clientRuleGraph(session);
   }
 
   return session.decompressedClientGraph;
@@ -650,7 +656,7 @@ export class SessionManager {
 
   private handleClientGraphBookmark(session: Session) {
     if (session.clientGraphBookmark) {
-      if (!session.clientGraph) {
+      if (!session.clientGraph && !session.clientDecisionGraph) {
         const bookmarkRaw = sessionStorage.getItem(BOOKMARK_KEY);
         if (!bookmarkRaw) {
           return;
@@ -659,6 +665,7 @@ export class SessionManager {
         const bookmarkData = JSON.parse(bookmarkRaw) as ClientGraphBookmarkData;
         if (bookmarkData.id === session.clientGraphBookmark) {
           session.clientGraph = bookmarkData.clientGraph;
+          session.clientDecisionGraph = bookmarkData.clientDecisionGraph;
           this.log("Loaded client graph from bookmark", {
             id: session.clientGraphBookmark,
           });
@@ -671,6 +678,7 @@ export class SessionManager {
           BOOKMARK_KEY,
           JSON.stringify({
             clientGraph: session.clientGraph,
+            clientDecisionGraph: session.clientDecisionGraph,
             id: session.clientGraphBookmark,
           } satisfies ClientGraphBookmarkData),
         );
@@ -688,6 +696,7 @@ export class SessionManager {
       const session = await this.backend.create({
         ...config,
         clientGraphBookmark: this.getClientGraphBookmark(),
+        clientGraphFormat: CLIENT_GRAPH_FORMAT,
         readOnly: this.options.readOnly,
       });
       this.setSessionConfig(session.sessionId, config);
@@ -724,6 +733,7 @@ export class SessionManager {
       const session = await this.backend.load({
         ...config,
         clientGraphBookmark: this.getClientGraphBookmark(),
+        clientGraphFormat: CLIENT_GRAPH_FORMAT,
         readOnly: this.options.readOnly,
       });
       this.setSessionConfig(session.sessionId, config);
@@ -986,7 +996,8 @@ export class SessionManager {
     const release = {
       id: screen.id,
       relationships: this.activeSession!.relationships || [],
-      rule_graph: this.clientGraph,
+      // the client graph's decision graph bytes when the session has one, otherwise its JSON
+      ...clientReleaseGraph(this.activeSession!, this.clientGraph),
       inferredOrder: this.activeSession!.inferredOrder,
     };
 
@@ -1029,9 +1040,11 @@ export class SessionManager {
               type: "screenUpdate",
               screen,
             },
+            // the solve's debug graph, as a decision graph (the legacy `graph` element is deprecated); `graph` is
+            // filled from it below, in the legacy shape
             debug
               ? {
-                type: "graph",
+                type: "decisionGraph",
                 debug: true,
               }
               : undefined,
@@ -1046,6 +1059,9 @@ export class SessionManager {
 
       if (result.error) {
         throw new Error(result.error.message);
+      }
+      if (debug && result.decisionGraph && result.graph === undefined) {
+        result.graph = legacyDebugGraph(result.decisionGraph, { rule_graph: this.clientGraph });
       }
     } catch (error: any) {
       console.error(LogGroup, "Rules engine failed to solve:", error);
@@ -1317,6 +1333,7 @@ export class SessionManager {
         navigate,
         overrides: this.getSessionOverrides(this.activeSession.sessionId, submitOverrides),
         clientGraphBookmark: this.getClientGraphBookmark(),
+        clientGraphFormat: CLIENT_GRAPH_FORMAT,
         readOnly: this.options.readOnly,
         remote,
       });
@@ -1449,6 +1466,7 @@ export class SessionManager {
           data: transformResponse(this.activeSession, data as any),
           overrides: this.getSessionOverrides(this.activeSession.sessionId, submitOverrides),
           clientGraphBookmark: this.getClientGraphBookmark(),
+          clientGraphFormat: CLIENT_GRAPH_FORMAT,
           readOnly: this.options.readOnly,
           remote,
         }),

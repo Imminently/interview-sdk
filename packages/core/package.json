@@ -34,6 +34,7 @@
   "dependencies": {
     "@dagrejs/graphlib": "^2.2.4",
     "@date-fns/utc": "^2.1.1",
+    "@imminently/decisively-core": "^0.5.0",
     "axios": "^1.13.1",
     "date-fns": "^4.1.0",
     "immer": "^11.0.0",
