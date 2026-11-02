@@ -1,5 +1,12 @@
 # @imminently/interview-ui
 
+## 5.2.2
+
+### Patch Changes
+
+- Updated dependencies [815bfc2]
+  - @imminently/interview-sdk@5.2.2
+
 ## 5.2.1
 
 ### Patch Changes
